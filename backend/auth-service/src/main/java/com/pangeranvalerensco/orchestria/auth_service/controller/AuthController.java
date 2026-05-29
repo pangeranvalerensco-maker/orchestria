@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pangeranvalerensco.orchestria.auth_service.payload.request.RegisterRequest;
+import com.pangeranvalerensco.orchestria.auth_service.payload.request.LoginRequest;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.UserResponse;
+import com.pangeranvalerensco.orchestria.auth_service.payload.response.AuthResponse;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
 
 import jakarta.validation.Valid;
@@ -28,5 +30,13 @@ public class AuthController {
     ) {
         ApiResponse<UserResponse> response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<AuthResponse>> login(
+        @Valid @RequestBody LoginRequest request
+    ) {
+        ApiResponse<AuthResponse> response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

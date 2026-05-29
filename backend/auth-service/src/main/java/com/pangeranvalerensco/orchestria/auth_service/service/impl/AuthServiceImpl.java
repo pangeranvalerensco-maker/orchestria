@@ -11,11 +11,14 @@ import com.pangeranvalerensco.orchestria.auth_service.entity.Permission;
 import com.pangeranvalerensco.orchestria.auth_service.entity.Role;
 import com.pangeranvalerensco.orchestria.auth_service.entity.User;
 import com.pangeranvalerensco.orchestria.auth_service.payload.request.RegisterRequest;
+import com.pangeranvalerensco.orchestria.auth_service.payload.request.LoginRequest;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.UserResponse;
+import com.pangeranvalerensco.orchestria.auth_service.payload.response.AuthResponse;
 import com.pangeranvalerensco.orchestria.auth_service.repository.RoleRepository;
 import com.pangeranvalerensco.orchestria.auth_service.repository.UserRepository;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
+import com.pangeranvalerensco.orchestria.auth_service.security.JWTService;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JWTService jwtService;
 
     @Override
     public ApiResponse<UserResponse> register(RegisterRequest request) {
@@ -78,6 +82,39 @@ public class AuthServiceImpl implements AuthService {
                 .active(user.getActive())
                 .roles(roles)
                 .permissions(permissions)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<AuthResponse> login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Email atau password salah"));
+
+        if(Boolean.FALSE.equals(user.getActive())) {
+            throw new RuntimeException("Akun tidak aktif");
+        }
+
+        boolean passwordMatch = passwordEncoder.matches(
+            request.getPassword(), 
+            user.getPassword()
+        );
+
+        if (!passwordMatch) {
+            throw new RuntimeException("Email atau password salah");
+        }
+
+        String token = jwtService.generateToken(user);
+
+        AuthResponse authResponse = AuthResponse.builder()
+                .tokenType("Bearer")
+                .accessToken(token)
+                .user(mapToUserResponse(user))
+                .build();
+
+        return ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .message("Login berhasil")
+                .data(authResponse)
                 .build();
     }
 }
