@@ -18,7 +18,7 @@ import com.pangeranvalerensco.orchestria.auth_service.payload.response.AuthRespo
 import com.pangeranvalerensco.orchestria.auth_service.repository.RoleRepository;
 import com.pangeranvalerensco.orchestria.auth_service.repository.UserRepository;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
-import com.pangeranvalerensco.orchestria.auth_service.security.JWTService;
+import com.pangeranvalerensco.orchestria.auth_service.security.JwtService;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JWTService jwtService;
+    private final JwtService jwtService;
 
     @Override
     public ApiResponse<UserResponse> register(RegisterRequest request) {
@@ -115,6 +115,18 @@ public class AuthServiceImpl implements AuthService {
                 .success(true)
                 .message("Login berhasil")
                 .data(authResponse)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<UserResponse> getCurrentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+
+        return ApiResponse.<UserResponse>builder()
+                .success(true)
+                .message("Data User berhasil diambil")
+                .data(mapToUserResponse(user))
                 .build();
     }
 }

@@ -1,5 +1,7 @@
 package com.pangeranvalerensco.orchestria.auth_service.controller;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +39,13 @@ public class AuthController {
         @Valid @RequestBody LoginRequest request
     ) {
         ApiResponse<AuthResponse> response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> me(Authentication authentication) {
+        String email = authentication.getName();
+        ApiResponse<UserResponse> response = authService.getCurrentUser(email);
         return ResponseEntity.ok(response);
     }
 }

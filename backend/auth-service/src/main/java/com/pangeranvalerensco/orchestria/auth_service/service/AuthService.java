@@ -11,4 +11,6 @@ public interface AuthService {
     ApiResponse<UserResponse> register(RegisterRequest request);
 
     ApiResponse<AuthResponse> login(LoginRequest request);
+
+    ApiResponse<UserResponse> getCurrentUser(String email);
 }
