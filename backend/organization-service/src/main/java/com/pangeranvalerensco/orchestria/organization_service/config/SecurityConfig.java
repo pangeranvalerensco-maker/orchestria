@@ -10,7 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.pangeranvalerensco.orchestria.organization_service.security.CustomAuthenticationEntryPoint;
-import com.pangeranvalerensco.orchestria.organization_service.security.CustomDeniedHandler;
+import com.pangeranvalerensco.orchestria.organization_service.security.CustomAccessDeniedHandler;
 import com.pangeranvalerensco.orchestria.organization_service.security.JwtAuthenticationFilter;
 
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-    private final CustomDeniedHandler customDeniedHandler;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> 
                     exceptions
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
-                        .accessDeniedHandler(customDeniedHandler)
+                        .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/", "/health").permitAll()
