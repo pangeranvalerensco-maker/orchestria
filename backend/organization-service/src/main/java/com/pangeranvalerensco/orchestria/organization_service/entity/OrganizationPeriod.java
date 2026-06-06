@@ -37,6 +37,14 @@ public class OrganizationPeriod {
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean currentPeriod = false;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean publicVisible = true;
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

@@ -33,6 +33,14 @@ public class Division {
 
     @Builder.Default
     @Column(nullable = false)
+    private Integer displayOrder = 99;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean publicVisible = true;
+
+    @Builder.Default
+    @Column(nullable = false)
     private Boolean active = true;
 
     @Builder.Default

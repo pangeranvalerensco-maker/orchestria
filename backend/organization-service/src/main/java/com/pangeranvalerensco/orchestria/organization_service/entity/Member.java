@@ -21,7 +21,8 @@ public class Member {
 
     /**
      * ID user dari auth-service.
-     * Nullable dulu, karena data anggota organisasi bisa dibuat sebelum akun auth dibuat.
+     * Nullable dulu, karena data anggota organisasi bisa dibuat sebelum akun auth
+     * dibuat.
      */
     private Long authUserId;
 
@@ -39,6 +40,23 @@ public class Member {
 
     @Column(length = 100)
     private String cohort;
+
+    @Column(length = 500)
+    private String profilePhotoUrl;
+
+    @Column(length = 100)
+    private String major;
+
+    @Column(length = 100)
+    private String campusClass;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean publicVisible = true;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer displayOrder = 99;
 
     @Enumerated(EnumType.STRING)
     @Builder.Default

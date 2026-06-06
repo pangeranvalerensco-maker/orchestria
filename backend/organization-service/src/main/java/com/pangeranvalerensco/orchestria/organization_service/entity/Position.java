@@ -46,6 +46,10 @@ public class Position {
 
     @Builder.Default
     @Column(nullable = false)
+    private Boolean publicVisible = true;
+
+    @Builder.Default
+    @Column(nullable = false)
     private Boolean active = true;
 
     @Builder.Default

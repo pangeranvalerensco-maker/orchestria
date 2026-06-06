@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/", "/health").permitAll()
+                    .requestMatchers("/", "/health", "/public/**").permitAll()
                     .anyRequest().authenticated()    
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
