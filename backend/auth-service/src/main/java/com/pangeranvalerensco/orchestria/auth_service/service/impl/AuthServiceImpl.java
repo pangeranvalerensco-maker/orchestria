@@ -40,13 +40,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Role defaultRole = roleRepository.findByName("ANGGOTA")
-                .orElseGet(() -> roleRepository.save(
-                        Role.builder()
-                                .name("ANGGOTA")
-                                .description("Role default untuk Anggota")
-                                .active(true)
-                                .build()
-                ));
+                .orElseThrow(() -> new ResourceNotFoundException("Role default Anggota tidak ditemukan"));
 
         User user = User.builder()
                 .fullName(request.getFullName())
