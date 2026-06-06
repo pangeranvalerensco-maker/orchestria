@@ -27,7 +27,7 @@ public class OrganizationPeriod {
 
     @Builder.Default
     @Column(nullable = false)
-    private Boolean isActive = true;
+    private Boolean active = true;
 
     @Builder.Default
     @Column(nullable = false, updatable = false)

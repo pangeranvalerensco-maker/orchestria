@@ -7,10 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.pangeranvalerensco.orchestria.organization_service.entity.OrganizationPeriod;
 
-public interface OrganizationRepository extends JpaRepository<OrganizationPeriod, Long> {
+public interface OrganizationPeriodRepository extends JpaRepository<OrganizationPeriod, Long> {
     
     Optional<OrganizationPeriod> findByName(String name);
     Optional<OrganizationPeriod> findByCurrentPeriodTrue();
     List<OrganizationPeriod> findByPublicVisibleTrueOrderByStartDateDesc();
+    List<OrganizationPeriod> findByActiveTrueOrderByStartDateDesc();
     boolean existsByName(String name);
 }
