@@ -31,7 +31,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                 .success(false)
                 .status(HttpStatus.FORBIDDEN.value())
                 .error(HttpStatus.FORBIDDEN.getReasonPhrase())
-                .message("Anda tidak memiliki untuk melakukan aksi ini")
+                .message("Anda tidak memiliki akses untuk melakukan aksi ini")
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
                 .details(null)
