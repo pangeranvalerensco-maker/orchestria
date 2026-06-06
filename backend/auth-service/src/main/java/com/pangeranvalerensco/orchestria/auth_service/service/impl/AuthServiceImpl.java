@@ -19,6 +19,10 @@ import com.pangeranvalerensco.orchestria.auth_service.repository.RoleRepository;
 import com.pangeranvalerensco.orchestria.auth_service.repository.UserRepository;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
 import com.pangeranvalerensco.orchestria.auth_service.security.JwtService;
+import com.pangeranvalerensco.orchestria.auth_service.exception.BadRequestException;
+import com.pangeranvalerensco.orchestria.auth_service.exception.UnauthorizedException;
+import com.pangeranvalerensco.orchestria.auth_service.exception.ResourceNotFoundException;
+import com.pangeranvalerensco.orchestria.auth_service.exception.ForbiddenException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponse<UserResponse> register(RegisterRequest request) {
         if(userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email sudah terdaftar");
+            throw new BadRequestException("Email sudah terdaftar");
         }
 
         Role defaultRole = roleRepository.findByName("ANGGOTA")
@@ -88,10 +92,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponse<AuthResponse> login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Email atau password salah"));
+                .orElseThrow(() -> new UnauthorizedException("Email atau password salah"));
 
         if(Boolean.FALSE.equals(user.getActive())) {
-            throw new RuntimeException("Akun tidak aktif");
+            throw new ForbiddenException("Akun tidak aktif");
         }
 
         boolean passwordMatch = passwordEncoder.matches(
@@ -100,7 +104,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         if (!passwordMatch) {
-            throw new RuntimeException("Email atau password salah");
+            throw new UnauthorizedException("Email atau password salah");
         }
 
         String token = jwtService.generateToken(user);
@@ -121,7 +125,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponse<UserResponse> getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User tidak ditemukan"));
+                .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
 
         return ApiResponse.<UserResponse>builder()
                 .success(true)
