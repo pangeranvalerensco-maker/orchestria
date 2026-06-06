@@ -1,6 +1,8 @@
 package com.pangeranvalerensco.orchestria.auth_service.config;
 
 import com.pangeranvalerensco.orchestria.auth_service.security.JwtAuthenticationFilter;
+import com.pangeranvalerensco.orchestria.auth_service.security.CustomAccessDeniedHandler;
+import com.pangeranvalerensco.orchestria.auth_service.security.CustomAuthenticationEntryPoint;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +19,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -26,6 +30,10 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .exceptionHandling(exception -> 
+                exception.accessDeniedHandler(customAccessDeniedHandler)
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
             )
             .authorizeHttpRequests(auth -> 
                     auth.requestMatchers(
