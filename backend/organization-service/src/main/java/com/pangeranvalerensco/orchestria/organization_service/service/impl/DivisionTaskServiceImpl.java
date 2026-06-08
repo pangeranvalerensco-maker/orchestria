@@ -1,0 +1,234 @@
+package com.pangeranvalerensco.orchestria.organization_service.service.impl;
+
+import com.pangeranvalerensco.orchestria.organization_service.entity.Division;
+import com.pangeranvalerensco.orchestria.organization_service.entity.DivisionTask;
+import com.pangeranvalerensco.orchestria.organization_service.entity.Member;
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.TaskPriority;
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.TaskStatus;
+import com.pangeranvalerensco.orchestria.organization_service.exception.ResourceNotFoundException;
+import com.pangeranvalerensco.orchestria.organization_service.payload.request.DivisionTaskRequest;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.DivisionTaskResponse;
+import com.pangeranvalerensco.orchestria.organization_service.repository.DivisionRepository;
+import com.pangeranvalerensco.orchestria.organization_service.repository.DivisionTaskRepository;
+import com.pangeranvalerensco.orchestria.organization_service.repository.MemberRepository;
+import com.pangeranvalerensco.orchestria.organization_service.service.DivisionTaskService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class DivisionTaskServiceImpl implements DivisionTaskService {
+
+    private final DivisionTaskRepository taskRepository;
+    private final DivisionRepository divisionRepository;
+    private final MemberRepository memberRepository;
+
+    @Override
+    public ApiResponse<List<DivisionTaskResponse>> getAllTasks() {
+        List<DivisionTaskResponse> tasks = taskRepository.findAll()
+                .stream()
+                .filter(DivisionTask::getActive)
+                .map(this::mapToResponse)
+                .toList();
+
+        return ApiResponse.<List<DivisionTaskResponse>>builder()
+                .success(true)
+                .message("Daftar tugas divisi berhasil diambil")
+                .data(tasks)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<List<DivisionTaskResponse>> getTasksByDivision(Long divisionId) {
+        Division division = findDivisionById(divisionId);
+
+        List<DivisionTaskResponse> tasks = taskRepository
+                .findByDivisionAndActiveTrueOrderByDueDateAscCreatedAtDesc(division)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+
+        return ApiResponse.<List<DivisionTaskResponse>>builder()
+                .success(true)
+                .message("Daftar tugas berdasarkan divisi berhasil diambil")
+                .data(tasks)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<List<DivisionTaskResponse>> getTasksByAssignedMember(Long memberId) {
+        Member member = findMemberById(memberId);
+
+        List<DivisionTaskResponse> tasks = taskRepository
+                .findByAssignedMemberAndActiveTrueOrderByDueDateAscCreatedAtDesc(member)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+
+        return ApiResponse.<List<DivisionTaskResponse>>builder()
+                .success(true)
+                .message("Daftar tugas berdasarkan anggota berhasil diambil")
+                .data(tasks)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<List<DivisionTaskResponse>> getTasksByStatus(TaskStatus status) {
+        List<DivisionTaskResponse> tasks = taskRepository
+                .findByStatusAndActiveTrueOrderByDueDateAscCreatedAtDesc(status)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+
+        return ApiResponse.<List<DivisionTaskResponse>>builder()
+                .success(true)
+                .message("Daftar tugas berdasarkan status berhasil diambil")
+                .data(tasks)
+                .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskResponse> getTaskById(Long id) {
+        DivisionTask task = findTaskById(id);
+
+        return ApiResponse.<DivisionTaskResponse>builder()
+                .success(true)
+                .message("Detail tugas divisi berhasil diambil")
+                .data(mapToResponse(task))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskResponse> createTask(DivisionTaskRequest request) {
+        Division division = findDivisionById(request.getDivisionId());
+        Member assignedMember = null;
+
+        if (request.getAssignedMemberId() != null) {
+            assignedMember = findMemberById(request.getAssignedMemberId());
+        }
+
+        DivisionTask task = DivisionTask.builder()
+                .division(division)
+                .assignedMember(assignedMember)
+                .title(request.getTitle().trim())
+                .description(trimOrNull(request.getDescription()))
+                .dueDate(request.getDueDate())
+                .status(defaultIfNull(request.getStatus(), TaskStatus.TODO))
+                .priority(defaultIfNull(request.getPriority(), TaskPriority.MEDIUM))
+                .active(true)
+                .build();
+
+        DivisionTask savedTask = taskRepository.save(task);
+
+        return ApiResponse.<DivisionTaskResponse>builder()
+                .success(true)
+                .message("Tugas divisi berhasil dibuat")
+                .data(mapToResponse(savedTask))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskResponse> updateTask(Long id, DivisionTaskRequest request) {
+        DivisionTask task = findTaskById(id);
+
+        Division division = findDivisionById(request.getDivisionId());
+        Member assignedMember = null;
+
+        if (request.getAssignedMemberId() != null) {
+            assignedMember = findMemberById(request.getAssignedMemberId());
+        }
+
+        task.setDivision(division);
+        task.setAssignedMember(assignedMember);
+        task.setTitle(request.getTitle().trim());
+        task.setDescription(trimOrNull(request.getDescription()));
+        task.setDueDate(request.getDueDate());
+        task.setStatus(defaultIfNull(request.getStatus(), TaskStatus.TODO));
+        task.setPriority(defaultIfNull(request.getPriority(), TaskPriority.MEDIUM));
+
+        DivisionTask savedTask = taskRepository.save(task);
+
+        return ApiResponse.<DivisionTaskResponse>builder()
+                .success(true)
+                .message("Tugas divisi berhasil diperbarui")
+                .data(mapToResponse(savedTask))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskResponse> updateTaskStatus(Long id, TaskStatus status) {
+        DivisionTask task = findTaskById(id);
+        task.setStatus(status);
+
+        DivisionTask savedTask = taskRepository.save(task);
+
+        return ApiResponse.<DivisionTaskResponse>builder()
+                .success(true)
+                .message("Status tugas divisi berhasil diperbarui")
+                .data(mapToResponse(savedTask))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<Void> deleteTask(Long id) {
+        DivisionTask task = findTaskById(id);
+        task.setActive(false);
+        taskRepository.save(task);
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Tugas divisi berhasil dinonaktifkan")
+                .data(null)
+                .build();
+    }
+
+    private DivisionTask findTaskById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tugas divisi tidak ditemukan"));
+    }
+
+    private Division findDivisionById(Long id) {
+        return divisionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Divisi tidak ditemukan"));
+    }
+
+    private Member findMemberById(Long id) {
+        return memberRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Anggota tidak ditemukan"));
+    }
+
+    private DivisionTaskResponse mapToResponse(DivisionTask task) {
+        Member assignedMember = task.getAssignedMember();
+
+        return DivisionTaskResponse.builder()
+                .id(task.getId())
+                .divisionId(task.getDivision().getId())
+                .divisionCode(task.getDivision().getCode())
+                .divisionName(task.getDivision().getName())
+                .assignedMemberId(assignedMember != null ? assignedMember.getId() : null)
+                .assignedMemberName(assignedMember != null ? assignedMember.getFullName() : null)
+                .title(task.getTitle())
+                .description(task.getDescription())
+                .dueDate(task.getDueDate())
+                .status(task.getStatus())
+                .priority(task.getPriority())
+                .active(task.getActive())
+                .createdAt(task.getCreatedAt())
+                .updatedAt(task.getUpdatedAt())
+                .build();
+    }
+
+    private String trimOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private <T> T defaultIfNull(T value, T defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+}
