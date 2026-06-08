@@ -2,7 +2,6 @@ package com.pangeranvalerensco.orchestria.auth_service.security;
 
 import com.pangeranvalerensco.orchestria.auth_service.entity.Permission;
 import com.pangeranvalerensco.orchestria.auth_service.entity.User;
-import com.pangeranvalerensco.orchestria.auth_service.entity.Role;
 import com.pangeranvalerensco.orchestria.auth_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;

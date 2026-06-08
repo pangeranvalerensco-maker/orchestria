@@ -14,9 +14,9 @@ public interface OrganizationPeriodService {
 
     ApiResponse<OrganizationPeriodResponse> getPeriodById(Long id);
 
-    ApiResponse<OrganizationPeriodResponse> createPeriode(OrganizationPeriodRequest request);
+    ApiResponse<OrganizationPeriodResponse> createPeriod(OrganizationPeriodRequest request);
 
     ApiResponse<OrganizationPeriodResponse> updatePeriod(Long id, OrganizationPeriodRequest request);
 
-    ApiResponse<Void> deletePeriode(Long id);
+    ApiResponse<Void> deletePeriod(Long id);
 }

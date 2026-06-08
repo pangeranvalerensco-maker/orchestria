@@ -59,7 +59,7 @@ public class OrganizationPeriodServiceImpl implements OrganizationPeriodService 
     }
 
     @Override
-    public ApiResponse<OrganizationPeriodResponse> createPeriode(OrganizationPeriodRequest request) {
+    public ApiResponse<OrganizationPeriodResponse> createPeriod(OrganizationPeriodRequest request) {
         String name = request.getName().trim();
 
         if (periodRepository.existsByName(name)) {
@@ -121,7 +121,7 @@ public class OrganizationPeriodServiceImpl implements OrganizationPeriodService 
 
 
     @Override
-    public ApiResponse<Void> deletePeriode(Long id) {
+    public ApiResponse<Void> deletePeriod(Long id) {
         OrganizationPeriod period = findPeriodById(id);
 
         if(Boolean.TRUE.equals(period.getCurrentPeriod())){

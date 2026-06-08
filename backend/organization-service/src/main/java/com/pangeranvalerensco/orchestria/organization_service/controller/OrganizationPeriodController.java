@@ -1,6 +1,5 @@
 package com.pangeranvalerensco.orchestria.organization_service.controller;
 
-import java.net.ResponseCache;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -54,7 +53,7 @@ public class OrganizationPeriodController {
     public ResponseEntity<ApiResponse<OrganizationPeriodResponse>> createPeriod(
             @Valid @RequestBody OrganizationPeriodRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(periodService.createPeriode(request));
+                .body(periodService.createPeriod(request));
     }
 
     @PutMapping("/{id}")
@@ -69,6 +68,6 @@ public class OrganizationPeriodController {
     @PreAuthorize("hasAuthority('organization.manage')")
     public ResponseEntity<ApiResponse<Void>> deletePeriod(
             @PathVariable Long id) {
-        return ResponseEntity.ok(periodService.deletePeriode(id));
+        return ResponseEntity.ok(periodService.deletePeriod(id));
     }
 }
