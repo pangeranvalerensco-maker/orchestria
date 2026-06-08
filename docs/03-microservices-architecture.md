@@ -18,7 +18,24 @@ Mengelola autentikasi, user, role, permission, profil pengguna, dan token akses.
 
 ### organization-service
 
-Mengelola struktur organisasi PUB, data divisi, jabatan, periode kepengurusan, dan relasi anggota ke divisi.
+Mengelola data organisasi PUB, baik untuk kebutuhan internal sistem maupun kebutuhan publik web PUB.
+
+Tanggung jawab utama:
+- Periode kepengurusan organisasi.
+- Divisi organisasi.
+- Jabatan/position organisasi.
+- Data anggota/mahasiswa PUB.
+- Penugasan anggota ke periode, divisi, dan jabatan.
+- Tugas operasional divisi.
+- Bukti/dokumentasi tugas divisi.
+- Endpoint publik untuk struktur organisasi dan daftar anggota yang boleh ditampilkan di web PUB.
+
+Catatan desain:
+- organization-service tidak menyimpan tabel users, roles, dan permissions.
+- Identitas login dan authority berasal dari JWT yang dibuat oleh auth-service.
+- organization-service hanya memvalidasi token dan membaca claims seperti email, roles, dan permissions.
+- Endpoint internal menggunakan prefix `/api/organization/**`.
+- Endpoint publik menggunakan prefix `/public/organization/**`.
 
 ### request-service
 
@@ -62,3 +79,5 @@ Draft pola komunikasi:
 - Database per service lebih sesuai dengan prinsip microservices.
 - Shared database dihindari kecuali ada alasan kuat pada tahap implementasi.
 - Integrasi laporan dapat menggunakan read model atau agregasi data dari event.
+- Authentication antar service menggunakan JWT stateless. Service selain auth-service tidak menyimpan session user dan tidak mengakses database auth-service secara langsung.
+- Data jabatan organisasi seperti Ketua PUB, Keamanan, Sekretaris, Bendahara, Coach Instruktur, dan Koordinator Divisi disimpan sebagai Position, bukan sebagai security role.

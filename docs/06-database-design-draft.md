@@ -36,22 +36,34 @@ Data utama:
 
 ## organization-service
 
-Entitas awal:
+Entitas implementasi saat ini:
 
-- organizations
-- divisions
-- members
-- positions
-- member_positions
 - organization_periods
+- divisions
+- positions
+- members
+- member_assignments
+- division_tasks
+- division_task_evidences
 
 Data utama:
 
-- Profil organisasi PUB.
-- Daftar divisi.
-- Data anggota.
-- Jabatan dan periode kepengurusan.
-- Relasi anggota dengan divisi dan jabatan.
+- Periode kepengurusan PUB.
+- Divisi organisasi.
+- Jabatan atau position organisasi.
+- Data anggota/mahasiswa PUB.
+- Relasi anggota dengan periode, divisi, dan jabatan.
+- Tugas operasional divisi.
+- Bukti atau dokumentasi tugas divisi.
+- Data yang boleh ditampilkan untuk web publik PUB.
+
+Catatan desain:
+
+- `members.auth_user_id` menyimpan referensi ID user dari auth-service, tetapi tidak menggunakan foreign key lintas database.
+- `member_assignments` menghubungkan `members`, `organization_periods`, `divisions`, dan `positions`.
+- `positions` digunakan untuk jabatan organisasi seperti Ketua PUB, Keamanan, Sekretaris, Bendahara, Coach Instruktur, Koordinator Divisi, Instruktur, dan Anggota.
+- `divisions` digunakan untuk unit kerja seperti Divdik, Humas, Kesejahteraan, Kebersihan, Bahasa Inggris, Kerohanian, Keasramaan, Kesehatan, PPMB, dan Aset.
+- Endpoint publik hanya mengembalikan data yang aman untuk web, sedangkan data internal seperti nomor telepon dan auth reference tidak wajib ditampilkan ke publik.
 
 ## request-service
 

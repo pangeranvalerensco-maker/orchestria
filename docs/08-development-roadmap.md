@@ -1,5 +1,41 @@
 # 08. Development Roadmap
 
+## Update Progress per 9 Juni 2026
+
+Status implementasi:
+
+- auth-service core selesai:
+  - Register.
+  - Login.
+  - JWT generation.
+  - JWT validation.
+  - Current user endpoint.
+  - Role and permission seeder.
+  - Auth admin endpoints.
+  - Custom exception handling.
+  - Custom security error response.
+
+- organization-service core selesai:
+  - JWT security stateless berbasis token dari auth-service.
+  - Division management.
+  - Position management.
+  - Organization period management.
+  - Member management.
+  - Member assignment management.
+  - Public organization API.
+  - Division task management.
+  - Division task evidence management.
+  - Organization master data seeder.
+
+Fokus berikutnya:
+
+- request-service:
+  - Pengajuan dana operasional.
+  - Request item.
+  - Approval flow.
+  - PostgreSQL trigger untuk total amount.
+  - Leave permit request untuk izin keluar/asrama.
+
 ## Fase 0: Dokumentasi Konsep
 
 Target:
@@ -85,17 +121,15 @@ Target:
 - Review performa.
 - Dokumentasi operasional.
 
-## Prioritas MVP
+## Prioritas MVP Terbaru
 
-1. Auth dan role dasar
-2. Organization data: anggota, divisi, jabatan
-3. Pengajuan divisi
-4. Approval Ketua Divisi, Ketua PUB, dan Pembina
-5. Pencairan dana
-6. Penerimaan dana oleh pengaju
-7. Upload struk dan settlement
-8. Dana kurang dan pengembalian dana lebih
-9. Arsip dokumen sederhana
-10. Email notification
-11. Laporan dasar
-12. API Gateway
+1. Auth-service dan role/permission dasar.
+2. Organization-service untuk struktur organisasi, anggota, divisi, jabatan, task, dan public API.
+3. Request-service untuk pengajuan dana dan izin keluar.
+4. Approval flow Ketua Divisi/Ketua PUB/Pembina untuk pengajuan dana.
+5. Approval flow Keasramaan/Keamanan/Ketua PUB/Pembina untuk izin keluar.
+6. Finance-service untuk pencairan, settlement, dana kurang, dan pengembalian dana lebih.
+7. Notification-report-service untuk email, scheduler, PDF, Excel, dan laporan.
+8. API Gateway dengan routing, path rewrite, CORS, dan rate limiting.
+9. Frontend React untuk demo end-to-end.
+10. Dokumentasi final dan Postman collection.
