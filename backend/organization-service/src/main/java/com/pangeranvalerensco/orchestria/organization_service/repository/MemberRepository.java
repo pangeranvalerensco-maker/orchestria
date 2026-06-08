@@ -13,6 +13,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     Optional<Member> findByAuthUserId(Long authUserId);
 
+    Optional<Member> findByStudentNumber(String studentNumber);
+
     List<Member> findByCohortAndPublicVisibleTrueAndActiveTrueOrderByDisplayOrderAscFullNameAsc(String cohort);
 
     List<Member> findByStatusAndActiveTrueOrderByFullNameAsc(MemberStatus status);

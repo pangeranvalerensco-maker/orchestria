@@ -102,13 +102,11 @@ public class MemberServiceImpl implements MemberService {
 
         String studentNumber = trimOrNull(request.getStudentNumber());
         if (studentNumber != null) {
-            memberRepository.findAll().stream()
-                    .filter(existing -> studentNumber.equals(existing.getStudentNumber()))
-                    .filter(existing -> !existing.getId().equals(id))
-                    .findFirst()
-                    .ifPresent(existing -> {
-                        throw new BadRequestException("NIM anggota sudah digunakan");
-                    });
+            memberRepository.findByStudentNumber(studentNumber).ifPresent(existing ->{
+                if(!existing.getId().equals(id)){
+                    throw new BadRequestException("NIM Anggota sudah digunakan");
+                }
+            });
         }
 
         member.setAuthUserId(request.getAuthUserId());
