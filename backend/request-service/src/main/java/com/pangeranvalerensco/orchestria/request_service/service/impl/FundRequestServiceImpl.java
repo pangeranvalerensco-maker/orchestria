@@ -1,0 +1,150 @@
+package com.pangeranvalerensco.orchestria.request_service.service.impl;
+
+import com.pangeranvalerensco.orchestria.request_service.entity.FundRequest;
+import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
+import com.pangeranvalerensco.orchestria.request_service.payload.request.CreateFundRequestRequest;
+import com.pangeranvalerensco.orchestria.request_service.payload.response.FundRequestResponse;
+import com.pangeranvalerensco.orchestria.request_service.payload.response.PageResponse;
+import com.pangeranvalerensco.orchestria.request_service.repository.FundRequestRepository;
+import com.pangeranvalerensco.orchestria.request_service.service.FundRequestService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class FundRequestServiceImpl implements FundRequestService {
+
+    private final FundRequestRepository fundRequestRepository;
+
+    @Override
+    @Transactional
+    public FundRequestResponse create(CreateFundRequestRequest request, String currentUserEmail) {
+        FundRequest fundRequest = FundRequest.builder()
+                .divisionId(request.getDivisionId())
+                .divisionName(request.getDivisionName())
+                .requesterMemberId(request.getRequesterMemberId())
+                .requesterName(request.getRequesterName())
+                .requesterAuthUserId(request.getRequesterAuthUserId())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .activityDate(request.getActivityDate())
+                .priority(request.getPriority())
+                .status(FundRequestStatus.DRAFT)
+                .createdByEmail(currentUserEmail)
+                .updatedByEmail(currentUserEmail)
+                .build();
+
+        FundRequest saved = fundRequestRepository.save(fundRequest);
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<FundRequestResponse> getAll(
+            FundRequestStatus status,
+            Long divisionId,
+            Long requesterMemberId,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection
+    ) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, sort);
+
+        Specification<FundRequest> specification = activeOnly();
+
+        if (status != null) {
+            specification = specification.and(hasStatus(status));
+        }
+
+        if (divisionId != null) {
+            specification = specification.and(hasDivisionId(divisionId));
+        }
+
+        if (requesterMemberId != null) {
+            specification = specification.and(hasRequesterMemberId(requesterMemberId));
+        }
+
+        Page<FundRequest> pageResult = fundRequestRepository.findAll(specification, pageable);
+
+        return PageResponse.<FundRequestResponse>builder()
+                .content(pageResult.getContent().stream()
+                        .map(this::mapToResponse)
+                        .toList())
+                .page(pageResult.getNumber())
+                .size(pageResult.getSize())
+                .totalElements(pageResult.getTotalElements())
+                .totalPages(pageResult.getTotalPages())
+                .first(pageResult.isFirst())
+                .last(pageResult.isLast())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FundRequestResponse getById(Long id) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new RuntimeException("Pengajuan dana tidak ditemukan"));
+
+        return mapToResponse(fundRequest);
+    }
+
+    private Specification<FundRequest> activeOnly() {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.isTrue(root.get("active"));
+    }
+
+    private Specification<FundRequest> hasStatus(FundRequestStatus status) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("status"), status);
+    }
+
+    private Specification<FundRequest> hasDivisionId(Long divisionId) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("divisionId"), divisionId);
+    }
+
+    private Specification<FundRequest> hasRequesterMemberId(Long requesterMemberId) {
+        return (root, query, criteriaBuilder) ->
+                criteriaBuilder.equal(root.get("requesterMemberId"), requesterMemberId);
+    }
+
+    private FundRequestResponse mapToResponse(FundRequest fundRequest) {
+        return FundRequestResponse.builder()
+                .id(fundRequest.getId())
+                .divisionId(fundRequest.getDivisionId())
+                .divisionName(fundRequest.getDivisionName())
+                .requesterMemberId(fundRequest.getRequesterMemberId())
+                .requesterName(fundRequest.getRequesterName())
+                .requesterAuthUserId(fundRequest.getRequesterAuthUserId())
+                .title(fundRequest.getTitle())
+                .description(fundRequest.getDescription())
+                .activityDate(fundRequest.getActivityDate())
+                .priority(fundRequest.getPriority())
+                .status(fundRequest.getStatus())
+                .totalAmount(fundRequest.getTotalAmount())
+                .submittedAt(fundRequest.getSubmittedAt())
+                .completedAt(fundRequest.getCompletedAt())
+                .active(fundRequest.getActive())
+                .createdByEmail(fundRequest.getCreatedByEmail())
+                .updatedByEmail(fundRequest.getUpdatedByEmail())
+                .createdAt(fundRequest.getCreatedAt())
+                .updatedAt(fundRequest.getUpdatedAt())
+                .build();
+    }
+}
