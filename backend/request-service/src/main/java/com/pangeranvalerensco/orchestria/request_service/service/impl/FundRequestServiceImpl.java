@@ -11,8 +11,13 @@ import com.pangeranvalerensco.orchestria.request_service.repository.FundRequestR
 import com.pangeranvalerensco.orchestria.request_service.repository.RequestItemRepository;
 import com.pangeranvalerensco.orchestria.request_service.service.FundRequestService;
 import com.pangeranvalerensco.orchestria.request_service.exception.ResourceNotFoundException;
+import com.pangeranvalerensco.orchestria.request_service.entity.RequestStatusHistory;
+import com.pangeranvalerensco.orchestria.request_service.exception.BadRequestException;
+import com.pangeranvalerensco.orchestria.request_service.repository.RequestStatusHistoryRepository;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -29,6 +34,7 @@ public class FundRequestServiceImpl implements FundRequestService {
 
     private final FundRequestRepository fundRequestRepository;
     private final RequestItemRepository requestItemRepository;
+    private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
     @Override
     @Transactional
@@ -168,5 +174,41 @@ public class FundRequestServiceImpl implements FundRequestService {
                 .updatedAt(fundRequest.getUpdatedAt())
                 .items(itemResponses)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public FundRequestResponse submit(Long id, String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.DRAFT) {
+            throw new BadRequestException("Hanya pengajuan berstatus DRAFT yang bisa disubmit");
+        }
+
+        if (fundRequest.getTotalAmount() == null || fundRequest.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "Pengajuan harus memiliki minimal satu item dengan total lebih dari 0 sebelum disubmit");
+        }
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.SUBMITTED);
+        fundRequest.setSubmittedAt(LocalDateTime.now());
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest saved = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(saved)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.SUBMITTED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Pengajuan dana disubmit")
+                        .build());
+
+        return mapToResponse(saved);
     }
 }

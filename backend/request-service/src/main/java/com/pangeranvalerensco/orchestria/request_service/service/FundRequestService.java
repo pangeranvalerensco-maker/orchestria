@@ -20,4 +20,6 @@ public interface FundRequestService {
     );
 
     FundRequestResponse getById(Long id);
+
+    FundRequestResponse submit(Long id, String currentUserEmail);
 }
