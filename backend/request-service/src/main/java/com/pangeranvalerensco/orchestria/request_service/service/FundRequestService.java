@@ -34,4 +34,11 @@ public interface FundRequestService {
             String currentUserEmail);
 
     RequestSettlementResponse approveSettlement(Long id, String currentUserEmail);
+
+    PageResponse<FundRequestResponse> getMyRequests(
+            String currentUserEmail,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection);
 }

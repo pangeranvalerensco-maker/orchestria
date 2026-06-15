@@ -399,4 +399,41 @@ public class FundRequestServiceImpl implements FundRequestService {
                 .updatedAt(settlement.getUpdatedAt())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<FundRequestResponse> getMyRequests(
+            String currentUserEmail,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+
+        Sort sort = sortDirection.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+
+        Pageable pageable = PageRequest.of(safePage, safeSize, sort);
+
+        Specification<FundRequest> specification = (root, query, criteriaBuilder) -> criteriaBuilder.and(
+                criteriaBuilder.isTrue(root.get("active")),
+                criteriaBuilder.equal(root.get("createdByEmail"), currentUserEmail));
+
+        Page<FundRequest> pageResult = fundRequestRepository.findAll(specification, pageable);
+
+        return PageResponse.<FundRequestResponse>builder()
+                .content(pageResult.getContent()
+                        .stream()
+                        .map(this::mapToResponse)
+                        .toList())
+                .page(pageResult.getNumber())
+                .size(pageResult.getSize())
+                .totalElements(pageResult.getTotalElements())
+                .totalPages(pageResult.getTotalPages())
+                .first(pageResult.isFirst())
+                .last(pageResult.isLast())
+                .build();
+    }
 }

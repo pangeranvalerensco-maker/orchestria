@@ -67,6 +67,31 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.read.own')")
+        @GetMapping("/my")
+        public ResponseEntity<ApiResponse<PageResponse<FundRequestResponse>>> getMyRequests(
+                        @RequestParam(defaultValue = "0") int page,
+                        @RequestParam(defaultValue = "10") int size,
+                        @RequestParam(defaultValue = "createdAt") String sortBy,
+                        @RequestParam(defaultValue = "desc") String sortDirection,
+                        Authentication authentication) {
+                String currentUserEmail = authentication.getName();
+
+                PageResponse<FundRequestResponse> response = fundRequestService.getMyRequests(
+                                currentUserEmail,
+                                page,
+                                size,
+                                sortBy,
+                                sortDirection);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<PageResponse<FundRequestResponse>>builder()
+                                                .success(true)
+                                                .message("Data pengajuan milik saya berhasil diambil")
+                                                .data(response)
+                                                .build());
+        }
+
         @PreAuthorize("hasAuthority('request.read.all')")
         @GetMapping("/{id}")
         public ResponseEntity<ApiResponse<FundRequestResponse>> getById(@PathVariable Long id) {
