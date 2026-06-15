@@ -1,6 +1,5 @@
 package com.pangeranvalerensco.orchestria.request_service.exception;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -53,7 +52,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ErrorResponse<Void>> handleForbiddenException(
-            BadRequestException ex,
+            ForbiddenException ex,
             HttpServletRequest request
     ){
         ErrorResponse<Void> response = ErrorResponse.<Void>builder()

@@ -1,14 +1,14 @@
 package com.pangeranvalerensco.orchestria.request_service.payload.response;
 
+import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
+import com.pangeranvalerensco.orchestria.request_service.entity.enums.RequestPriority;
+import lombok.Builder;
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
-import com.pangeranvalerensco.orchestria.request_service.entity.enums.RequestPriority;
-
-import lombok.Builder;
-import lombok.Data;
+import java.util.List;
 
 @Data
 @Builder
@@ -42,4 +42,6 @@ public class FundRequestResponse {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private List<RequestItemResponse> items;
 }
