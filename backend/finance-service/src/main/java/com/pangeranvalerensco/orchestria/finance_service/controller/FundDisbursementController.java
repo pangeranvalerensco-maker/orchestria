@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/finance/disbursements")
@@ -20,6 +21,7 @@ public class FundDisbursementController {
 
     private final FundDisbursementService fundDisbursementService;
 
+    @PreAuthorize("hasAuthority('finance.disburse')")
     @PostMapping
     public ResponseEntity<ApiResponse<FundDisbursementResponse>> create(
             @Valid @RequestBody CreateFundDisbursementRequest request,
@@ -41,6 +43,7 @@ public class FundDisbursementController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('finance.report.read', 'finance.disburse')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<FundDisbursementResponse>>> getAll(
             @RequestParam(required = false) DisbursementStatus status,
@@ -66,6 +69,7 @@ public class FundDisbursementController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('finance.report.read', 'finance.disburse')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<FundDisbursementResponse>> getById(@PathVariable Long id) {
         FundDisbursementResponse response = fundDisbursementService.getById(id);
@@ -79,6 +83,7 @@ public class FundDisbursementController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('finance.report.read', 'finance.disburse')")
     @GetMapping("/by-request/{fundRequestId}")
     public ResponseEntity<ApiResponse<FundDisbursementResponse>> getByFundRequestId(
             @PathVariable Long fundRequestId

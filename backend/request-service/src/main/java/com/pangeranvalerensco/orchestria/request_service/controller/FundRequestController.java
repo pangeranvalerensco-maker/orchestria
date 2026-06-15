@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/requests")
@@ -22,6 +23,7 @@ public class FundRequestController {
 
         private final FundRequestService fundRequestService;
 
+        @PreAuthorize("hasAuthority('request.create')")
         @PostMapping
         public ResponseEntity<ApiResponse<FundRequestResponse>> create(
                         @Valid @RequestBody CreateFundRequestRequest request,
@@ -38,6 +40,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.read.all')")
         @GetMapping
         public ResponseEntity<ApiResponse<PageResponse<FundRequestResponse>>> getAll(
                         @RequestParam(required = false) FundRequestStatus status,
@@ -64,6 +67,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.read.all')")
         @GetMapping("/{id}")
         public ResponseEntity<ApiResponse<FundRequestResponse>> getById(@PathVariable Long id) {
                 FundRequestResponse response = fundRequestService.getById(id);
@@ -76,6 +80,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.create')")
         @PostMapping("/{id}/submit")
         public ResponseEntity<ApiResponse<FundRequestResponse>> submit(
                         @PathVariable Long id,
@@ -92,6 +97,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.disburse')")
         @PostMapping("/{id}/mark-disbursed")
         public ResponseEntity<ApiResponse<FundRequestResponse>> markDisbursed(
                         @PathVariable Long id,
@@ -108,6 +114,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.create')")
         @PostMapping("/{id}/confirm-received")
         public ResponseEntity<ApiResponse<FundRequestResponse>> markFundReceived(
                         @PathVariable Long id,
@@ -124,6 +131,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.create')")
         @PostMapping("/{id}/settlement")
         public ResponseEntity<ApiResponse<RequestSettlementResponse>> submitSettlement(
                         @PathVariable Long id,
@@ -144,6 +152,7 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.settlement.verify')")
         @PostMapping("/{id}/settlement/approve")
         public ResponseEntity<ApiResponse<RequestSettlementResponse>> approveSettlement(
                         @PathVariable Long id,

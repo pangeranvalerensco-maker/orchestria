@@ -7,6 +7,7 @@ import com.pangeranvalerensco.orchestria.request_service.service.RequestTimeline
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -15,35 +16,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RequestTimelineController {
 
-    private final RequestTimelineService requestTimelineService;
+        private final RequestTimelineService requestTimelineService;
 
-    @GetMapping("/approvals")
-    public ResponseEntity<ApiResponse<List<RequestApprovalResponse>>> getApprovals(
-            @PathVariable Long requestId
-    ) {
-        List<RequestApprovalResponse> response = requestTimelineService.getApprovals(requestId);
+        @PreAuthorize("hasAuthority('request.read.all')")
+        @GetMapping("/approvals")
+        public ResponseEntity<ApiResponse<List<RequestApprovalResponse>>> getApprovals(
+                        @PathVariable Long requestId) {
+                List<RequestApprovalResponse> response = requestTimelineService.getApprovals(requestId);
 
-        return ResponseEntity.ok(
-                ApiResponse.<List<RequestApprovalResponse>>builder()
-                        .success(true)
-                        .message("Data approval pengajuan berhasil diambil")
-                        .data(response)
-                        .build()
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.<List<RequestApprovalResponse>>builder()
+                                                .success(true)
+                                                .message("Data approval pengajuan berhasil diambil")
+                                                .data(response)
+                                                .build());
+        }
 
-    @GetMapping("/histories")
-    public ResponseEntity<ApiResponse<List<RequestStatusHistoryResponse>>> getHistories(
-            @PathVariable Long requestId
-    ) {
-        List<RequestStatusHistoryResponse> response = requestTimelineService.getHistories(requestId);
+        @PreAuthorize("hasAuthority('request.read.all')")
+        @GetMapping("/histories")
+        public ResponseEntity<ApiResponse<List<RequestStatusHistoryResponse>>> getHistories(
+                        @PathVariable Long requestId) {
+                List<RequestStatusHistoryResponse> response = requestTimelineService.getHistories(requestId);
 
-        return ResponseEntity.ok(
-                ApiResponse.<List<RequestStatusHistoryResponse>>builder()
-                        .success(true)
-                        .message("Histori status pengajuan berhasil diambil")
-                        .data(response)
-                        .build()
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.<List<RequestStatusHistoryResponse>>builder()
+                                                .success(true)
+                                                .message("Histori status pengajuan berhasil diambil")
+                                                .data(response)
+                                                .build());
+        }
 }

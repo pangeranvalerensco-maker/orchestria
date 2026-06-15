@@ -1,4 +1,4 @@
-package main.java.com.pangeranvalerensco.orchestria.finance_service.payload.response;
+package com.pangeranvalerensco.orchestria.finance_service.payload.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
