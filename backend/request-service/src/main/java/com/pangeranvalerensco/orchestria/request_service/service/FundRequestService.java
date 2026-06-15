@@ -2,11 +2,13 @@ package com.pangeranvalerensco.orchestria.request_service.service;
 
 import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
 import com.pangeranvalerensco.orchestria.request_service.payload.request.CreateFundRequestRequest;
+import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitSettlementRequest;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.FundRequestResponse;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.PageResponse;
+import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
 
 public interface FundRequestService {
-    
+
     FundRequestResponse create(CreateFundRequestRequest request, String currentUserEmail);
 
     PageResponse<FundRequestResponse> getAll(
@@ -16,12 +18,20 @@ public interface FundRequestService {
             int page,
             int size,
             String sortBy,
-            String sortDirection
-    );
+            String sortDirection);
 
     FundRequestResponse getById(Long id);
 
     FundRequestResponse submit(Long id, String currentUserEmail);
 
     FundRequestResponse markDisbursed(Long id, String currentUserEmail);
+
+    FundRequestResponse markFundReceived(Long id, String currentUserEmail);
+
+    RequestSettlementResponse submitSettlement(
+            Long id,
+            SubmitSettlementRequest request,
+            String currentUserEmail);
+
+    RequestSettlementResponse approveSettlement(Long id, String currentUserEmail);
 }

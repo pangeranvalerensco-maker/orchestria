@@ -14,6 +14,10 @@ import com.pangeranvalerensco.orchestria.request_service.exception.ResourceNotFo
 import com.pangeranvalerensco.orchestria.request_service.entity.RequestStatusHistory;
 import com.pangeranvalerensco.orchestria.request_service.exception.BadRequestException;
 import com.pangeranvalerensco.orchestria.request_service.repository.RequestStatusHistoryRepository;
+import com.pangeranvalerensco.orchestria.request_service.entity.RequestSettlement;
+import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitSettlementRequest;
+import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
+import com.pangeranvalerensco.orchestria.request_service.repository.RequestSettlementRepository;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -35,6 +39,7 @@ public class FundRequestServiceImpl implements FundRequestService {
     private final FundRequestRepository fundRequestRepository;
     private final RequestItemRepository requestItemRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
+    private final RequestSettlementRepository requestSettlementRepository;
 
     @Override
     @Transactional
@@ -174,6 +179,137 @@ public class FundRequestServiceImpl implements FundRequestService {
     }
 
     @Override
+    @Transactional
+    public FundRequestResponse markFundReceived(Long id, String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.DISBURSED) {
+            throw new BadRequestException("Dana hanya bisa dikonfirmasi diterima jika status pengajuan DISBURSED");
+        }
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.FUND_RECEIVED);
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest saved = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(saved)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.FUND_RECEIVED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Dana pengajuan sudah dikonfirmasi diterima")
+                        .build());
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public RequestSettlementResponse submitSettlement(
+            Long id,
+            SubmitSettlementRequest request,
+            String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.FUND_RECEIVED) {
+            throw new BadRequestException("Settlement hanya bisa dikirim setelah dana dikonfirmasi diterima");
+        }
+
+        if (requestSettlementRepository.existsByFundRequestAndActiveTrue(fundRequest)) {
+            throw new BadRequestException("Settlement untuk pengajuan ini sudah pernah dikirim");
+        }
+
+        BigDecimal requestedAmount = fundRequest.getTotalAmount();
+        BigDecimal spentAmount = request.getSpentAmount();
+
+        BigDecimal remainingAmount = BigDecimal.ZERO;
+        BigDecimal shortageAmount = BigDecimal.ZERO;
+
+        if (spentAmount.compareTo(requestedAmount) < 0) {
+            remainingAmount = requestedAmount.subtract(spentAmount);
+        } else if (spentAmount.compareTo(requestedAmount) > 0) {
+            shortageAmount = spentAmount.subtract(requestedAmount);
+        }
+
+        RequestSettlement settlement = RequestSettlement.builder()
+                .fundRequest(fundRequest)
+                .spentAmount(spentAmount)
+                .remainingAmount(remainingAmount)
+                .shortageAmount(shortageAmount)
+                .proofUrl(request.getProofUrl())
+                .note(request.getNote())
+                .submittedByEmail(currentUserEmail)
+                .active(true)
+                .build();
+
+        RequestSettlement savedSettlement = requestSettlementRepository.save(settlement);
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.SETTLEMENT_SUBMITTED);
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest savedFundRequest = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(savedFundRequest)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.SETTLEMENT_SUBMITTED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Settlement penggunaan dana dikirim")
+                        .build());
+
+        return mapSettlementToResponse(savedSettlement);
+    }
+
+    @Override
+    @Transactional
+    public RequestSettlementResponse approveSettlement(Long id, String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.SETTLEMENT_SUBMITTED) {
+            throw new BadRequestException("Settlement hanya bisa disetujui jika status pengajuan SETTLEMENT_SUBMITTED");
+        }
+
+        RequestSettlement settlement = requestSettlementRepository.findByFundRequestAndActiveTrue(fundRequest)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement pengajuan tidak ditemukan"));
+
+        settlement.setApprovedByEmail(currentUserEmail);
+        settlement.setApprovedAt(LocalDateTime.now());
+
+        RequestSettlement savedSettlement = requestSettlementRepository.save(settlement);
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.COMPLETED);
+        fundRequest.setCompletedAt(LocalDateTime.now());
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest savedFundRequest = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(savedFundRequest)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.COMPLETED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Settlement disetujui dan pengajuan selesai")
+                        .build());
+
+        return mapSettlementToResponse(savedSettlement);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public FundRequestResponse getById(Long id) {
         FundRequest fundRequest = fundRequestRepository.findById(id)
@@ -239,6 +375,28 @@ public class FundRequestServiceImpl implements FundRequestService {
                 .createdAt(fundRequest.getCreatedAt())
                 .updatedAt(fundRequest.getUpdatedAt())
                 .items(itemResponses)
+                .build();
+    }
+
+    private RequestSettlementResponse mapSettlementToResponse(RequestSettlement settlement) {
+        FundRequest fundRequest = settlement.getFundRequest();
+
+        return RequestSettlementResponse.builder()
+                .id(settlement.getId())
+                .fundRequestId(fundRequest.getId())
+                .requestedAmount(fundRequest.getTotalAmount())
+                .spentAmount(settlement.getSpentAmount())
+                .remainingAmount(settlement.getRemainingAmount())
+                .shortageAmount(settlement.getShortageAmount())
+                .proofUrl(settlement.getProofUrl())
+                .note(settlement.getNote())
+                .submittedByEmail(settlement.getSubmittedByEmail())
+                .submittedAt(settlement.getSubmittedAt())
+                .approvedByEmail(settlement.getApprovedByEmail())
+                .approvedAt(settlement.getApprovedAt())
+                .active(settlement.getActive())
+                .createdAt(settlement.getCreatedAt())
+                .updatedAt(settlement.getUpdatedAt())
                 .build();
     }
 }
