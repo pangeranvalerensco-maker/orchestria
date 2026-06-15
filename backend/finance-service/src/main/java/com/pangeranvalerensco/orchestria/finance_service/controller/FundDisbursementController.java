@@ -1,0 +1,96 @@
+package com.pangeranvalerensco.orchestria.finance_service.controller;
+
+import com.pangeranvalerensco.orchestria.finance_service.entity.enums.DisbursementStatus;
+import com.pangeranvalerensco.orchestria.finance_service.payload.request.CreateFundDisbursementRequest;
+import com.pangeranvalerensco.orchestria.finance_service.payload.response.ApiResponse;
+import com.pangeranvalerensco.orchestria.finance_service.payload.response.FundDisbursementResponse;
+import com.pangeranvalerensco.orchestria.finance_service.payload.response.PageResponse;
+import com.pangeranvalerensco.orchestria.finance_service.service.FundDisbursementService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/finance/disbursements")
+@RequiredArgsConstructor
+public class FundDisbursementController {
+
+    private final FundDisbursementService fundDisbursementService;
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<FundDisbursementResponse>> create(
+            @Valid @RequestBody CreateFundDisbursementRequest request,
+            Authentication authentication
+    ) {
+        String currentUserEmail = authentication.getName();
+
+        FundDisbursementResponse response = fundDisbursementService.create(
+                request,
+                currentUserEmail
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.<FundDisbursementResponse>builder()
+                        .success(true)
+                        .message("Pencairan dana berhasil dicatat")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<FundDisbursementResponse>>> getAll(
+            @RequestParam(required = false) DisbursementStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "disbursedAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDirection
+    ) {
+        PageResponse<FundDisbursementResponse> response = fundDisbursementService.getAll(
+                status,
+                page,
+                size,
+                sortBy,
+                sortDirection
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.<PageResponse<FundDisbursementResponse>>builder()
+                        .success(true)
+                        .message("Data pencairan dana berhasil diambil")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<FundDisbursementResponse>> getById(@PathVariable Long id) {
+        FundDisbursementResponse response = fundDisbursementService.getById(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.<FundDisbursementResponse>builder()
+                        .success(true)
+                        .message("Detail pencairan dana berhasil diambil")
+                        .data(response)
+                        .build()
+        );
+    }
+
+    @GetMapping("/by-request/{fundRequestId}")
+    public ResponseEntity<ApiResponse<FundDisbursementResponse>> getByFundRequestId(
+            @PathVariable Long fundRequestId
+    ) {
+        FundDisbursementResponse response = fundDisbursementService.getByFundRequestId(fundRequestId);
+
+        return ResponseEntity.ok(
+                ApiResponse.<FundDisbursementResponse>builder()
+                        .success(true)
+                        .message("Data pencairan berdasarkan pengajuan berhasil diambil")
+                        .data(response)
+                        .build()
+        );
+    }
+}
