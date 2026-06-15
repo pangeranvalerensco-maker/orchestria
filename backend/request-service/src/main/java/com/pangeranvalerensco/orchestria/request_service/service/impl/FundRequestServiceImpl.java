@@ -108,6 +108,72 @@ public class FundRequestServiceImpl implements FundRequestService {
     }
 
     @Override
+    @Transactional
+    public FundRequestResponse submit(Long id, String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.DRAFT) {
+            throw new BadRequestException("Hanya pengajuan berstatus DRAFT yang bisa disubmit");
+        }
+
+        if (fundRequest.getTotalAmount() == null || fundRequest.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException(
+                    "Pengajuan harus memiliki minimal satu item dengan total lebih dari 0 sebelum disubmit");
+        }
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.SUBMITTED);
+        fundRequest.setSubmittedAt(LocalDateTime.now());
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest saved = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(saved)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.SUBMITTED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Pengajuan dana disubmit")
+                        .build());
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public FundRequestResponse markDisbursed(Long id, String currentUserEmail) {
+        FundRequest fundRequest = fundRequestRepository.findById(id)
+                .filter(FundRequest::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getStatus() != FundRequestStatus.READY_FOR_DISBURSEMENT) {
+            throw new BadRequestException("Pengajuan hanya bisa ditandai cair jika statusnya READY_FOR_DISBURSEMENT");
+        }
+
+        FundRequestStatus oldStatus = fundRequest.getStatus();
+
+        fundRequest.setStatus(FundRequestStatus.DISBURSED);
+        fundRequest.setUpdatedByEmail(currentUserEmail);
+
+        FundRequest saved = fundRequestRepository.save(fundRequest);
+
+        requestStatusHistoryRepository.save(
+                RequestStatusHistory.builder()
+                        .fundRequest(saved)
+                        .oldStatus(oldStatus)
+                        .newStatus(FundRequestStatus.DISBURSED)
+                        .changedByEmail(currentUserEmail)
+                        .note("Dana pengajuan sudah dicairkan oleh finance-service")
+                        .build());
+
+        return mapToResponse(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public FundRequestResponse getById(Long id) {
         FundRequest fundRequest = fundRequestRepository.findById(id)
@@ -174,41 +240,5 @@ public class FundRequestServiceImpl implements FundRequestService {
                 .updatedAt(fundRequest.getUpdatedAt())
                 .items(itemResponses)
                 .build();
-    }
-
-    @Override
-    @Transactional
-    public FundRequestResponse submit(Long id, String currentUserEmail) {
-        FundRequest fundRequest = fundRequestRepository.findById(id)
-                .filter(FundRequest::getActive)
-                .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
-
-        if (fundRequest.getStatus() != FundRequestStatus.DRAFT) {
-            throw new BadRequestException("Hanya pengajuan berstatus DRAFT yang bisa disubmit");
-        }
-
-        if (fundRequest.getTotalAmount() == null || fundRequest.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new BadRequestException(
-                    "Pengajuan harus memiliki minimal satu item dengan total lebih dari 0 sebelum disubmit");
-        }
-
-        FundRequestStatus oldStatus = fundRequest.getStatus();
-
-        fundRequest.setStatus(FundRequestStatus.SUBMITTED);
-        fundRequest.setSubmittedAt(LocalDateTime.now());
-        fundRequest.setUpdatedByEmail(currentUserEmail);
-
-        FundRequest saved = fundRequestRepository.save(fundRequest);
-
-        requestStatusHistoryRepository.save(
-                RequestStatusHistory.builder()
-                        .fundRequest(saved)
-                        .oldStatus(oldStatus)
-                        .newStatus(FundRequestStatus.SUBMITTED)
-                        .changedByEmail(currentUserEmail)
-                        .note("Pengajuan dana disubmit")
-                        .build());
-
-        return mapToResponse(saved);
     }
 }

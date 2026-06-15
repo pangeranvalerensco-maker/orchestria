@@ -89,4 +89,20 @@ public class FundRequestController {
                                                 .data(response)
                                                 .build());
         }
+
+        @PostMapping("/{id}/mark-disbursed")
+        public ResponseEntity<ApiResponse<FundRequestResponse>> markDisbursed(
+                        @PathVariable Long id,
+                        Authentication authentication) {
+                String currentUserEmail = authentication.getName();
+
+                FundRequestResponse response = fundRequestService.markDisbursed(id, currentUserEmail);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<FundRequestResponse>builder()
+                                                .success(true)
+                                                .message("Pengajuan dana berhasil ditandai sudah dicairkan")
+                                                .data(response)
+                                                .build());
+        }
 }

@@ -22,4 +22,6 @@ public interface FundRequestService {
     FundRequestResponse getById(Long id);
 
     FundRequestResponse submit(Long id, String currentUserEmail);
+
+    FundRequestResponse markDisbursed(Long id, String currentUserEmail);
 }
