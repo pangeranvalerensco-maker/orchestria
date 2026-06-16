@@ -122,7 +122,7 @@ public class FundRequestController {
                                                 .build());
         }
 
-        @PreAuthorize("hasAuthority('request.disburse')")
+        @PreAuthorize("hasAuthority('finance.disburse')")
         @PostMapping("/{id}/mark-disbursed")
         public ResponseEntity<ApiResponse<FundRequestResponse>> markDisbursed(
                         @PathVariable Long id,
@@ -177,7 +177,7 @@ public class FundRequestController {
                                                 .build());
         }
 
-        @PreAuthorize("hasAuthority('request.settlement.verify')")
+        @PreAuthorize("hasAuthority('finance.settlement.verify')")
         @PostMapping("/{id}/settlement/approve")
         public ResponseEntity<ApiResponse<RequestSettlementResponse>> approveSettlement(
                         @PathVariable Long id,
