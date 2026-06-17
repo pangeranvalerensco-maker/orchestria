@@ -52,5 +52,7 @@ jobs:
           cache: maven
           cache-dependency-path: backend/${{ matrix.service }}/pom.xml
 
-      - name: Compile and package
-        run: mvn --batch-mode --no-transfer-progress -DskipTests clean package
+      - name: Test and package
+        env:
+          SPRING_PROFILES_ACTIVE: test
+        run: mvn --batch-mode --no-transfer-progress clean verify
