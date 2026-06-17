@@ -567,38 +567,27 @@ disbursementId = response.data.id
 
 ---
 
-# 11. Mark Request as Disbursed
+# 11. Verify Request Disbursement Status
 
-Setelah data pencairan dibuat di finance-service, request-service ditandai sudah dicairkan.
+Setelah pencairan berhasil dibuat di finance-service, finance-service otomatis
+memperbarui status pengajuan di request-service.
 
-Gunakan token user yang memiliki permission:
+Tidak perlu memanggil endpoint `mark-disbursed` secara manual.
 
-```text id="e01q3r"
-finance.disburse
-```
+Verifikasi menggunakan:
 
-Endpoint:
-
-```http id="cr8jzp"
-POST {{baseUrl}}/api/requests/{{requestId}}/mark-disbursed
-```
-
-Headers:
-
-```http id="3xz4ez"
-Authorization: Bearer {{token}}
+```http
+GET {{baseUrl}}/api/requests/{{requestId}}
 ```
 
 Expected status:
 
-```text id="mpcssf"
-200 OK
-```
+DISBURSED
 
-Expected status change:
+Hapus instruksi manual:
 
-```text id="12c34c"
-READY_FOR_DISBURSEMENT → DISBURSED
+```http
+POST /api/requests/{{requestId}}/mark-disbursed
 ```
 
 ---

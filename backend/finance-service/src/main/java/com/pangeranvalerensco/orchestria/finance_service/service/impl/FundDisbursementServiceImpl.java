@@ -46,6 +46,13 @@ public class FundDisbursementServiceImpl implements FundDisbursementService {
                                 request.getFundRequestId(),
                                 authorizationHeader);
 
+                if (fundRequest.getId() == null
+                                || !fundRequest.getId().equals(
+                                                request.getFundRequestId())) {
+                        throw new BadRequestException(
+                                        "ID pengajuan dari request-service tidak sesuai");
+                }
+
                 if (!Boolean.TRUE.equals(fundRequest.getActive())) {
                         throw new BadRequestException(
                                         "Pengajuan dana sudah tidak aktif");
@@ -95,6 +102,16 @@ public class FundDisbursementServiceImpl implements FundDisbursementService {
                 try {
                         FundDisbursement saved = fundDisbursementRepository.saveAndFlush(
                                         disbursement);
+
+                        FundRequestSnapshotResponse updatedRequest = requestClient.markDisbursed(
+                                        saved.getFundRequestId(),
+                                        authorizationHeader);
+
+                        if (!"DISBURSED".equals(
+                                        updatedRequest.getStatus())) {
+                                throw new BadRequestException(
+                                                "Request-service tidak mengembalikan status DISBURSED");
+                        }
 
                         return mapToResponse(saved);
 
