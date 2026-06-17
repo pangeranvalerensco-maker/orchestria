@@ -30,4 +30,8 @@ public interface MemberAssignmentRepository extends JpaRepository<MemberAssignme
                         OrganizationPeriod period,
                         Division division,
                         Position position);
+
+        List<MemberAssignment> findByMemberAndStatusAndActiveTrueAndPeriodCurrentPeriodTrueAndPeriodActiveTrue(
+                        Member member,
+                        AssignmentStatus status);
 }

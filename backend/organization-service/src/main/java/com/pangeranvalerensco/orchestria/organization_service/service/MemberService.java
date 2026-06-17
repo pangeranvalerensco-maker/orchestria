@@ -5,6 +5,7 @@ import java.util.List;
 import com.pangeranvalerensco.orchestria.organization_service.payload.request.MemberRequest;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.MemberResponse;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
 
 public interface MemberService {
     
@@ -17,4 +18,6 @@ public interface MemberService {
     ApiResponse<MemberResponse> updateMember(Long id, MemberRequest request);
 
     ApiResponse<Void> deleteMember(Long id);
+
+    ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(String email);
 }

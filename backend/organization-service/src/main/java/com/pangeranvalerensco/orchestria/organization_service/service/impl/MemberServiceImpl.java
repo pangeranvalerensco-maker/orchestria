@@ -12,6 +12,11 @@ import com.pangeranvalerensco.orchestria.organization_service.payload.response.A
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.MemberResponse;
 import com.pangeranvalerensco.orchestria.organization_service.repository.MemberRepository;
 import com.pangeranvalerensco.orchestria.organization_service.service.MemberService;
+import com.pangeranvalerensco.orchestria.organization_service.entity.MemberAssignment;
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.AssignmentStatus;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.MemberAssignmentResponse;
+import com.pangeranvalerensco.orchestria.organization_service.repository.MemberAssignmentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class MemberServiceImpl implements MemberService {
 
     private final MemberRepository memberRepository;
+    private final MemberAssignmentRepository memberAssignmentRepository;
 
     @Override
     public ApiResponse<List<MemberResponse>> getAllMembers() {
@@ -102,8 +108,8 @@ public class MemberServiceImpl implements MemberService {
 
         String studentNumber = trimOrNull(request.getStudentNumber());
         if (studentNumber != null) {
-            memberRepository.findByStudentNumber(studentNumber).ifPresent(existing ->{
-                if(!existing.getId().equals(id)){
+            memberRepository.findByStudentNumber(studentNumber).ifPresent(existing -> {
+                if (!existing.getId().equals(id)) {
                     throw new BadRequestException("NIM Anggota sudah digunakan");
                 }
             });
@@ -144,6 +150,33 @@ public class MemberServiceImpl implements MemberService {
                 .build();
     }
 
+    @Override
+    public ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(String email) {
+        Member member = memberRepository.findByEmailIgnoreCase(email)
+                .filter(Member::getActive)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Data anggota untuk user login tidak ditemukan"));
+
+        List<MemberAssignmentResponse> assignments = memberAssignmentRepository
+                .findByMemberAndStatusAndActiveTrueAndPeriodCurrentPeriodTrueAndPeriodActiveTrue(
+                        member,
+                        AssignmentStatus.ACTIVE)
+                .stream()
+                .map(this::mapAssignmentToResponse)
+                .toList();
+
+        CurrentMemberContextResponse context = CurrentMemberContextResponse.builder()
+                .member(mapToResponse(member))
+                .activeAssignments(assignments)
+                .build();
+
+        return ApiResponse.<CurrentMemberContextResponse>builder()
+                .success(true)
+                .message("Context anggota login berhasil diambil")
+                .data(context)
+                .build();
+    }
+
     private Member findMemberById(Long id) {
         return memberRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Anggota tidak ditemukan"));
@@ -179,6 +212,31 @@ public class MemberServiceImpl implements MemberService {
 
     private <T> T defaultIfNull(T value, T defaultValue) {
         return value == null ? defaultValue : value;
+    }
+
+    private MemberAssignmentResponse mapAssignmentToResponse(
+            MemberAssignment assignment) {
+        return MemberAssignmentResponse.builder()
+                .id(assignment.getId())
+                .memberId(assignment.getMember().getId())
+                .memberName(assignment.getMember().getFullName())
+                .memberEmail(assignment.getMember().getEmail())
+                .cohort(assignment.getMember().getCohort())
+                .periodId(assignment.getPeriod().getId())
+                .periodName(assignment.getPeriod().getName())
+                .divisionId(assignment.getDivision().getId())
+                .divisionCode(assignment.getDivision().getCode())
+                .divisionName(assignment.getDivision().getName())
+                .positionId(assignment.getPosition().getId())
+                .positionCode(assignment.getPosition().getCode())
+                .positionName(assignment.getPosition().getName())
+                .positionLevelOrder(
+                        assignment.getPosition().getLevelOrder())
+                .status(assignment.getStatus())
+                .active(assignment.getActive())
+                .createdAt(assignment.getCreatedAt())
+                .updatedAt(assignment.getUpdatedAt())
+                .build();
     }
 
 }

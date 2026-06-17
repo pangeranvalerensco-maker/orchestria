@@ -18,6 +18,8 @@ import com.pangeranvalerensco.orchestria.organization_service.payload.request.Me
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.MemberResponse;
 import com.pangeranvalerensco.orchestria.organization_service.service.MemberService;
+import org.springframework.security.core.Authentication;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,45 +28,52 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/organization/members")
 @RequiredArgsConstructor
 public class MemberController {
-    
+
     private final MemberService memberService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('organization.read')")
-    public ResponseEntity<ApiResponse<List<MemberResponse>>> getAllMembers(){
+    public ResponseEntity<ApiResponse<List<MemberResponse>>> getAllMembers() {
         return ResponseEntity.ok(memberService.getAllMembers());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('organization.read')")
     public ResponseEntity<ApiResponse<MemberResponse>> getMemberById(
-                @PathVariable Long id
-    ){
+            @PathVariable Long id) {
         return ResponseEntity.ok(memberService.getMemberById(id));
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('organization.manage')")
     public ResponseEntity<ApiResponse<MemberResponse>> createMember(
-                @Valid @RequestBody MemberRequest request
-    ){
+            @Valid @RequestBody MemberRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(memberService.createMember(request));
+                .body(memberService.createMember(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('organization.manage')")
     public ResponseEntity<ApiResponse<MemberResponse>> updateMember(
-                @PathVariable Long id,
-                @Valid @RequestBody MemberRequest request
-    ){
+            @PathVariable Long id,
+            @Valid @RequestBody MemberRequest request) {
         return ResponseEntity.ok(memberService.updateMember(id, request));
     }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('organization.manage')")
     public ResponseEntity<ApiResponse<Void>> deleteMember(
-                @PathVariable Long id
-    ){
+            @PathVariable Long id) {
         return ResponseEntity.ok(memberService.deleteMember(id));
+    }
+
+    @GetMapping("/me/context")
+    @PreAuthorize("hasAuthority('organization.read')")
+    public ResponseEntity<ApiResponse<CurrentMemberContextResponse>> getCurrentMemberContext(
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                memberService.getCurrentMemberContext(
+                        authentication.getName()));
     }
 }
