@@ -33,8 +33,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse approve(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail
-    ) {
+            String currentUserEmail) {
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
         FundRequestStatus oldStatus = fundRequest.getStatus();
@@ -44,8 +43,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
-                ApprovalDecision.APPROVED
-        );
+                ApprovalDecision.APPROVED);
 
         fundRequest.setStatus(newStatus);
         fundRequest.setUpdatedByEmail(currentUserEmail);
@@ -57,8 +55,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 oldStatus,
                 newStatus,
                 currentUserEmail,
-                "Pengajuan disetujui pada level " + request.getLevel()
-        );
+                "Pengajuan disetujui pada level " + request.getLevel());
 
         return fundRequestService.getById(saved.getId());
     }
@@ -68,13 +65,12 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse reject(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail
-    ) {
+            String currentUserEmail) {
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
-        if (!isApprovalProcessStatus(fundRequest.getStatus())) {
-            throw new BadRequestException("Pengajuan tidak bisa ditolak pada status " + fundRequest.getStatus());
-        }
+        validateApprovalStage(
+                fundRequest.getStatus(),
+                request.getLevel());
 
         FundRequestStatus oldStatus = fundRequest.getStatus();
         FundRequestStatus newStatus = FundRequestStatus.REJECTED;
@@ -83,8 +79,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
-                ApprovalDecision.REJECTED
-        );
+                ApprovalDecision.REJECTED);
 
         fundRequest.setStatus(newStatus);
         fundRequest.setUpdatedByEmail(currentUserEmail);
@@ -96,8 +91,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 oldStatus,
                 newStatus,
                 currentUserEmail,
-                request.getNote() == null ? "Pengajuan ditolak" : request.getNote()
-        );
+                request.getNote() == null ? "Pengajuan ditolak" : request.getNote());
 
         return fundRequestService.getById(saved.getId());
     }
@@ -107,13 +101,10 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse requestRevision(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail
-    ) {
+            String currentUserEmail) {
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
-        if (!isApprovalProcessStatus(fundRequest.getStatus())) {
-            throw new BadRequestException("Pengajuan tidak bisa diminta revisi pada status " + fundRequest.getStatus());
-        }
+        validateApprovalStage(fundRequest.getStatus(), request.getLevel());
 
         FundRequestStatus oldStatus = fundRequest.getStatus();
         FundRequestStatus newStatus = FundRequestStatus.REVISION_REQUESTED;
@@ -122,8 +113,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
-                ApprovalDecision.REVISION_REQUESTED
-        );
+                ApprovalDecision.REVISION_REQUESTED);
 
         fundRequest.setStatus(newStatus);
         fundRequest.setUpdatedByEmail(currentUserEmail);
@@ -135,8 +125,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 oldStatus,
                 newStatus,
                 currentUserEmail,
-                request.getNote() == null ? "Pengajuan diminta revisi" : request.getNote()
-        );
+                request.getNote() == null ? "Pengajuan diminta revisi" : request.getNote());
 
         return fundRequestService.getById(saved.getId());
     }
@@ -149,8 +138,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
 
     private FundRequestStatus determineNextApprovedStatus(
             FundRequestStatus currentStatus,
-            ApprovalLevel approvalLevel
-    ) {
+            ApprovalLevel approvalLevel) {
         if (approvalLevel == ApprovalLevel.DIVISION) {
             if (currentStatus != FundRequestStatus.SUBMITTED) {
                 throw new BadRequestException("Approval DIVISION hanya bisa dilakukan pada status SUBMITTED");
@@ -178,18 +166,36 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
         throw new BadRequestException("Level approval tidak valid");
     }
 
-    private boolean isApprovalProcessStatus(FundRequestStatus status) {
-        return status == FundRequestStatus.SUBMITTED
-                || status == FundRequestStatus.DIVISION_APPROVED
-                || status == FundRequestStatus.PUB_APPROVED;
+    private void validateApprovalStage(
+            FundRequestStatus currentStatus,
+            ApprovalLevel requestedLevel) {
+        ApprovalLevel expectedLevel;
+
+        if (currentStatus == FundRequestStatus.SUBMITTED) {
+            expectedLevel = ApprovalLevel.DIVISION;
+        } else if (currentStatus == FundRequestStatus.DIVISION_APPROVED) {
+            expectedLevel = ApprovalLevel.PUB;
+        } else if (currentStatus == FundRequestStatus.PUB_APPROVED) {
+            expectedLevel = ApprovalLevel.PEMBINA;
+        } else {
+            throw new BadRequestException(
+                    "Pengajuan tidak sedang berada dalam proses approval");
+        }
+
+        if (requestedLevel != expectedLevel) {
+            throw new BadRequestException(
+                    "Tahap approval saat ini adalah "
+                            + expectedLevel
+                            + ", bukan "
+                            + requestedLevel);
+        }
     }
 
     private void saveApproval(
             FundRequest fundRequest,
             ProcessApprovalRequest request,
             String currentUserEmail,
-            ApprovalDecision decision
-    ) {
+            ApprovalDecision decision) {
         requestApprovalRepository.save(
                 RequestApproval.builder()
                         .fundRequest(fundRequest)
@@ -198,8 +204,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                         .approverEmail(currentUserEmail)
                         .approverName(request.getApproverName())
                         .note(request.getNote())
-                        .build()
-        );
+                        .build());
     }
 
     private void saveStatusHistory(
@@ -207,8 +212,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
             FundRequestStatus oldStatus,
             FundRequestStatus newStatus,
             String currentUserEmail,
-            String note
-    ) {
+            String note) {
         requestStatusHistoryRepository.save(
                 RequestStatusHistory.builder()
                         .fundRequest(fundRequest)
@@ -216,7 +220,6 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                         .newStatus(newStatus)
                         .changedByEmail(currentUserEmail)
                         .note(note)
-                        .build()
-        );
+                        .build());
     }
 }
