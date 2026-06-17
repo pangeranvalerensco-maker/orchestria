@@ -1,5 +1,6 @@
 package com.pangeranvalerensco.orchestria.auth_service.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ public class AuthController {
     
     private final AuthService authService;
 
+    @PreAuthorize("hasAuthority('auth.user.manage')")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(
         @Valid @RequestBody RegisterRequest request

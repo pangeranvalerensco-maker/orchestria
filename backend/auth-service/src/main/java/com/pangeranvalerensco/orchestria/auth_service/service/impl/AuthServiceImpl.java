@@ -27,104 +27,106 @@ import com.pangeranvalerensco.orchestria.auth_service.exception.ForbiddenExcepti
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
-    
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
 
-    @Override
-    public ApiResponse<UserResponse> register(RegisterRequest request) {
-        if(userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email sudah terdaftar");
+        private final UserRepository userRepository;
+        private final RoleRepository roleRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final JwtService jwtService;
+
+        @Override
+        public ApiResponse<UserResponse> register(RegisterRequest request) {
+                String normalizedEmail = request.getEmail().trim().toLowerCase();
+
+                if (userRepository.existsByEmail(normalizedEmail)) {
+                        throw new BadRequestException("Email sudah terdaftar");
+                }
+
+                Role defaultRole = roleRepository.findByName("ANGGOTA")
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Role default Anggota tidak ditemukan"));
+
+                User user = User.builder()
+                                .fullName(request.getFullName())
+                                .email(normalizedEmail)
+                                .password(passwordEncoder.encode(request.getPassword()))
+                                .active(true)
+                                .roles(Set.of(defaultRole))
+                                .build();
+
+                User savedUser = userRepository.save(user);
+
+                UserResponse userResponse = mapToUserResponse(savedUser);
+
+                return ApiResponse.<UserResponse>builder()
+                                .success(true)
+                                .message("Registrasi berhasil")
+                                .data(userResponse)
+                                .build();
         }
 
-        Role defaultRole = roleRepository.findByName("ANGGOTA")
-                .orElseThrow(() -> new ResourceNotFoundException("Role default Anggota tidak ditemukan"));
+        private UserResponse mapToUserResponse(User user) {
+                Set<String> roles = user.getRoles()
+                                .stream()
+                                .map(Role::getName)
+                                .collect(Collectors.toSet());
 
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .active(true)
-                .roles(Set.of(defaultRole))
-                .build();
-        
-        User savedUser = userRepository.save(user);
+                Set<String> permissions = user.getRoles()
+                                .stream()
+                                .flatMap(role -> role.getPermissions().stream())
+                                .map(Permission::getName)
+                                .collect(Collectors.toSet());
 
-        UserResponse userResponse = mapToUserResponse(savedUser);
-
-        return ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("Registrasi berhasil")
-                .data(userResponse)
-                .build();
-    }
-
-    private UserResponse mapToUserResponse(User user) {
-        Set<String> roles = user.getRoles()
-                .stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet());
-        
-        Set<String> permissions = user.getRoles()
-                .stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .map(Permission::getName)
-                .collect(Collectors.toSet());
-
-        return UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .active(user.getActive())
-                .roles(roles)
-                .permissions(permissions)
-                .build();
-    }
-
-    @Override
-    public ApiResponse<AuthResponse> login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UnauthorizedException("Email atau password salah"));
-
-        if(Boolean.FALSE.equals(user.getActive())) {
-            throw new ForbiddenException("Akun tidak aktif");
+                return UserResponse.builder()
+                                .id(user.getId())
+                                .fullName(user.getFullName())
+                                .email(user.getEmail())
+                                .active(user.getActive())
+                                .roles(roles)
+                                .permissions(permissions)
+                                .build();
         }
 
-        boolean passwordMatch = passwordEncoder.matches(
-            request.getPassword(), 
-            user.getPassword()
-        );
+        @Override
+        public ApiResponse<AuthResponse> login(LoginRequest request) {
+                User user = userRepository.findByEmail(request.getEmail())
+                                .orElseThrow(() -> new UnauthorizedException("Email atau password salah"));
 
-        if (!passwordMatch) {
-            throw new UnauthorizedException("Email atau password salah");
+                if (Boolean.FALSE.equals(user.getActive())) {
+                        throw new ForbiddenException("Akun tidak aktif");
+                }
+
+                boolean passwordMatch = passwordEncoder.matches(
+                                request.getPassword(),
+                                user.getPassword());
+
+                if (!passwordMatch) {
+                        throw new UnauthorizedException("Email atau password salah");
+                }
+
+                String token = jwtService.generateToken(user);
+
+                AuthResponse authResponse = AuthResponse.builder()
+                                .tokenType("Bearer")
+                                .accessToken(token)
+                                .user(mapToUserResponse(user))
+                                .build();
+
+                return ApiResponse.<AuthResponse>builder()
+                                .success(true)
+                                .message("Login berhasil")
+                                .data(authResponse)
+                                .build();
         }
 
-        String token = jwtService.generateToken(user);
+        @Override
+        public ApiResponse<UserResponse> getCurrentUser(String email) {
+                User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
 
-        AuthResponse authResponse = AuthResponse.builder()
-                .tokenType("Bearer")
-                .accessToken(token)
-                .user(mapToUserResponse(user))
-                .build();
-
-        return ApiResponse.<AuthResponse>builder()
-                .success(true)
-                .message("Login berhasil")
-                .data(authResponse)
-                .build();
-    }
-
-    @Override
-    public ApiResponse<UserResponse> getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
-
-        return ApiResponse.<UserResponse>builder()
-                .success(true)
-                .message("Data User berhasil diambil")
-                .data(mapToUserResponse(user))
-                .build();
-    }
+                return ApiResponse.<UserResponse>builder()
+                                .success(true)
+                                .message("Data User berhasil diambil")
+                                .data(mapToUserResponse(user))
+                                .build();
+        }
 }
