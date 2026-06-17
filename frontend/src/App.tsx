@@ -6,6 +6,7 @@ import {
 
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
+import { MyRequestsPage } from "./pages/MyRequestsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
@@ -32,6 +33,10 @@ function App() {
           <Route
             path="/dashboard"
             element={<DashboardPage />}
+          />
+          <Route
+            path="/requests"
+            element={<MyRequestsPage />}
           />
         </Route>
       </Route>

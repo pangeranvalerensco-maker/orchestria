@@ -45,9 +45,16 @@ export function AppLayout() {
             Dashboard
           </NavLink>
 
-          <span className="nav-item disabled">
+          <NavLink
+            to="/requests"
+            className={({ isActive }) =>
+                isActive
+                ? "nav-item active"
+                : "nav-item"
+            }
+            >
             Pengajuan Dana
-          </span>
+            </NavLink>
 
           <span className="nav-item disabled">
             Approval
