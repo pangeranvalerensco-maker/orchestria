@@ -184,7 +184,7 @@ public class FundDisbursementServiceImpl implements FundDisbursementService {
                         FundDisbursement disbursement) {
                 try {
                         return Objects.requireNonNull(
-                                        transactionTemplate.execute(status -> fundDisbursementRepository.saveAndFlush(
+                                        transactionTemplate.execute(ignored -> fundDisbursementRepository.saveAndFlush(
                                                         disbursement)),
                                         "Penyimpanan pencairan menghasilkan null");
 
@@ -261,7 +261,7 @@ public class FundDisbursementServiceImpl implements FundDisbursementService {
         private FundDisbursementResponse markSyncSucceeded(
                         Long disbursementId) {
                 FundDisbursement updated = Objects.requireNonNull(
-                                transactionTemplate.execute(status -> {
+                                transactionTemplate.execute(ignored -> {
                                         FundDisbursement entity = findActiveDisbursement(
                                                         disbursementId);
 
@@ -283,7 +283,7 @@ public class FundDisbursementServiceImpl implements FundDisbursementService {
         private void markSyncFailed(
                         Long disbursementId,
                         String errorMessage) {
-                transactionTemplate.executeWithoutResult(status -> {
+                transactionTemplate.executeWithoutResult(ignored -> {
                         FundDisbursement entity = findActiveDisbursement(
                                         disbursementId);
 
