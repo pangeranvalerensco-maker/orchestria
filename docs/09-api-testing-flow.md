@@ -191,36 +191,24 @@ Memastikan token valid dan user login dapat dibaca.
 
 ---
 
-# 3. Create Fund Request
+## 3. Create Fund Request
 
-Gunakan token user yang memiliki permission:
-
-```text id="jgxe4o"
-request.create
-```
-
-Endpoint:
-
-```http id="fyfwzo"
+```http
 POST {{baseUrl}}/api/requests
 ```
 
 Headers:
 
-```http id="c7hp3p"
+```http
 Authorization: Bearer {{token}}
 Content-Type: application/json
 ```
 
 Body:
 
-```json id="dbhjwl"
+```json
 {
   "divisionId": 1,
-  "divisionName": "Divisi Kesejahteraan",
-  "requesterMemberId": 1,
-  "requesterName": "Pangeran Valerensco Rivaldi Hutabarat",
-  "requesterAuthUserId": 1,
   "title": "Pengajuan Konsumsi Rapat Divisi",
   "description": "Konsumsi untuk rapat koordinasi divisi",
   "activityDate": "2026-06-20",
@@ -228,24 +216,149 @@ Body:
 }
 ```
 
-Expected status:
+Data berikut diambil otomatis oleh backend dari JWT dan organization-service:
 
-```text id="4amh40"
+```text
+divisionName
+requesterMemberId
+requesterName
+requesterAuthUserId
+createdByEmail
+```
+
+Expected:
+
+```text
 201 Created
+status = DRAFT
 ```
 
-Expected status pengajuan:
+---
 
-```text id="9iu4kr"
-DRAFT
+## 7. Division Approval
+
+Body:
+
+```json
+{
+  "level": "DIVISION",
+  "note": "Disetujui oleh Ketua Divisi"
+}
 ```
 
-Simpan ID pengajuan ke variable:
+Nama dan email approver diambil otomatis dari JWT.
 
-```text id="roiehg"
-requestId = response.data.id
-fundRequestId = response.data.id
+Expected:
+
+```text
+SUBMITTED → DIVISION_APPROVED
 ```
+
+---
+
+## 8. PUB Approval
+
+Body:
+
+```json
+{
+  "level": "PUB",
+  "note": "Disetujui oleh Ketua PUB"
+}
+```
+
+Expected:
+
+```text
+DIVISION_APPROVED → PUB_APPROVED
+```
+
+---
+
+## 9. Pembina Approval
+
+Body:
+
+```json
+{
+  "level": "PEMBINA",
+  "note": "Disetujui oleh Pembina"
+}
+```
+
+Expected:
+
+```text
+PUB_APPROVED → READY_FOR_DISBURSEMENT
+```
+
+---
+
+## 10. Create Finance Disbursement
+
+```http
+POST {{baseUrl}}/api/finance/disbursements
+```
+
+Headers:
+
+```http
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "fundRequestId": 1,
+  "method": "CASH",
+  "receiverName": "Pangeran Valerensco Rivaldi Hutabarat",
+  "receiverNote": "Dana diterima langsung oleh pengaju",
+  "proofUrl": "https://example.com/proof-disbursement.jpg",
+  "note": "Pencairan dana konsumsi kegiatan"
+}
+```
+
+Data berikut diambil otomatis dari request-service:
+
+```text
+requestTitle
+divisionId
+divisionName
+requesterName
+amount
+```
+
+Expected:
+
+```text
+201 Created
+finance status = DISBURSED
+request status = DISBURSED
+```
+
+---
+
+## 11. Verify Request Disbursement Status
+
+Finance-service otomatis memperbarui status pengajuan setelah pencairan berhasil dibuat.
+
+Tidak perlu memanggil endpoint `mark-disbursed` secara manual.
+
+Verifikasi:
+
+```http
+GET {{baseUrl}}/api/requests/{{requestId}}
+Authorization: Bearer {{token}}
+```
+
+Expected:
+
+```text
+status = DISBURSED
+```
+
 
 ---
 
