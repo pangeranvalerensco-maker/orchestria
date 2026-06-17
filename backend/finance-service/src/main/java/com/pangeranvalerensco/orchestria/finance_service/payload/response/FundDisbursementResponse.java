@@ -2,6 +2,7 @@ package com.pangeranvalerensco.orchestria.finance_service.payload.response;
 
 import com.pangeranvalerensco.orchestria.finance_service.entity.enums.DisbursementMethod;
 import com.pangeranvalerensco.orchestria.finance_service.entity.enums.DisbursementStatus;
+import com.pangeranvalerensco.orchestria.finance_service.entity.enums.RequestSyncStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -26,6 +27,11 @@ public class FundDisbursementResponse {
 
     private DisbursementMethod method;
     private DisbursementStatus status;
+
+    private RequestSyncStatus requestSyncStatus;
+    private String requestSyncError;
+    private LocalDateTime requestSyncedAt;
+    private Integer requestSyncAttempts;
 
     private String receiverName;
     private String receiverNote;

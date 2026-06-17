@@ -2,6 +2,7 @@ package com.pangeranvalerensco.orchestria.finance_service.entity;
 
 import com.pangeranvalerensco.orchestria.finance_service.entity.enums.DisbursementMethod;
 import com.pangeranvalerensco.orchestria.finance_service.entity.enums.DisbursementStatus;
+import com.pangeranvalerensco.orchestria.finance_service.entity.enums.RequestSyncStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,15 +10,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "fund_disbursements",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_fund_disbursement_request",
-                        columnNames = "fund_request_id"
-                )
-        }
-)
+@Table(name = "fund_disbursements", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_fund_disbursement_request", columnNames = "fund_request_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -59,6 +54,19 @@ public class FundDisbursement {
     @Column(nullable = false, length = 50)
     private DisbursementStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "request_sync_status", nullable = false, length = 30)
+    private RequestSyncStatus requestSyncStatus;
+
+    @Column(name = "request_sync_error", length = 500)
+    private String requestSyncError;
+
+    @Column(name = "request_synced_at")
+    private LocalDateTime requestSyncedAt;
+
+    @Column(name = "request_sync_attempts", nullable = false)
+    private Integer requestSyncAttempts;
+
     @Column(name = "receiver_name", nullable = false, length = 150)
     private String receiverName;
 
@@ -98,6 +106,14 @@ public class FundDisbursement {
 
         if (disbursedAt == null) {
             disbursedAt = LocalDateTime.now();
+        }
+
+        if (requestSyncStatus == null) {
+            requestSyncStatus = RequestSyncStatus.PENDING;
+        }
+
+        if (requestSyncAttempts == null) {
+            requestSyncAttempts = 0;
         }
 
         createdAt = LocalDateTime.now();

@@ -92,4 +92,22 @@ public class FundDisbursementController {
                                                 .data(response)
                                                 .build());
         }
+
+        @PreAuthorize("hasAuthority('finance.disburse')")
+        @PostMapping("/{id}/retry-request-sync")
+        public ResponseEntity<ApiResponse<FundDisbursementResponse>> retryRequestSync(
+                        @PathVariable Long id,
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+                FundDisbursementResponse response = fundDisbursementService.retryRequestSync(
+                                id,
+                                authorizationHeader);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<FundDisbursementResponse>builder()
+                                                .success(true)
+                                                .message(
+                                                                "Sinkronisasi status pengajuan berhasil")
+                                                .data(response)
+                                                .build());
+        }
 }
