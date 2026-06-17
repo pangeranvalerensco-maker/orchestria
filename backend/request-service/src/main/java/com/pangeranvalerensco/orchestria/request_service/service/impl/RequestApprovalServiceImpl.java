@@ -20,6 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.pangeranvalerensco.orchestria.request_service.exception.ForbiddenException;
 import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
+import com.pangeranvalerensco.orchestria.request_service.client.OrganizationClient;
+import com.pangeranvalerensco.orchestria.request_service.client.dto.OrganizationMemberContextResponse;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,19 +33,27 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     private final RequestApprovalRepository requestApprovalRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
     private final FundRequestService fundRequestService;
+    private final OrganizationClient organizationClient;
 
     @Override
     @Transactional
     public FundRequestResponse approve(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser) {
+            AuthenticatedUser currentUser,
+            String authorizationHeader) {
         validateApproverIdentity(currentUser);
 
         String currentUserEmail = currentUser.email();
         String currentUserName = currentUser.fullName();
 
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
+
+        validateDivisionApprovalAccess(
+                fundRequest,
+                request.getLevel(),
+                currentUser,
+                authorizationHeader);
 
         FundRequestStatus oldStatus = fundRequest.getStatus();
         FundRequestStatus newStatus = determineNextApprovedStatus(oldStatus, request.getLevel());
@@ -73,13 +85,20 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse reject(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser) {
+            AuthenticatedUser currentUser,
+            String authorizationHeader) {
         validateApproverIdentity(currentUser);
 
         String currentUserEmail = currentUser.email();
         String currentUserName = currentUser.fullName();
 
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
+
+        validateDivisionApprovalAccess(
+                fundRequest,
+                request.getLevel(),
+                currentUser,
+                authorizationHeader);
 
         validateApprovalStage(
                 fundRequest.getStatus(),
@@ -115,13 +134,20 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse requestRevision(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser) {
+            AuthenticatedUser currentUser,
+            String authorizationHeader) {
         validateApproverIdentity(currentUser);
 
         String currentUserEmail = currentUser.email();
         String currentUserName = currentUser.fullName();
 
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
+
+        validateDivisionApprovalAccess(
+                fundRequest,
+                request.getLevel(),
+                currentUser,
+                authorizationHeader);
 
         validateApprovalStage(fundRequest.getStatus(), request.getLevel());
 
@@ -247,12 +273,77 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     private void validateApproverIdentity(
             AuthenticatedUser currentUser) {
         if (currentUser == null
+                || currentUser.userId() == null
                 || currentUser.email() == null
                 || currentUser.email().isBlank()
                 || currentUser.fullName() == null
-                || currentUser.fullName().isBlank()) {
+                || currentUser.fullName().isBlank()
+                || currentUser.roles() == null) {
             throw new ForbiddenException(
                     "Identitas approver pada token tidak lengkap");
+        }
+    }
+
+    private void validateDivisionApprovalAccess(
+            FundRequest fundRequest,
+            ApprovalLevel approvalLevel,
+            AuthenticatedUser currentUser,
+            String authorizationHeader) {
+        if (approvalLevel != ApprovalLevel.DIVISION) {
+            return;
+        }
+
+        boolean superAdmin = currentUser.roles() != null
+                && currentUser.roles().stream()
+                        .anyMatch(role -> "SUPER_ADMIN".equalsIgnoreCase(role));
+
+        if (superAdmin) {
+            return;
+        }
+
+        OrganizationMemberContextResponse context = organizationClient.getCurrentMemberContext(
+                authorizationHeader);
+
+        OrganizationMemberContextResponse.MemberData member = context.getMember();
+
+        if (member == null
+                || member.getId() == null
+                || !Boolean.TRUE.equals(member.getActive())) {
+            throw new ForbiddenException(
+                    "Data anggota approver tidak aktif atau tidak valid");
+        }
+
+        if (member.getAuthUserId() == null
+                || !member.getAuthUserId().equals(
+                        currentUser.userId())) {
+            throw new ForbiddenException(
+                    "Akun approver tidak sesuai dengan data anggota organisasi");
+        }
+
+        if (member.getEmail() == null
+                || !member.getEmail().equalsIgnoreCase(
+                        currentUser.email())) {
+            throw new ForbiddenException(
+                    "Email approver tidak sesuai dengan data organisasi");
+        }
+
+        List<OrganizationMemberContextResponse.AssignmentData> assignments = context.getActiveAssignments() == null
+                ? List.of()
+                : context.getActiveAssignments();
+
+        boolean authorized = assignments.stream()
+                .filter(assignment -> Boolean.TRUE.equals(
+                        assignment.getActive()))
+                .filter(assignment -> assignment.getDivisionId() != null
+                        && assignment.getDivisionId()
+                                .equals(
+                                        fundRequest.getDivisionId()))
+                .anyMatch(assignment -> "KETUA_DIVISI".equalsIgnoreCase(
+                        assignment.getPositionCode()));
+
+        if (!authorized) {
+            throw new ForbiddenException(
+                    "Anda bukan Ketua Divisi aktif pada divisi pengajuan ini");
         }
     }
 }

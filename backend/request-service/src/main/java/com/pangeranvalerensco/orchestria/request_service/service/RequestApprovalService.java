@@ -9,18 +9,21 @@ public interface RequestApprovalService {
     FundRequestResponse approve(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser
+            AuthenticatedUser currentUser,
+            String authorizationHeader
     );
 
     FundRequestResponse reject(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser
+            AuthenticatedUser currentUser,
+            String authorizationHeader
     );
 
     FundRequestResponse requestRevision(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            AuthenticatedUser currentUser
+            AuthenticatedUser currentUser,
+            String authorizationHeader
     );
 }

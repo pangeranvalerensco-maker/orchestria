@@ -7,6 +7,7 @@ import com.pangeranvalerensco.orchestria.request_service.service.RequestApproval
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
@@ -24,11 +25,13 @@ public class RequestApprovalController {
         public ResponseEntity<ApiResponse<FundRequestResponse>> approve(
                         @PathVariable Long requestId,
                         @Valid @RequestBody ProcessApprovalRequest request,
-                        @AuthenticationPrincipal AuthenticatedUser currentUser) {
+                        @AuthenticationPrincipal AuthenticatedUser currentUser,
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
                 FundRequestResponse response = requestApprovalService.approve(
                                 requestId,
                                 request,
-                                currentUser);
+                                currentUser,
+                                authorizationHeader);
 
                 return ResponseEntity.ok(
                                 ApiResponse.<FundRequestResponse>builder()
@@ -43,11 +46,13 @@ public class RequestApprovalController {
         public ResponseEntity<ApiResponse<FundRequestResponse>> reject(
                         @PathVariable Long requestId,
                         @Valid @RequestBody ProcessApprovalRequest request,
-                        @AuthenticationPrincipal AuthenticatedUser currentUser) {
+                        @AuthenticationPrincipal AuthenticatedUser currentUser,
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
                 FundRequestResponse response = requestApprovalService.reject(
                                 requestId,
                                 request,
-                                currentUser);
+                                currentUser,
+                                authorizationHeader);
 
                 return ResponseEntity.ok(
                                 ApiResponse.<FundRequestResponse>builder()
@@ -62,11 +67,13 @@ public class RequestApprovalController {
         public ResponseEntity<ApiResponse<FundRequestResponse>> requestRevision(
                         @PathVariable Long requestId,
                         @Valid @RequestBody ProcessApprovalRequest request,
-                        @AuthenticationPrincipal AuthenticatedUser currentUser) {
+                        @AuthenticationPrincipal AuthenticatedUser currentUser,
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
                 FundRequestResponse response = requestApprovalService.requestRevision(
                                 requestId,
                                 request,
-                                currentUser);
+                                currentUser,
+                                authorizationHeader);
 
                 return ResponseEntity.ok(
                                 ApiResponse.<FundRequestResponse>builder()

@@ -11,6 +11,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestClientException;
 
 @Component
 public class OrganizationClient {
