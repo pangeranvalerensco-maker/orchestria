@@ -6,10 +6,11 @@ import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitS
 import com.pangeranvalerensco.orchestria.request_service.payload.response.FundRequestResponse;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.PageResponse;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
+import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
 
 public interface FundRequestService {
 
-    FundRequestResponse create(CreateFundRequestRequest request, String currentUserEmail);
+    FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail);
 
     PageResponse<FundRequestResponse> getAll(
             FundRequestStatus status,

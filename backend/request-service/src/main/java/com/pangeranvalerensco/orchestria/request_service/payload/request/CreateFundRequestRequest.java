@@ -21,12 +21,6 @@ public class CreateFundRequestRequest {
     @NotNull(message = "requestMemberId wajib diisi")
     private Long requesterMemberId;
 
-    @NotBlank(message = "requesterName wajib diisi")
-    @Size(max = 150, message = "requesterName maksimal 150 karakter")
-    private String requesterName;
-
-    private Long requesterAuthUserId;
-
     @NotBlank(message = "title wajib diisi")
     @Size(max = 150, message = "title maksimal 150 karakter")
     private String title;

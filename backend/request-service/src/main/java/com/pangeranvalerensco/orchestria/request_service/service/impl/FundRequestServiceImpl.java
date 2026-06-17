@@ -19,6 +19,7 @@ import com.pangeranvalerensco.orchestria.request_service.entity.RequestSettlemen
 import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitSettlementRequest;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
 import com.pangeranvalerensco.orchestria.request_service.repository.RequestSettlementRepository;
+import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -44,20 +45,32 @@ public class FundRequestServiceImpl implements FundRequestService {
 
         @Override
         @Transactional
-        public FundRequestResponse create(CreateFundRequestRequest request, String currentUserEmail) {
+        public FundRequestResponse create(
+                        CreateFundRequestRequest request,
+                        AuthenticatedUser currentUser) {
+
+                if (currentUser == null
+                                || currentUser.userId() == null
+                                || currentUser.email() == null
+                                || currentUser.fullName() == null
+                                || currentUser.fullName().isBlank()) {
+                        throw new ForbiddenException(
+                                        "Identitas user pada token tidak lengkap");
+                }
+
                 FundRequest fundRequest = FundRequest.builder()
                                 .divisionId(request.getDivisionId())
                                 .divisionName(request.getDivisionName())
                                 .requesterMemberId(request.getRequesterMemberId())
-                                .requesterName(request.getRequesterName())
-                                .requesterAuthUserId(request.getRequesterAuthUserId())
+                                .requesterName(currentUser.fullName())
+                                .requesterAuthUserId(currentUser.userId())
                                 .title(request.getTitle())
                                 .description(request.getDescription())
                                 .activityDate(request.getActivityDate())
                                 .priority(request.getPriority())
                                 .status(FundRequestStatus.DRAFT)
-                                .createdByEmail(currentUserEmail)
-                                .updatedByEmail(currentUserEmail)
+                                .createdByEmail(currentUser.email())
+                                .updatedByEmail(currentUser.email())
                                 .build();
 
                 FundRequest saved = fundRequestRepository.save(fundRequest);
