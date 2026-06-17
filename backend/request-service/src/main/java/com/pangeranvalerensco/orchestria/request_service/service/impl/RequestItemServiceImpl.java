@@ -5,6 +5,7 @@ import com.pangeranvalerensco.orchestria.request_service.entity.RequestItem;
 import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
 import com.pangeranvalerensco.orchestria.request_service.exception.BadRequestException;
 import com.pangeranvalerensco.orchestria.request_service.exception.ResourceNotFoundException;
+import com.pangeranvalerensco.orchestria.request_service.exception.ForbiddenException;
 import com.pangeranvalerensco.orchestria.request_service.payload.request.CreateRequestItemRequest;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.FundRequestResponse;
 import com.pangeranvalerensco.orchestria.request_service.repository.FundRequestRepository;
@@ -29,11 +30,16 @@ public class RequestItemServiceImpl implements RequestItemService {
     public FundRequestResponse addItem(
             Long fundRequestId,
             CreateRequestItemRequest request,
-            String currentUserEmail
-    ) {
+            String currentUserEmail) {
         FundRequest fundRequest = fundRequestRepository.findById(fundRequestId)
                 .filter(FundRequest::getActive)
                 .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
+
+        if (fundRequest.getCreatedByEmail() == null
+                || !fundRequest.getCreatedByEmail().equalsIgnoreCase(currentUserEmail)) {
+            throw new ForbiddenException(
+                    "Anda tidak memiliki akses untuk mengubah item pengajuan ini");
+        }
 
         if (fundRequest.getStatus() != FundRequestStatus.DRAFT) {
             throw new BadRequestException("Item hanya bisa ditambahkan ketika pengajuan masih berstatus DRAFT");
