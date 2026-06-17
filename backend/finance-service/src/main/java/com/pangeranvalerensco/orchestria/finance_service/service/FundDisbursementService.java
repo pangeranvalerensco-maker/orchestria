@@ -9,7 +9,8 @@ public interface FundDisbursementService {
 
     FundDisbursementResponse create(
             CreateFundDisbursementRequest request,
-            String currentUserEmail
+            String currentUserEmail,
+            String authorizationHeader
     );
 
     FundDisbursementResponse getById(Long id);

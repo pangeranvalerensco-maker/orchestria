@@ -9,7 +9,15 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "fund_disbursements")
+@Table(
+        name = "fund_disbursements",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_fund_disbursement_request",
+                        columnNames = "fund_request_id"
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
