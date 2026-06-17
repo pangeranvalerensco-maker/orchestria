@@ -226,6 +226,8 @@ public class FundRequestServiceImpl implements FundRequestService {
                                 .filter(FundRequest::getActive)
                                 .orElseThrow(() -> new ResourceNotFoundException("Pengajuan dana tidak ditemukan"));
 
+                validateOwner(fundRequest, currentUserEmail);
+
                 if (fundRequest.getStatus() != FundRequestStatus.FUND_RECEIVED) {
                         throw new BadRequestException(
                                         "Settlement hanya bisa dikirim setelah dana dikonfirmasi diterima");
