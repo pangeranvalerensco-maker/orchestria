@@ -20,6 +20,8 @@ import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitS
 import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
 import com.pangeranvalerensco.orchestria.request_service.repository.RequestSettlementRepository;
 import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
+import com.pangeranvalerensco.orchestria.request_service.client.OrganizationClient;
+import com.pangeranvalerensco.orchestria.request_service.client.dto.OrganizationMemberContextResponse;
 import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
@@ -42,28 +44,74 @@ public class FundRequestServiceImpl implements FundRequestService {
         private final RequestItemRepository requestItemRepository;
         private final RequestStatusHistoryRepository requestStatusHistoryRepository;
         private final RequestSettlementRepository requestSettlementRepository;
+        private final OrganizationClient organizationClient;
 
         @Override
         @Transactional
         public FundRequestResponse create(
                         CreateFundRequestRequest request,
-                        AuthenticatedUser currentUser) {
-
+                        AuthenticatedUser currentUser,
+                        String authorizationHeader) {
                 if (currentUser == null
                                 || currentUser.userId() == null
                                 || currentUser.email() == null
-                                || currentUser.fullName() == null
-                                || currentUser.fullName().isBlank()) {
+                                || currentUser.email().isBlank()) {
                         throw new ForbiddenException(
                                         "Identitas user pada token tidak lengkap");
                 }
 
+                OrganizationMemberContextResponse context = organizationClient.getCurrentMemberContext(
+                                authorizationHeader);
+
+                OrganizationMemberContextResponse.MemberData member = context.getMember();
+
+                if (member == null
+                                || member.getId() == null
+                                || !Boolean.TRUE.equals(member.getActive())) {
+                        throw new ForbiddenException(
+                                        "Data anggota organisasi tidak aktif atau tidak valid");
+                }
+
+                if (member.getEmail() == null
+                                || !member.getEmail().equalsIgnoreCase(
+                                                currentUser.email())) {
+                        throw new ForbiddenException(
+                                        "Email user tidak sesuai dengan data anggota organisasi");
+                }
+
+                if (member.getAuthUserId() == null
+                                || !member.getAuthUserId().equals(
+                                                currentUser.userId())) {
+                        throw new ForbiddenException(
+                                        "Akun auth belum terhubung dengan data anggota yang benar");
+                }
+
+                List<OrganizationMemberContextResponse.AssignmentData> assignments = context
+                                .getActiveAssignments() == null
+                                                ? List.of()
+                                                : context.getActiveAssignments();
+
+                OrganizationMemberContextResponse.AssignmentData assignment = assignments.stream()
+                                .filter(item -> Boolean.TRUE.equals(item.getActive()))
+                                .filter(item -> item.getDivisionId() != null
+                                                && item.getDivisionId().equals(
+                                                                request.getDivisionId()))
+                                .findFirst()
+                                .orElseThrow(() -> new ForbiddenException(
+                                                "Anda tidak memiliki assignment aktif pada divisi tersebut"));
+
+                if (assignment.getDivisionName() == null
+                                || assignment.getDivisionName().isBlank()) {
+                        throw new BadRequestException(
+                                        "Data divisi organisasi tidak lengkap");
+                }
+
                 FundRequest fundRequest = FundRequest.builder()
-                                .divisionId(request.getDivisionId())
-                                .divisionName(request.getDivisionName())
-                                .requesterMemberId(request.getRequesterMemberId())
-                                .requesterName(currentUser.fullName())
-                                .requesterAuthUserId(currentUser.userId())
+                                .divisionId(assignment.getDivisionId())
+                                .divisionName(assignment.getDivisionName())
+                                .requesterMemberId(member.getId())
+                                .requesterName(member.getFullName())
+                                .requesterAuthUserId(member.getAuthUserId())
                                 .title(request.getTitle())
                                 .description(request.getDescription())
                                 .activityDate(request.getActivityDate())

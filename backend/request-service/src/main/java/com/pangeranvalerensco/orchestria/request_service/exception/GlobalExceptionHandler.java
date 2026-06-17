@@ -17,91 +17,103 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse<Void>> handleResourceNotFoundException(
-            ResourceNotFoundException ex,
-            HttpServletRequest request
-    ){
-        ErrorResponse<Void> response = ErrorResponse.<Void>builder()
-                .success(false)
-                .message(ex.getMessage())
-                .errors(null)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
-    }
+        @ExceptionHandler(ResourceNotFoundException.class)
+        public ResponseEntity<ErrorResponse<Void>> handleResourceNotFoundException(
+                        ResourceNotFoundException ex,
+                        HttpServletRequest request) {
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ErrorResponse<Void>> handleBadRequestException(
-            BadRequestException ex,
-            HttpServletRequest request
-    ){
-        ErrorResponse<Void> response = ErrorResponse.<Void>builder()
-                .success(false)
-                .message(ex.getMessage())
-                .errors(null)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
-
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ErrorResponse<Void>> handleForbiddenException(
-            ForbiddenException ex,
-            HttpServletRequest request
-    ){
-        ErrorResponse<Void> response = ErrorResponse.<Void>builder()
-                .success(false)
-                .message(ex.getMessage())
-                .errors(null)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-    }
-
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse<Map<String, String>>> handleValidationException(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request
-    ){
-        Map<String, String> errors = new LinkedHashMap<>();
-
-        for(FieldError fieldError : ex.getBindingResult().getFieldErrors()){
-            errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
 
-        ErrorResponse<Map<String, String>> response = ErrorResponse.<Map<String, String>>builder()
-                .success(false)
-                .message("Validasi Gagal")
-                .errors(errors)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-        
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-    }
+        @ExceptionHandler(BadRequestException.class)
+        public ResponseEntity<ErrorResponse<Void>> handleBadRequestException(
+                        BadRequestException ex,
+                        HttpServletRequest request) {
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse<Void>> handleGeneralException(
-            Exception ex,
-            HttpServletRequest request
-    ){
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
 
-        ErrorResponse<Void> response = ErrorResponse.<Void>builder()
-                .success(false)
-                .message("Terjadi kesalahan pada server")
-                .errors(null)
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .build();
-        
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
+        @ExceptionHandler(ForbiddenException.class)
+        public ResponseEntity<ErrorResponse<Void>> handleForbiddenException(
+                        ForbiddenException ex,
+                        HttpServletRequest request) {
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ErrorResponse<Map<String, String>>> handleValidationException(
+                        MethodArgumentNotValidException ex,
+                        HttpServletRequest request) {
+                Map<String, String> errors = new LinkedHashMap<>();
+
+                for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+                        errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+                }
+
+                ErrorResponse<Map<String, String>> response = ErrorResponse.<Map<String, String>>builder()
+                                .success(false)
+                                .message("Validasi Gagal")
+                                .errors(errors)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse<Void>> handleGeneralException(
+                        Exception ex,
+                        HttpServletRequest request) {
+
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message("Terjadi kesalahan pada server")
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+
+        @ExceptionHandler(ExternalServiceException.class)
+        public ResponseEntity<ErrorResponse<Void>> handleExternalServiceException(
+                        ExternalServiceException ex,
+                        HttpServletRequest request) {
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message(ex.getMessage())
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+
+                return ResponseEntity
+                                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                                .body(response);
+        }
 }

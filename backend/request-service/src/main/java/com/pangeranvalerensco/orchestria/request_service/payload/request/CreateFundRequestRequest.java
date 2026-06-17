@@ -14,13 +14,6 @@ public class CreateFundRequestRequest {
     @NotNull(message = "divisionId Wajib diisi")
     private Long divisionId;
 
-    @NotBlank(message = "divisionName wajib diisi")
-    @Size(max = 150, message = "divisionName maksimal 150 karakter")
-    private String divisionName;
-
-    @NotNull(message = "requestMemberId wajib diisi")
-    private Long requesterMemberId;
-
     @NotBlank(message = "title wajib diisi")
     @Size(max = 150, message = "title maksimal 150 karakter")
     private String title;

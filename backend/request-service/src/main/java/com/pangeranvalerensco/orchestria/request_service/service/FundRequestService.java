@@ -10,7 +10,7 @@ import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedU
 
 public interface FundRequestService {
 
-    FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail);
+    FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail, String authorizationHeader);
 
     PageResponse<FundRequestResponse> getAll(
             FundRequestStatus status,

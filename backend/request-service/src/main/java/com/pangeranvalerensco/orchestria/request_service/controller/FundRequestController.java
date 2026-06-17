@@ -11,6 +11,7 @@ import com.pangeranvalerensco.orchestria.request_service.service.FundRequestServ
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -29,9 +30,12 @@ public class FundRequestController {
         @PostMapping
         public ResponseEntity<ApiResponse<FundRequestResponse>> create(
                         @Valid @RequestBody CreateFundRequestRequest request,
-                        @AuthenticationPrincipal AuthenticatedUser currentUser) {
-
-                FundRequestResponse response = fundRequestService.create(request, currentUser);
+                        @AuthenticationPrincipal AuthenticatedUser currentUser,
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+                FundRequestResponse response = fundRequestService.create(
+                                request,
+                                currentUser,
+                                authorizationHeader);
 
                 return ResponseEntity.status(HttpStatus.CREATED).body(
                                 ApiResponse.<FundRequestResponse>builder()

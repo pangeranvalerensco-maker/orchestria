@@ -1,4 +1,4 @@
-package main.java.com.pangeranvalerensco.orchestria.api_gateway.config;
+package com.pangeranvalerensco.orchestria.api_gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
