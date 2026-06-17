@@ -86,7 +86,7 @@ Login
 → PUB Approval
 → Pembina Approval
 → Create Finance Disbursement
-→ Mark Request as Disbursed
+→ Verify Request Disbursed Status
 → Confirm Fund Received
 → Submit Settlement
 → Approve Settlement
@@ -191,7 +191,7 @@ Memastikan token valid dan user login dapat dibaca.
 
 ---
 
-## 3. Create Fund Request
+# 3. Create Fund Request
 
 ```http
 POST {{baseUrl}}/api/requests
@@ -220,9 +220,7 @@ Data berikut diambil otomatis oleh backend dari JWT dan organization-service:
 
 ```text
 divisionName
-requesterMemberId
 requesterName
-requesterAuthUserId
 createdByEmail
 ```
 
@@ -232,133 +230,6 @@ Expected:
 201 Created
 status = DRAFT
 ```
-
----
-
-## 7. Division Approval
-
-Body:
-
-```json
-{
-  "level": "DIVISION",
-  "note": "Disetujui oleh Ketua Divisi"
-}
-```
-
-Nama dan email approver diambil otomatis dari JWT.
-
-Expected:
-
-```text
-SUBMITTED → DIVISION_APPROVED
-```
-
----
-
-## 8. PUB Approval
-
-Body:
-
-```json
-{
-  "level": "PUB",
-  "note": "Disetujui oleh Ketua PUB"
-}
-```
-
-Expected:
-
-```text
-DIVISION_APPROVED → PUB_APPROVED
-```
-
----
-
-## 9. Pembina Approval
-
-Body:
-
-```json
-{
-  "level": "PEMBINA",
-  "note": "Disetujui oleh Pembina"
-}
-```
-
-Expected:
-
-```text
-PUB_APPROVED → READY_FOR_DISBURSEMENT
-```
-
----
-
-## 10. Create Finance Disbursement
-
-```http
-POST {{baseUrl}}/api/finance/disbursements
-```
-
-Headers:
-
-```http
-Authorization: Bearer {{token}}
-Content-Type: application/json
-```
-
-Body:
-
-```json
-{
-  "fundRequestId": 1,
-  "method": "CASH",
-  "receiverName": "Pangeran Valerensco Rivaldi Hutabarat",
-  "receiverNote": "Dana diterima langsung oleh pengaju",
-  "proofUrl": "https://example.com/proof-disbursement.jpg",
-  "note": "Pencairan dana konsumsi kegiatan"
-}
-```
-
-Data berikut diambil otomatis dari request-service:
-
-```text
-requestTitle
-divisionId
-divisionName
-requesterName
-amount
-```
-
-Expected:
-
-```text
-201 Created
-finance status = DISBURSED
-request status = DISBURSED
-```
-
----
-
-## 11. Verify Request Disbursement Status
-
-Finance-service otomatis memperbarui status pengajuan setelah pencairan berhasil dibuat.
-
-Tidak perlu memanggil endpoint `mark-disbursed` secara manual.
-
-Verifikasi:
-
-```http
-GET {{baseUrl}}/api/requests/{{requestId}}
-Authorization: Bearer {{token}}
-```
-
-Expected:
-
-```text
-status = DISBURSED
-```
-
 
 ---
 
@@ -505,7 +376,6 @@ Body:
 ```json id="3lcsoc"
 {
   "level": "DIVISION",
-  "approverName": "Ketua Divisi Kesejahteraan",
   "note": "Disetujui oleh Ketua Divisi"
 }
 ```
@@ -550,7 +420,6 @@ Body:
 ```json id="eal9dj"
 {
   "level": "PUB",
-  "approverName": "Ketua PUB",
   "note": "Disetujui oleh Ketua PUB"
 }
 ```
@@ -595,7 +464,6 @@ Body:
 ```json id="0lzo2o"
 {
   "level": "PEMBINA",
-  "approverName": "Pembina PUB",
   "note": "Disetujui oleh Pembina"
 }
 ```
@@ -640,24 +508,12 @@ Body:
 ```json id="3s32kw"
 {
   "fundRequestId": 1,
-  "requestTitle": "Pengajuan Konsumsi Rapat Divisi",
-  "divisionId": 1,
-  "divisionName": "Divisi Kesejahteraan",
-  "requesterName": "Pangeran Valerensco Rivaldi Hutabarat",
-  "amount": 250000,
   "method": "CASH",
   "receiverName": "Pangeran Valerensco Rivaldi Hutabarat",
   "receiverNote": "Dana diterima langsung oleh pengaju",
   "proofUrl": "https://example.com/proof-disbursement.jpg",
   "note": "Pencairan dana konsumsi rapat"
 }
-```
-
-Catatan:
-
-```text id="8xps6q"
-Sesuaikan fundRequestId dengan {{requestId}}.
-Jika nominal totalAmount berbeda karena ada lebih dari satu item, sesuaikan amount.
 ```
 
 Expected status:
@@ -682,26 +538,25 @@ disbursementId = response.data.id
 
 # 11. Verify Request Disbursement Status
 
-Setelah pencairan berhasil dibuat di finance-service, finance-service otomatis
-memperbarui status pengajuan di request-service.
+Setelah pencairan berhasil dibuat, finance-service otomatis memperbarui
+status pengajuan pada request-service.
 
 Tidak perlu memanggil endpoint `mark-disbursed` secara manual.
 
-Verifikasi menggunakan:
+Endpoint verifikasi:
 
 ```http
 GET {{baseUrl}}/api/requests/{{requestId}}
 ```
 
-Expected status:
+Headers:
 
-DISBURSED
+Authorization: Bearer {{token}}
 
-Hapus instruksi manual:
+Expected:
 
-```http
-POST /api/requests/{{requestId}}/mark-disbursed
-```
+200 OK
+status = DISBURSED
 
 ---
 
@@ -829,13 +684,7 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 ```
 
-Body:
-
-```json id="mv0gol"
-{
-  "note": "Settlement disetujui oleh bendahara"
-}
-```
+Request Body tidak diperlukan
 
 Expected status:
 
@@ -1201,7 +1050,6 @@ Body:
 ```json id="pzl4qw"
 {
   "level": "PUB",
-  "approverName": "Ketua Divisi Kesejahteraan",
   "note": "Mencoba approval PUB dengan role Ketua Divisi"
 }
 ```
@@ -1281,7 +1129,6 @@ Body:
 ```json id="sd1sh6"
 {
   "level": "DIVISION",
-  "approverName": "Ketua Divisi Kesejahteraan",
   "note": "Pengajuan ditolak karena data belum sesuai"
 }
 ```
@@ -1309,7 +1156,6 @@ Body:
 ```json id="sfccn2"
 {
   "level": "DIVISION",
-  "approverName": "Ketua Divisi Kesejahteraan",
   "note": "Pengajuan perlu revisi pada item kebutuhan"
 }
 ```
