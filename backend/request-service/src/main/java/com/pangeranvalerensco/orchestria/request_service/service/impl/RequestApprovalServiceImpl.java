@@ -18,6 +18,8 @@ import com.pangeranvalerensco.orchestria.request_service.service.RequestApproval
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.pangeranvalerensco.orchestria.request_service.exception.ForbiddenException;
+import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +35,12 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse approve(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail) {
+            AuthenticatedUser currentUser) {
+        validateApproverIdentity(currentUser);
+
+        String currentUserEmail = currentUser.email();
+        String currentUserName = currentUser.fullName();
+
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
         FundRequestStatus oldStatus = fundRequest.getStatus();
@@ -43,6 +50,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
+                currentUserName,
                 ApprovalDecision.APPROVED);
 
         fundRequest.setStatus(newStatus);
@@ -65,7 +73,12 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse reject(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail) {
+            AuthenticatedUser currentUser) {
+        validateApproverIdentity(currentUser);
+
+        String currentUserEmail = currentUser.email();
+        String currentUserName = currentUser.fullName();
+
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
         validateApprovalStage(
@@ -79,6 +92,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
+                currentUserName,
                 ApprovalDecision.REJECTED);
 
         fundRequest.setStatus(newStatus);
@@ -101,7 +115,12 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
     public FundRequestResponse requestRevision(
             Long fundRequestId,
             ProcessApprovalRequest request,
-            String currentUserEmail) {
+            AuthenticatedUser currentUser) {
+        validateApproverIdentity(currentUser);
+
+        String currentUserEmail = currentUser.email();
+        String currentUserName = currentUser.fullName();
+
         FundRequest fundRequest = findActiveFundRequest(fundRequestId);
 
         validateApprovalStage(fundRequest.getStatus(), request.getLevel());
@@ -113,6 +132,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                 fundRequest,
                 request,
                 currentUserEmail,
+                currentUserName,
                 ApprovalDecision.REVISION_REQUESTED);
 
         fundRequest.setStatus(newStatus);
@@ -195,6 +215,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
             FundRequest fundRequest,
             ProcessApprovalRequest request,
             String currentUserEmail,
+            String currentUserName,
             ApprovalDecision decision) {
         requestApprovalRepository.save(
                 RequestApproval.builder()
@@ -202,7 +223,7 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                         .level(request.getLevel())
                         .decision(decision)
                         .approverEmail(currentUserEmail)
-                        .approverName(request.getApproverName())
+                        .approverName(currentUserName)
                         .note(request.getNote())
                         .build());
     }
@@ -221,5 +242,17 @@ public class RequestApprovalServiceImpl implements RequestApprovalService {
                         .changedByEmail(currentUserEmail)
                         .note(note)
                         .build());
+    }
+
+    private void validateApproverIdentity(
+            AuthenticatedUser currentUser) {
+        if (currentUser == null
+                || currentUser.email() == null
+                || currentUser.email().isBlank()
+                || currentUser.fullName() == null
+                || currentUser.fullName().isBlank()) {
+            throw new ForbiddenException(
+                    "Identitas approver pada token tidak lengkap");
+        }
     }
 }
