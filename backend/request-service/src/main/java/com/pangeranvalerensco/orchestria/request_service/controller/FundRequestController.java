@@ -97,6 +97,26 @@ public class FundRequestController {
                                                 .build());
         }
 
+        @PreAuthorize("hasAuthority('request.read.own')")
+        @GetMapping("/my/{id}")
+        public ResponseEntity<ApiResponse<FundRequestResponse>> getMyRequestById(
+                        @PathVariable Long id,
+                        Authentication authentication) {
+                String currentUserEmail = authentication.getName();
+
+                FundRequestResponse response = fundRequestService.getMyRequestById(
+                                id,
+                                currentUserEmail);
+
+                return ResponseEntity.ok(
+                                ApiResponse.<FundRequestResponse>builder()
+                                                .success(true)
+                                                .message(
+                                                                "Detail pengajuan milik saya berhasil diambil")
+                                                .data(response)
+                                                .build());
+        }
+
         @PreAuthorize("hasAuthority('request.read.all')")
         @GetMapping("/{id}")
         public ResponseEntity<ApiResponse<FundRequestResponse>> getById(@PathVariable Long id) {

@@ -1,6 +1,7 @@
 import { apiRequest } from "../api/http";
 import type {
   CreateFundRequestPayload,
+  CreateRequestItemPayload,
   FundRequest,
   PageResponse,
 } from "../types/request";
@@ -35,6 +36,47 @@ export function createFundRequest(
     {
       method: "POST",
       body: JSON.stringify(payload),
+    },
+    token,
+  );
+}
+
+export function getMyRequestById(
+  token: string,
+  requestId: number,
+) {
+  return apiRequest<FundRequest>(
+    `/api/requests/my/${requestId}`,
+    {
+      method: "GET",
+    },
+    token,
+  );
+}
+
+export function addRequestItem(
+  token: string,
+  requestId: number,
+  payload: CreateRequestItemPayload,
+) {
+  return apiRequest<FundRequest>(
+    `/api/requests/${requestId}/items`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    token,
+  );
+}
+
+export function submitFundRequest(
+  token: string,
+  requestId: number,
+) {
+  return apiRequest<FundRequest>(
+    `/api/requests/${requestId}/submit`,
+    {
+      method: "POST",
     },
     token,
   );

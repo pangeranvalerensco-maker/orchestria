@@ -10,36 +10,40 @@ import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedU
 
 public interface FundRequestService {
 
-    FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail, String authorizationHeader);
+        FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail,
+                        String authorizationHeader);
 
-    PageResponse<FundRequestResponse> getAll(
-            FundRequestStatus status,
-            Long divisionId,
-            Long requestMemberId,
-            int page,
-            int size,
-            String sortBy,
-            String sortDirection);
+        PageResponse<FundRequestResponse> getAll(
+                        FundRequestStatus status,
+                        Long divisionId,
+                        Long requestMemberId,
+                        int page,
+                        int size,
+                        String sortBy,
+                        String sortDirection);
 
-    FundRequestResponse getById(Long id);
+        FundRequestResponse getById(Long id);
 
-    FundRequestResponse submit(Long id, String currentUserEmail);
+        FundRequestResponse getMyRequestById(Long id, String currentUserEmail);
+        
+        FundRequestResponse submit(Long id, String currentUserEmail);
 
-    FundRequestResponse markDisbursed(Long id, String currentUserEmail);
+        FundRequestResponse markDisbursed(Long id, String currentUserEmail);
 
-    FundRequestResponse markFundReceived(Long id, String currentUserEmail);
+        FundRequestResponse markFundReceived(Long id, String currentUserEmail);
 
-    RequestSettlementResponse submitSettlement(
-            Long id,
-            SubmitSettlementRequest request,
-            String currentUserEmail);
+        RequestSettlementResponse submitSettlement(
+                        Long id,
+                        SubmitSettlementRequest request,
+                        String currentUserEmail);
 
-    RequestSettlementResponse approveSettlement(Long id, String currentUserEmail);
+        RequestSettlementResponse approveSettlement(Long id, String currentUserEmail);
 
-    PageResponse<FundRequestResponse> getMyRequests(
-            String currentUserEmail,
-            int page,
-            int size,
-            String sortBy,
-            String sortDirection);
+        PageResponse<FundRequestResponse> getMyRequests(
+                        String currentUserEmail,
+                        int page,
+                        int size,
+                        String sortBy,
+                        String sortDirection);
+
 }

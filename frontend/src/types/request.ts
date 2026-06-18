@@ -72,3 +72,10 @@ export interface CreateFundRequestPayload {
   activityDate?: string;
   priority: RequestPriority;
 }
+
+export interface CreateRequestItemPayload {
+  itemName: string;
+  description?: string;
+  quantity: number;
+  unitPrice: number;
+}

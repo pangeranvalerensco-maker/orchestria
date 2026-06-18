@@ -7,6 +7,9 @@ import {
 import {
   CreateRequestPage,
 } from "./pages/CreateRequestPage";
+import {
+  RequestDetailPage,
+} from "./pages/RequestDetailPage";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MyRequestsPage } from "./pages/MyRequestsPage";
@@ -44,6 +47,10 @@ function App() {
           <Route
             path="/requests/new"
             element={<CreateRequestPage />}
+          />
+          <Route
+            path="/requests/:id"
+            element={<RequestDetailPage />}
           />
         </Route>
       </Route>

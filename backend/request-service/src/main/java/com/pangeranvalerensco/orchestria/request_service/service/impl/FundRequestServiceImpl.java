@@ -386,6 +386,23 @@ public class FundRequestServiceImpl implements FundRequestService {
 
         @Override
         @Transactional(readOnly = true)
+        public FundRequestResponse getMyRequestById(
+                        Long id,
+                        String currentUserEmail) {
+                FundRequest fundRequest = fundRequestRepository.findById(id)
+                                .filter(FundRequest::getActive)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Pengajuan dana tidak ditemukan"));
+
+                validateOwner(
+                                fundRequest,
+                                currentUserEmail);
+
+                return mapToResponse(fundRequest);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
         public FundRequestResponse getById(Long id) {
                 FundRequest fundRequest = fundRequestRepository.findById(id)
                                 .filter(FundRequest::getActive)
