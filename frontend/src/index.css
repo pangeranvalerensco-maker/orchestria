@@ -701,3 +701,89 @@ button {
     flex-direction: column;
   }
 }
+
+.secondary-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  color: #334155;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: white;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.secondary-link-button:hover {
+  background: #f8fafc;
+}
+
+.request-form {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.form-section h2 {
+  margin: 7px 0 24px;
+}
+
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 13px 14px;
+  color: #172033;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: white;
+  outline: none;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.form-actions {
+  padding-top: 22px;
+  margin-top: 22px;
+  border-top: 1px solid #edf0f5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.form-submit-button {
+  width: auto;
+  min-width: 150px;
+}
+
+.empty-state small {
+  max-width: 540px;
+  color: #94a3b8;
+}
+
+@media (max-width: 700px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-submit-button {
+    width: 100%;
+  }
+}

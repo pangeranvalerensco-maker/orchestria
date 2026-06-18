@@ -64,3 +64,11 @@ export interface PageResponse<T> {
   first: boolean;
   last: boolean;
 }
+
+export interface CreateFundRequestPayload {
+  divisionId: number;
+  title: string;
+  description?: string;
+  activityDate?: string;
+  priority: RequestPriority;
+}

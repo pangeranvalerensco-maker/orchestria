@@ -4,6 +4,9 @@ import {
   Routes,
 } from "react-router";
 
+import {
+  CreateRequestPage,
+} from "./pages/CreateRequestPage";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MyRequestsPage } from "./pages/MyRequestsPage";
@@ -37,6 +40,10 @@ function App() {
           <Route
             path="/requests"
             element={<MyRequestsPage />}
+          />
+          <Route
+            path="/requests/new"
+            element={<CreateRequestPage />}
           />
         </Route>
       </Route>

@@ -1,5 +1,6 @@
 import { apiRequest } from "../api/http";
 import type {
+  CreateFundRequestPayload,
   FundRequest,
   PageResponse,
 } from "../types/request";
@@ -20,6 +21,20 @@ export function getMyRequests(
     `/api/requests/my?${searchParams.toString()}`,
     {
       method: "GET",
+    },
+    token,
+  );
+}
+
+export function createFundRequest(
+  token: string,
+  payload: CreateFundRequestPayload,
+) {
+  return apiRequest<FundRequest>(
+    "/api/requests",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
     },
     token,
   );
