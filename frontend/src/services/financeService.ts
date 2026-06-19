@@ -63,3 +63,18 @@ export function approveSettlement(token: string, requestId: number) {
     token,
   );
 }
+
+export function requestSettlementRevision(
+  token: string,
+  requestId: number,
+  revisionNote: string,
+) {
+  return apiRequest<RequestSettlement>(
+    `/api/requests/${requestId}/settlement/request-revision`,
+    {
+      method: "POST",
+      body: JSON.stringify({ revisionNote }),
+    },
+    token,
+  );
+}
