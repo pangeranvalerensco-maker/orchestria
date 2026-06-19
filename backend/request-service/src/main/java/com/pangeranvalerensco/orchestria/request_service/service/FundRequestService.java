@@ -8,6 +8,8 @@ import com.pangeranvalerensco.orchestria.request_service.payload.response.PageRe
 import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
 import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
 
+import java.util.List;
+
 public interface FundRequestService {
 
         FundRequestResponse create(CreateFundRequestRequest request, AuthenticatedUser currentUserEmail,
@@ -25,7 +27,7 @@ public interface FundRequestService {
         FundRequestResponse getById(Long id);
 
         FundRequestResponse getMyRequestById(Long id, String currentUserEmail);
-        
+
         FundRequestResponse submit(Long id, String currentUserEmail);
 
         FundRequestResponse markDisbursed(Long id, String currentUserEmail);
@@ -45,5 +47,10 @@ public interface FundRequestService {
                         int size,
                         String sortBy,
                         String sortDirection);
+
+        List<FundRequestResponse> getPendingApprovals(
+                AuthenticatedUser currentUser,
+                String authorizationHeader
+        );
 
 }

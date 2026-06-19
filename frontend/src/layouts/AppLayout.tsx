@@ -12,6 +12,7 @@ export function AppLayout() {
   const {
     user,
     logout,
+    hasPermission,
   } = useAuth();
 
   function handleLogout() {
@@ -56,9 +57,24 @@ export function AppLayout() {
             Pengajuan Dana
             </NavLink>
 
-          <span className="nav-item disabled">
-            Approval
-          </span>
+          {hasPermission("request.approve.division")
+              || hasPermission("request.approve.pub")
+              || hasPermission("request.approve.pembina") ? (
+              <NavLink
+                to="/approvals"
+                className={({ isActive }) =>
+                  isActive
+                    ? "nav-item active"
+                    : "nav-item"
+                }
+              >
+                Approval
+              </NavLink>
+            ) : (
+              <span className="nav-item disabled">
+                Approval
+              </span>
+            )}
 
           <span className="nav-item disabled">
             Keuangan

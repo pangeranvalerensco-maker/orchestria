@@ -1,9 +1,11 @@
 import { apiRequest } from "../api/http";
 import type {
+  ApprovalAction,
   CreateFundRequestPayload,
   CreateRequestItemPayload,
   FundRequest,
   PageResponse,
+  ProcessApprovalPayload,
 } from "../types/request";
 
 export function getMyRequests(
@@ -77,6 +79,34 @@ export function submitFundRequest(
     `/api/requests/${requestId}/submit`,
     {
       method: "POST",
+    },
+    token,
+  );
+}
+
+export function getPendingApprovals(
+  token: string,
+) {
+  return apiRequest<FundRequest[]>(
+    "/api/requests/pending-approvals",
+    {
+      method: "GET",
+    },
+    token,
+  );
+}
+
+export function processApproval(
+  token: string,
+  requestId: number,
+  action: ApprovalAction,
+  payload: ProcessApprovalPayload,
+) {
+  return apiRequest<FundRequest>(
+    `/api/requests/${requestId}/approvals/${action}`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
     },
     token,
   );

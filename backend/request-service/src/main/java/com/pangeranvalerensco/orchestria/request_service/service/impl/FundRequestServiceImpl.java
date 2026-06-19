@@ -24,10 +24,15 @@ import com.pangeranvalerensco.orchestria.request_service.repository.RequestSettl
 import com.pangeranvalerensco.orchestria.request_service.security.AuthenticatedUser;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.criteria.Predicate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -403,6 +408,124 @@ public class FundRequestServiceImpl implements FundRequestService {
 
         @Override
         @Transactional(readOnly = true)
+        public List<FundRequestResponse> getPendingApprovals(
+                        AuthenticatedUser currentUser,
+                        String authorizationHeader) {
+                if (currentUser == null
+                                || currentUser.userId() == null
+                                || currentUser.email() == null
+                                || currentUser.email().isBlank()
+                                || currentUser.roles() == null) {
+                        throw new ForbiddenException(
+                                        "Identitas approver pada token tidak lengkap");
+                }
+
+                Set<String> roles = currentUser.roles()
+                                .stream()
+                                .map(role -> role.toUpperCase(Locale.ROOT))
+                                .collect(Collectors.toSet());
+
+                boolean superAdmin = roles.contains("SUPER_ADMIN");
+
+                boolean divisionApprover = roles.contains("KETUA_DIVISI");
+
+                boolean pubApprover = roles.contains("KETUA_PUB");
+
+                boolean pembinaApprover = roles.contains("PEMBINA");
+
+                if (!superAdmin
+                                && !divisionApprover
+                                && !pubApprover
+                                && !pembinaApprover) {
+                        throw new ForbiddenException(
+                                        "User tidak memiliki role approver");
+                }
+
+                Set<Long> divisionIds = Set.of();
+
+                if (!superAdmin && divisionApprover) {
+                        OrganizationMemberContextResponse context = organizationClient.getCurrentMemberContext(
+                                        authorizationHeader);
+
+                        List<OrganizationMemberContextResponse.AssignmentData> assignments = context
+                                        .getActiveAssignments() == null
+                                                        ? List.of()
+                                                        : context.getActiveAssignments();
+
+                        divisionIds = assignments.stream()
+                                        .filter(assignment -> Boolean.TRUE.equals(
+                                                        assignment.getActive()))
+                                        .filter(assignment -> "KETUA_DIVISI".equalsIgnoreCase(
+                                                        assignment.getPositionCode()))
+                                        .map(
+                                                        OrganizationMemberContextResponse.AssignmentData::getDivisionId)
+                                        .filter(java.util.Objects::nonNull)
+                                        .collect(Collectors.toSet());
+                }
+
+                Set<Long> allowedDivisionIds = divisionIds;
+
+                Specification<FundRequest> specification = (root, query, criteriaBuilder) -> {
+                        List<Predicate> pendingStages = new ArrayList<>();
+
+                        if (superAdmin) {
+                                pendingStages.add(
+                                                root.get("status").in(
+                                                                List.of(
+                                                                                FundRequestStatus.SUBMITTED,
+                                                                                FundRequestStatus.DIVISION_APPROVED,
+                                                                                FundRequestStatus.PUB_APPROVED)));
+                        } else {
+                                if (divisionApprover
+                                                && !allowedDivisionIds.isEmpty()) {
+                                        pendingStages.add(
+                                                        criteriaBuilder.and(
+                                                                        criteriaBuilder.equal(
+                                                                                        root.get("status"),
+                                                                                        FundRequestStatus.SUBMITTED),
+                                                                        root.get("divisionId")
+                                                                                        .in(allowedDivisionIds)));
+                                }
+
+                                if (pubApprover) {
+                                        pendingStages.add(
+                                                        criteriaBuilder.equal(
+                                                                        root.get("status"),
+                                                                        FundRequestStatus.DIVISION_APPROVED));
+                                }
+
+                                if (pembinaApprover) {
+                                        pendingStages.add(
+                                                        criteriaBuilder.equal(
+                                                                        root.get("status"),
+                                                                        FundRequestStatus.PUB_APPROVED));
+                                }
+                        }
+
+                        if (pendingStages.isEmpty()) {
+                                return criteriaBuilder.disjunction();
+                        }
+
+                        return criteriaBuilder.and(
+                                        criteriaBuilder.isTrue(
+                                                        root.get("active")),
+                                        criteriaBuilder.or(
+                                                        pendingStages.toArray(
+                                                                        Predicate[]::new)));
+                };
+
+                return fundRequestRepository.findAll(
+                                specification,
+                                Sort.by(
+                                                Sort.Direction.ASC,
+                                                "createdAt"))
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        @Override
+        @Transactional(readOnly = true)
         public FundRequestResponse getById(Long id) {
                 FundRequest fundRequest = fundRequestRepository.findById(id)
                                 .filter(FundRequest::getActive)
@@ -539,4 +662,5 @@ public class FundRequestServiceImpl implements FundRequestService {
                                         "Anda tidak memiliki akses untuk memproses pengajuan ini");
                 }
         }
+
 }

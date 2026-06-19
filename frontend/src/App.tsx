@@ -15,6 +15,8 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { MyRequestsPage } from "./pages/MyRequestsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
+import { ApprovalPage } from "./pages/ApprovalPage";
+
 
 function App() {
   return (
@@ -51,6 +53,10 @@ function App() {
           <Route
             path="/requests/:id"
             element={<RequestDetailPage />}
+          />
+          <Route
+            path="/approvals"
+            element={<ApprovalPage />}
           />
         </Route>
       </Route>

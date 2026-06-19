@@ -11,6 +11,9 @@ import com.pangeranvalerensco.orchestria.request_service.service.FundRequestServ
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+
+import java.util.List;
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -113,6 +116,32 @@ public class FundRequestController {
                                                 .success(true)
                                                 .message(
                                                                 "Detail pengajuan milik saya berhasil diambil")
+                                                .data(response)
+                                                .build());
+        }
+
+        @PreAuthorize("""
+                        hasAnyAuthority(
+                            'request.approve.division',
+                            'request.approve.pub',
+                            'request.approve.pembina'
+                        )
+                        """)
+        @GetMapping("/pending-approvals")
+        public ResponseEntity<ApiResponse<List<FundRequestResponse>>> getPendingApprovals(
+                        @AuthenticationPrincipal AuthenticatedUser currentUser,
+
+                        @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+                List<FundRequestResponse> response = fundRequestService.getPendingApprovals(
+                                currentUser,
+                                authorizationHeader);
+
+                return ResponseEntity.ok(
+                                ApiResponse
+                                                .<List<FundRequestResponse>>builder()
+                                                .success(true)
+                                                .message(
+                                                                "Daftar approval pending berhasil diambil")
                                                 .data(response)
                                                 .build());
         }

@@ -897,3 +897,158 @@ button {
     gap: 5px;
   }
 }
+
+.secondary-button,
+.danger-button,
+.warning-button,
+.primary-action-button {
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.secondary-button {
+  color: #334155;
+  border: 1px solid #dbe3ef;
+  background: white;
+}
+
+.alert-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.approval-list {
+  display: grid;
+  gap: 20px;
+}
+
+.approval-card {
+  padding: 24px;
+}
+
+.approval-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.approval-card-header h2 {
+  margin: 9px 0 7px;
+}
+
+.approval-card-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.approval-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.approval-card-meta span {
+  padding-right: 9px;
+  border-right: 1px solid #dbe3ef;
+}
+
+.approval-card-meta span:last-child {
+  border-right: 0;
+}
+
+.approval-summary {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.approval-summary div {
+  padding: 13px;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.approval-summary span,
+.approval-summary strong {
+  display: block;
+}
+
+.approval-summary span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.approval-summary strong {
+  margin-top: 6px;
+}
+
+.approval-items {
+  margin-top: 18px;
+  border: 1px solid #e4e9f1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.approval-items summary {
+  padding: 14px;
+  cursor: pointer;
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.approval-actions {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid #edf0f5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.danger-button {
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+}
+
+.warning-button {
+  color: #92400e;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+}
+
+.primary-action-button {
+  color: white;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+}
+
+.primary-action-button:hover {
+  background: #1d4ed8;
+}
+
+.approval-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+  .approval-card-header {
+    flex-direction: column;
+  }
+
+  .approval-summary {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .approval-actions {
+    flex-direction: column-reverse;
+  }
+}

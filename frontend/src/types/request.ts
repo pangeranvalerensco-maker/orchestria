@@ -20,6 +20,21 @@ export type FundRequestStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+  export type ApprovalLevel =
+  | "DIVISION"
+  | "PUB"
+  | "PEMBINA";
+
+export type ApprovalAction =
+  | "approve"
+  | "reject"
+  | "revision";
+
+export interface ProcessApprovalPayload {
+  level: ApprovalLevel;
+  note?: string;
+}
+
 export interface RequestItem {
   id: number;
   itemName: string;
@@ -79,3 +94,4 @@ export interface CreateRequestItemPayload {
   quantity: number;
   unitPrice: number;
 }
+
