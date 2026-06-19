@@ -18,8 +18,7 @@ export function AppLayout() {
   const canApprove = hasPermission("request.approve.division")
     || hasPermission("request.approve.pub")
     || hasPermission("request.approve.pembina");
-  const canUseFinance = hasPermission("finance.disburse")
-    || hasPermission("finance.report.read");
+  const canDisburse = hasPermission("finance.disburse");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
   const isSuperAdmin = hasRole("SUPER_ADMIN");
 
@@ -35,8 +34,8 @@ export function AppLayout() {
           <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>
           <NavLink to="/requests" className={navClass}>Pengajuan Dana</NavLink>
           {canApprove ? <NavLink to="/approvals" className={navClass}>Approval</NavLink> : <span className="nav-item disabled">Approval</span>}
-          {canUseFinance ? <NavLink to="/finance/disbursements" className={navClass}>Pencairan</NavLink> : <span className="nav-item disabled">Pencairan</span>}
-          {canVerifySettlement ? <NavLink to="/finance/settlements" className={navClass}>Settlement</NavLink> : <span className="nav-item disabled">Settlement</span>}
+          {canDisburse ? <NavLink to="/finance/disbursements" className={navClass}>Pencairan</NavLink> : <span className="nav-item disabled">Pencairan</span>}
+          {canVerifySettlement ? <NavLink to="/finance/settlements" className={navClass}>Verifikasi Laporan</NavLink> : <span className="nav-item disabled">Verifikasi Laporan</span>}
           {isSuperAdmin && <NavLink to="/admin/users" className={navClass}>Manajemen Akun</NavLink>}
         </nav>
 
