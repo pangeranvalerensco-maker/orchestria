@@ -6,7 +6,6 @@ import App from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 
 import "./index.css";
-import "./admin.css";
 
 createRoot(
   document.getElementById("root")!,
