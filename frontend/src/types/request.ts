@@ -90,7 +90,7 @@ export interface CreateRequestItemPayload {
 
 export interface SubmitSettlementPayload {
   spentAmount: number;
-  proofUrl?: string;
+  proofUrl: string;
   note?: string;
 }
 
@@ -101,7 +101,7 @@ export interface RequestSettlement {
   spentAmount: number;
   remainingAmount: number;
   shortageAmount: number;
-  proofUrl: string | null;
+  proofUrl: string;
   note: string | null;
   submittedByEmail: string;
   submittedAt: string;
