@@ -3,6 +3,7 @@ package com.pangeranvalerensco.orchestria.organization_service.service.impl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.pangeranvalerensco.orchestria.organization_service.entity.Member;
 import com.pangeranvalerensco.orchestria.organization_service.exception.BadRequestException;
@@ -151,11 +152,34 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(String email) {
+    @Transactional
+    public ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(
+            String email,
+            Long authUserId) {
+
+        if (authUserId == null || authUserId <= 0) {
+            throw new BadRequestException("ID akun auth pada token tidak valid");
+        }
+
         Member member = memberRepository.findByEmailIgnoreCase(email)
                 .filter(Member::getActive)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Data anggota untuk user login tidak ditemukan"));
+
+        memberRepository.findByAuthUserId(authUserId).ifPresent(linkedMember -> {
+            if (!linkedMember.getId().equals(member.getId())) {
+                throw new BadRequestException(
+                        "Akun auth sudah terhubung dengan anggota organisasi lain");
+            }
+        });
+
+        if (member.getAuthUserId() == null) {
+            member.setAuthUserId(authUserId);
+            member = memberRepository.save(member);
+        } else if (!member.getAuthUserId().equals(authUserId)) {
+            throw new BadRequestException(
+                    "Data anggota sudah terhubung dengan akun auth yang berbeda");
+        }
 
         List<MemberAssignmentResponse> assignments = memberAssignmentRepository
                 .findByMemberAndStatusAndActiveTrueAndPeriodCurrentPeriodTrueAndPeriodActiveTrue(
@@ -238,5 +262,4 @@ public class MemberServiceImpl implements MemberService {
                 .updatedAt(assignment.getUpdatedAt())
                 .build();
     }
-
 }
