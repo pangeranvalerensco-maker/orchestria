@@ -15,10 +15,10 @@ const statusLabels: Record<FundRequestStatus, string> = {
   REVISION_REQUESTED: "Perlu Revisi",
   REJECTED: "Ditolak",
   READY_FOR_DISBURSEMENT: "Siap Dicairkan",
-  DISBURSED: "Sudah Dicairkan",
-  FUND_RECEIVED: "Dana Diterima",
-  SETTLEMENT_SUBMITTED: "Settlement Dikirim",
-  SETTLEMENT_APPROVED: "Settlement Disetujui",
+  DISBURSED: "Dicairkan · Belum Dikonfirmasi",
+  FUND_RECEIVED: "Dana Diterima · Laporan Belum Dikirim",
+  SETTLEMENT_SUBMITTED: "Laporan Dikirim",
+  SETTLEMENT_APPROVED: "Laporan Disetujui",
   COMPLETED: "Selesai",
   CANCELLED: "Dibatalkan",
 };
@@ -32,11 +32,23 @@ function formatCurrency(value: number) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" })
+    .format(new Date(value));
 }
 
-function hasSettlementFlow(request: FundRequest) {
-  return ["DISBURSED", "FUND_RECEIVED", "SETTLEMENT_SUBMITTED", "COMPLETED"].includes(request.status);
+function hasReportFlow(request: FundRequest) {
+  return [
+    "DISBURSED",
+    "FUND_RECEIVED",
+    "SETTLEMENT_SUBMITTED",
+    "COMPLETED",
+  ].includes(request.status);
+}
+
+function reportActionLabel(status: FundRequestStatus) {
+  if (status === "DISBURSED") return "Konfirmasi Dana";
+  if (status === "FUND_RECEIVED") return "Isi Laporan Dana";
+  return "Lihat Pertanggungjawaban";
 }
 
 export function MyRequestsPage() {
@@ -54,7 +66,11 @@ export function MyRequestsPage() {
       const response = await getMyRequests(token, page, 10);
       setResult(response.data);
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Tidak dapat mengambil data pengajuan.");
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Tidak dapat mengambil data pengajuan.",
+      );
     } finally {
       setLoading(false);
     }
@@ -67,11 +83,20 @@ export function MyRequestsPage() {
   return (
     <main className="page-content">
       <section className="page-heading">
-        <div><p className="eyebrow">PENGAJUAN DANA</p><h1>Pengajuan Saya</h1><p>Lihat dan kelola seluruh pengajuan dana yang kamu buat.</p></div>
+        <div>
+          <p className="eyebrow">PENGAJUAN DANA</p>
+          <h1>Pengajuan Saya</h1>
+          <p>Lihat dan kelola seluruh pengajuan dana yang kamu buat.</p>
+        </div>
         <Link className="primary-link-button" to="/requests/new">Buat Pengajuan</Link>
       </section>
 
-      {errorMessage && <div className="alert alert-error" role="alert">{errorMessage}<button type="button" onClick={() => void loadRequests()}>Coba lagi</button></div>}
+      {errorMessage && (
+        <div className="alert alert-error" role="alert">
+          {errorMessage}
+          <button type="button" onClick={() => void loadRequests()}>Coba lagi</button>
+        </div>
+      )}
 
       <section className="content-card request-list-card">
         {loading ? (
@@ -80,19 +105,37 @@ export function MyRequestsPage() {
           <>
             <div className="request-table-wrapper">
               <table className="request-table">
-                <thead><tr><th>Pengajuan</th><th>Divisi</th><th>Prioritas</th><th>Status</th><th>Total</th><th>Dibuat</th><th>Aksi</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Pengajuan</th>
+                    <th>Divisi</th>
+                    <th>Prioritas</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Dibuat</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {result.content.map((request) => (
                     <tr key={request.id}>
                       <td><strong>{request.title}</strong><small>ID #{request.id}</small></td>
                       <td>{request.divisionName}</td>
                       <td><span className="table-chip">{request.priority}</span></td>
-                      <td><span className={`status-chip status-${request.status.toLowerCase()}`}>{statusLabels[request.status]}</span></td>
+                      <td>
+                        <span className={`status-chip status-${request.status.toLowerCase()}`}>
+                          {statusLabels[request.status]}
+                        </span>
+                      </td>
                       <td>{formatCurrency(request.totalAmount ?? 0)}</td>
                       <td>{formatDate(request.createdAt)}</td>
                       <td>
                         <Link className="table-action" to={`/requests/${request.id}`}>Detail</Link>
-                        {hasSettlementFlow(request) && <Link className="table-action" to={`/requests/${request.id}/settlement`}>Settlement</Link>}
+                        {hasReportFlow(request) && (
+                          <Link className="table-action" to={`/requests/${request.id}/settlement`}>
+                            {reportActionLabel(request.status)}
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -109,7 +152,12 @@ export function MyRequestsPage() {
             </div>
           </>
         ) : (
-          <div className="empty-state"><div className="empty-state-icon">+</div><h2>Belum ada pengajuan</h2><p>Pengajuan yang kamu buat akan tampil di halaman ini.</p><Link className="primary-link-button" to="/requests/new">Buat Pengajuan Pertama</Link></div>
+          <div className="empty-state">
+            <div className="empty-state-icon">+</div>
+            <h2>Belum ada pengajuan</h2>
+            <p>Pengajuan yang kamu buat akan tampil di halaman ini.</p>
+            <Link className="primary-link-button" to="/requests/new">Buat Pengajuan Pertama</Link>
+          </div>
         )}
       </section>
     </main>
