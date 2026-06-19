@@ -1,14 +1,18 @@
 import { apiRequest } from "../api/http";
-import type { FundRequest, PageResponse } from "../types/request";
+import type {
+  FundRequest,
+  PageResponse,
+  RequestSettlement,
+} from "../types/request";
 import type {
   CreateDisbursementPayload,
   DisbursementPage,
   FundDisbursement,
 } from "../types/finance";
 
-export function getReadyForDisbursement(token: string) {
+function getRequestsByStatus(token: string, status: string) {
   const params = new URLSearchParams({
-    status: "READY_FOR_DISBURSEMENT",
+    status,
     page: "0",
     size: "100",
     sortBy: "createdAt",
@@ -20,6 +24,14 @@ export function getReadyForDisbursement(token: string) {
     { method: "GET" },
     token,
   );
+}
+
+export function getReadyForDisbursement(token: string) {
+  return getRequestsByStatus(token, "READY_FOR_DISBURSEMENT");
+}
+
+export function getPendingSettlements(token: string) {
+  return getRequestsByStatus(token, "SETTLEMENT_SUBMITTED");
 }
 
 export function getDisbursements(token: string) {
@@ -40,6 +52,14 @@ export function createDisbursement(
       method: "POST",
       body: JSON.stringify(payload),
     },
+    token,
+  );
+}
+
+export function approveSettlement(token: string, requestId: number) {
+  return apiRequest<RequestSettlement>(
+    `/api/requests/${requestId}/settlement/approve`,
+    { method: "POST" },
     token,
   );
 }
