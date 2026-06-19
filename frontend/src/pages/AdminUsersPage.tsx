@@ -59,22 +59,7 @@ export function AdminUsersPage() {
 
       setUsers(usersResponse.data);
       setRoles(activeRoles);
-      setRoleSelections((current) => {
-        const next = { ...current };
-        for (const account of usersResponse.data) {
-          const availableRoles = activeRoles.filter(
-            (role) => !account.roles.includes(role.name),
-          );
-          const selectedRoleStillAvailable = availableRoles.some(
-            (role) => role.name === next[account.id],
-          );
-
-          if (!selectedRoleStillAvailable) {
-            next[account.id] = availableRoles[0]?.name ?? "";
-          }
-        }
-        return next;
-      });
+      setRoleSelections({});
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -123,13 +108,6 @@ export function AdminUsersPage() {
       });
 
       setUsers((current) => [...current, response.data]);
-      const firstAvailableRole = roles.find(
-        (role) => !response.data.roles.includes(role.name),
-      );
-      setRoleSelections((current) => ({
-        ...current,
-        [response.data.id]: firstAvailableRole?.name ?? "",
-      }));
       setFullName("");
       setEmail("");
       setPassword("");
@@ -148,15 +126,15 @@ export function AdminUsersPage() {
   async function handleAssignRole(account: User) {
     if (!token) return;
 
-    const availableRoles = roles.filter(
-      (role) => !account.roles.includes(role.name),
+    const roleName = roleSelections[account.id];
+    const roleAvailable = roles.some(
+      (role) => role.name === roleName && !account.roles.includes(role.name),
     );
-    const preferredRole = roleSelections[account.id];
-    const roleName = availableRoles.some((role) => role.name === preferredRole)
-      ? preferredRole
-      : availableRoles[0]?.name;
 
-    if (!roleName) return;
+    if (!roleName || !roleAvailable) {
+      setErrorMessage("Pilih role tambahan terlebih dahulu.");
+      return;
+    }
 
     const actionKey = `assign-${account.id}-${roleName}`;
     setBusyAction(actionKey);
@@ -166,13 +144,9 @@ export function AdminUsersPage() {
     try {
       const response = await assignUserRole(token, account.id, roleName);
       replaceUser(response.data);
-
-      const nextAvailableRole = roles.find(
-        (role) => !response.data.roles.includes(role.name),
-      );
       setRoleSelections((current) => ({
         ...current,
-        [account.id]: nextAvailableRole?.name ?? "",
+        [account.id]: "",
       }));
       setSuccessMessage(`${readableRole(roleName)} ditambahkan ke ${account.fullName}.`);
     } catch (error) {
@@ -199,7 +173,7 @@ export function AdminUsersPage() {
       replaceUser(response.data);
       setRoleSelections((current) => ({
         ...current,
-        [account.id]: roleName,
+        [account.id]: "",
       }));
       setSuccessMessage(`${readableRole(roleName)} dihapus dari ${account.fullName}.`);
     } catch (error) {
@@ -285,6 +259,9 @@ export function AdminUsersPage() {
           <div>
             <p className="eyebrow">AKSES SISTEM</p>
             <h2>Daftar Pengguna</h2>
+            <p className="admin-role-help">
+              Chip biru menunjukkan role aktif. Dropdown hanya digunakan untuk memilih role tambahan.
+            </p>
           </div>
           <label className="admin-search-field">
             <span>Cari</span>
@@ -307,12 +284,7 @@ export function AdminUsersPage() {
               const availableRoles = roles.filter(
                 (role) => !account.roles.includes(role.name),
               );
-              const configuredRole = roleSelections[account.id];
-              const selectedRole = availableRoles.some(
-                (role) => role.name === configuredRole,
-              )
-                ? configuredRole
-                : availableRoles[0]?.name ?? "";
+              const selectedRole = roleSelections[account.id] ?? "";
               const isCurrentAccount = account.id === currentUser?.id;
 
               return (
@@ -353,6 +325,7 @@ export function AdminUsersPage() {
 
                   <div className="admin-role-action">
                     <select
+                      aria-label={`Pilih role tambahan untuk ${account.fullName}`}
                       value={selectedRole}
                       disabled={!availableRoles.length || busyAction !== null}
                       onChange={(event) => setRoleSelections((current) => ({
@@ -360,19 +333,26 @@ export function AdminUsersPage() {
                         [account.id]: event.target.value,
                       }))}
                     >
-                      {availableRoles.length ? availableRoles.map((role) => (
+                      <option value="" disabled>
+                        {availableRoles.length
+                          ? "Pilih role tambahan"
+                          : "Semua role sudah dimiliki"}
+                      </option>
+                      {availableRoles.map((role) => (
                         <option value={role.name} key={role.id}>
                           {readableRole(role.name)}
                         </option>
-                      )) : <option value="">Semua role sudah dimiliki</option>}
+                      ))}
                     </select>
                     <button
                       className="secondary-button"
                       type="button"
-                      disabled={!availableRoles.length || busyAction !== null}
+                      disabled={!selectedRole || busyAction !== null}
                       onClick={() => void handleAssignRole(account)}
                     >
-                      {busyAction === `assign-${account.id}-${selectedRole}` ? "Menambahkan..." : "Tambah Role"}
+                      {busyAction === `assign-${account.id}-${selectedRole}`
+                        ? "Menambahkan..."
+                        : "Tambahkan Role"}
                     </button>
                   </div>
                 </article>
