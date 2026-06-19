@@ -62,8 +62,15 @@ export function AdminUsersPage() {
       setRoleSelections((current) => {
         const next = { ...current };
         for (const account of usersResponse.data) {
-          if (!next[account.id]) {
-            next[account.id] = activeRoles[0]?.name ?? "";
+          const availableRoles = activeRoles.filter(
+            (role) => !account.roles.includes(role.name),
+          );
+          const selectedRoleStillAvailable = availableRoles.some(
+            (role) => role.name === next[account.id],
+          );
+
+          if (!selectedRoleStillAvailable) {
+            next[account.id] = availableRoles[0]?.name ?? "";
           }
         }
         return next;
@@ -116,9 +123,12 @@ export function AdminUsersPage() {
       });
 
       setUsers((current) => [...current, response.data]);
+      const firstAvailableRole = roles.find(
+        (role) => !response.data.roles.includes(role.name),
+      );
       setRoleSelections((current) => ({
         ...current,
-        [response.data.id]: roles[0]?.name ?? "",
+        [response.data.id]: firstAvailableRole?.name ?? "",
       }));
       setFullName("");
       setEmail("");
@@ -137,7 +147,15 @@ export function AdminUsersPage() {
 
   async function handleAssignRole(account: User) {
     if (!token) return;
-    const roleName = roleSelections[account.id];
+
+    const availableRoles = roles.filter(
+      (role) => !account.roles.includes(role.name),
+    );
+    const preferredRole = roleSelections[account.id];
+    const roleName = availableRoles.some((role) => role.name === preferredRole)
+      ? preferredRole
+      : availableRoles[0]?.name;
+
     if (!roleName) return;
 
     const actionKey = `assign-${account.id}-${roleName}`;
@@ -148,6 +166,14 @@ export function AdminUsersPage() {
     try {
       const response = await assignUserRole(token, account.id, roleName);
       replaceUser(response.data);
+
+      const nextAvailableRole = roles.find(
+        (role) => !response.data.roles.includes(role.name),
+      );
+      setRoleSelections((current) => ({
+        ...current,
+        [account.id]: nextAvailableRole?.name ?? "",
+      }));
       setSuccessMessage(`${readableRole(roleName)} ditambahkan ke ${account.fullName}.`);
     } catch (error) {
       setErrorMessage(
@@ -171,6 +197,10 @@ export function AdminUsersPage() {
     try {
       const response = await removeUserRole(token, account.id, roleName);
       replaceUser(response.data);
+      setRoleSelections((current) => ({
+        ...current,
+        [account.id]: roleName,
+      }));
       setSuccessMessage(`${readableRole(roleName)} dihapus dari ${account.fullName}.`);
     } catch (error) {
       setErrorMessage(
@@ -274,8 +304,15 @@ export function AdminUsersPage() {
         ) : filteredUsers.length ? (
           <div className="admin-user-list">
             {filteredUsers.map((account) => {
-              const availableRoles = roles.filter((role) => !account.roles.includes(role.name));
-              const selectedRole = roleSelections[account.id] ?? availableRoles[0]?.name ?? "";
+              const availableRoles = roles.filter(
+                (role) => !account.roles.includes(role.name),
+              );
+              const configuredRole = roleSelections[account.id];
+              const selectedRole = availableRoles.some(
+                (role) => role.name === configuredRole,
+              )
+                ? configuredRole
+                : availableRoles[0]?.name ?? "";
               const isCurrentAccount = account.id === currentUser?.id;
 
               return (
