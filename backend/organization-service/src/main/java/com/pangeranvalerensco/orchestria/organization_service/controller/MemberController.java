@@ -5,23 +5,21 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pangeranvalerensco.orchestria.organization_service.payload.request.MemberRequest;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
-import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.MemberResponse;
-import com.pangeranvalerensco.orchestria.organization_service.security.JwtService;
 import com.pangeranvalerensco.orchestria.organization_service.service.MemberService;
+import org.springframework.security.core.Authentication;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +30,6 @@ import lombok.RequiredArgsConstructor;
 public class MemberController {
 
     private final MemberService memberService;
-    private final JwtService jwtService;
 
     @GetMapping
     @PreAuthorize("hasAuthority('organization.read')")
@@ -73,15 +70,10 @@ public class MemberController {
     @GetMapping("/me/context")
     @PreAuthorize("hasAuthority('organization.read')")
     public ResponseEntity<ApiResponse<CurrentMemberContextResponse>> getCurrentMemberContext(
-            Authentication authentication,
-            @RequestHeader("Authorization") String authorizationHeader) {
-
-        String token = authorizationHeader.substring(7);
-        Long authUserId = jwtService.extractUserId(token);
+            Authentication authentication) {
 
         return ResponseEntity.ok(
                 memberService.getCurrentMemberContext(
-                        authentication.getName(),
-                        authUserId));
+                        authentication.getName()));
     }
 }
