@@ -27,6 +27,7 @@ jobs:
           - organization-service
           - request-service
           - finance-service
+          - notification-report-service
     defaults:
       run:
         working-directory: backend/${{ matrix.service }}
