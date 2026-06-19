@@ -96,8 +96,8 @@ public class PubStructureUserSeeder {
                 roleUser("Pangeran Valerensco Rivaldi Hutabarat", "KETUA_PUB"),
                 member("Ikram Fuadi Rambe"),
                 roleUser("Khalisha Ulfa Marsha", "SEKRETARIS"),
-                roleUser("Andini Siti Nuriyanti", "BENDAHARA_INTERNAL"),
-                roleUser("Sri Rahayu Lestari", "BENDAHARA_EKSTERNAL"),
+                roleUser("Andini Siti Nuriyanti", "BENDAHARA_INTERNAL", "ANGGOTA"),
+                roleUser("Sri Rahayu Lestari", "BENDAHARA_EKSTERNAL", "ANGGOTA"),
 
                 member("Dedy Darmawan Simanjuntak"),
                 member("Firman Suherman"),
