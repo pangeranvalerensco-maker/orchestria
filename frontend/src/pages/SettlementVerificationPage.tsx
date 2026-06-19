@@ -33,7 +33,11 @@ export function SettlementVerificationPage() {
       const response = await getPendingSettlements(token);
       setRequests(response.data.content);
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Settlement pending tidak dapat dimuat.");
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Laporan penggunaan dana yang menunggu verifikasi tidak dapat dimuat.",
+      );
     } finally {
       setLoading(false);
     }
@@ -45,8 +49,9 @@ export function SettlementVerificationPage() {
 
   async function handleApprove(request: FundRequest) {
     if (!token) return;
+
     const confirmed = window.confirm(
-      `Setujui settlement pengajuan #${request.id} dan ubah status menjadi COMPLETED?`,
+      `Setujui laporan penggunaan dana pengajuan #${request.id} dan ubah status menjadi COMPLETED?`,
     );
     if (!confirmed) return;
 
@@ -55,10 +60,16 @@ export function SettlementVerificationPage() {
     setSuccessMessage(null);
     try {
       await approveSettlement(token, request.id);
-      setSuccessMessage(`Settlement pengajuan #${request.id} disetujui. Core flow selesai pada COMPLETED.`);
+      setSuccessMessage(
+        `Laporan pengajuan #${request.id} disetujui. Alur selesai pada status COMPLETED.`,
+      );
       await loadRequests();
     } catch (error) {
-      setErrorMessage(error instanceof ApiError ? error.message : "Settlement gagal disetujui.");
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Laporan penggunaan dana gagal disetujui.",
+      );
     } finally {
       setProcessingId(null);
     }
@@ -68,9 +79,9 @@ export function SettlementVerificationPage() {
     <main className="page-content">
       <section className="page-heading">
         <div>
-          <p className="eyebrow">FINANCE · SETTLEMENT</p>
-          <h1>Verifikasi Settlement</h1>
-          <p>Persetujuan mengakhiri core flow dan mengubah pengajuan menjadi COMPLETED.</p>
+          <p className="eyebrow">FINANCE · PERTANGGUNGJAWABAN</p>
+          <h1>Verifikasi Laporan Dana</h1>
+          <p>Persetujuan Bendahara Internal mengakhiri alur dan mengubah pengajuan menjadi COMPLETED.</p>
         </div>
         <Link className="secondary-link-button" to="/finance/disbursements">Pencairan Dana</Link>
       </section>
@@ -80,11 +91,11 @@ export function SettlementVerificationPage() {
 
       <section className="content-card request-list-card">
         <div className="card-heading">
-          <div><p className="eyebrow">MENUNGGU VERIFIKASI</p><h2>Settlement Dikirim</h2></div>
+          <div><p className="eyebrow">MENUNGGU VERIFIKASI</p><h2>Laporan dari Pemohon</h2></div>
         </div>
 
         {loading ? (
-          <div className="empty-state"><div className="spinner" /><p>Memuat settlement...</p></div>
+          <div className="empty-state"><div className="spinner" /><p>Memuat laporan...</p></div>
         ) : requests.length ? (
           <div className="request-table-wrapper">
             <table className="request-table">
@@ -95,7 +106,7 @@ export function SettlementVerificationPage() {
                     <td><strong>#{request.id} {request.title}</strong><small>{request.divisionName}</small></td>
                     <td>{request.requesterName}</td>
                     <td>{formatCurrency(request.totalAmount)}</td>
-                    <td><span className="status-chip status-settlement_submitted">Settlement Dikirim</span></td>
+                    <td><span className="status-chip status-settlement_submitted">Laporan Dikirim</span></td>
                     <td>
                       <button
                         className="primary-button"
@@ -112,7 +123,10 @@ export function SettlementVerificationPage() {
             </table>
           </div>
         ) : (
-          <div className="empty-state"><h2>Tidak ada settlement pending</h2><p>Settlement yang dikirim pemohon akan tampil di sini.</p></div>
+          <div className="empty-state">
+            <h2>Tidak ada laporan pending</h2>
+            <p>Laporan penggunaan dana yang dikirim pemohon akan tampil di sini.</p>
+          </div>
         )}
       </section>
     </main>
