@@ -12,6 +12,13 @@
   margin-bottom: 20px;
 }
 
+.admin-role-help {
+  max-width: 680px;
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
 .admin-search-field {
   display: grid;
   gap: 7px;
@@ -122,6 +129,7 @@
   background: white;
 }
 
+.admin-role-action select:disabled,
 .admin-role-action button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
