@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "codex/**"
+      - feature/stabilize-finance-settlement
   pull_request:
     branches:
       - main
