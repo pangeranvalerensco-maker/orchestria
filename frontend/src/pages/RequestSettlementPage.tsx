@@ -6,9 +6,11 @@ import { useAuth } from "../auth/useAuth";
 import {
   confirmFundReceived,
   getMyRequestById,
+  getSettlementDetail,
+  resubmitSettlement,
   submitSettlement,
 } from "../services/requestService";
-import type { FundRequest } from "../types/request";
+import type { FundRequest, RequestSettlement } from "../types/request";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -18,12 +20,30 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function shouldLoadSettlement(status: FundRequest["status"]) {
+  return [
+    "SETTLEMENT_SUBMITTED",
+    "SETTLEMENT_REVISION_REQUIRED",
+    "SETTLEMENT_APPROVED",
+    "COMPLETED",
+  ].includes(status);
+}
+
 export function RequestSettlementPage() {
   const { id } = useParams();
   const { token } = useAuth();
   const requestId = Number(id);
 
   const [request, setRequest] = useState<FundRequest | null>(null);
+  const [settlement, setSettlement] = useState<RequestSettlement | null>(null);
   const [spentAmount, setSpentAmount] = useState("");
   const [proofUrl, setProofUrl] = useState("");
   const [note, setNote] = useState("");
@@ -32,20 +52,34 @@ export function RequestSettlementPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const loadRequest = useCallback(async () => {
+  const loadData = useCallback(async () => {
     if (!token || !Number.isFinite(requestId)) return;
 
     setLoading(true);
     setErrorMessage(null);
     try {
-      const response = await getMyRequestById(token, requestId);
-      setRequest(response.data);
-      setSpentAmount((current) => current || String(response.data.totalAmount));
+      const requestResponse = await getMyRequestById(token, requestId);
+      const currentRequest = requestResponse.data;
+      setRequest(currentRequest);
+
+      if (shouldLoadSettlement(currentRequest.status)) {
+        const settlementResponse = await getSettlementDetail(token, requestId);
+        const currentSettlement = settlementResponse.data;
+        setSettlement(currentSettlement);
+        setSpentAmount(String(currentSettlement.spentAmount));
+        setProofUrl(currentSettlement.proofUrl ?? "");
+        setNote(currentSettlement.note ?? "");
+      } else {
+        setSettlement(null);
+        setSpentAmount(String(currentRequest.totalAmount));
+        setProofUrl("");
+        setNote("");
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
           ? error.message
-          : "Pengajuan tidak dapat dimuat.",
+          : "Data pertanggungjawaban tidak dapat dimuat.",
       );
     } finally {
       setLoading(false);
@@ -53,8 +87,8 @@ export function RequestSettlementPage() {
   }, [token, requestId]);
 
   useEffect(() => {
-    void loadRequest();
-  }, [loadRequest]);
+    void loadData();
+  }, [loadData]);
 
   const balance = useMemo(() => {
     if (!request) return 0;
@@ -68,11 +102,11 @@ export function RequestSettlementPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      const response = await confirmFundReceived(token, request.id);
-      setRequest(response.data);
+      await confirmFundReceived(token, request.id);
       setSuccessMessage(
         "Dana berhasil dikonfirmasi diterima. Sekarang lengkapi laporan penggunaan dana.",
       );
+      await loadData();
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -94,23 +128,32 @@ export function RequestSettlementPage() {
     }
 
     if (!proofUrl.trim()) {
-      setErrorMessage("Bukti atau struk pembayaran wajib diisi.");
+      setErrorMessage("Bukti atau struk penggunaan dana wajib diisi.");
       return;
     }
+
+    const payload = {
+      spentAmount: parsedAmount,
+      proofUrl: proofUrl.trim(),
+      note: note.trim() || undefined,
+    };
 
     setSubmitting(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      await submitSettlement(token, request.id, {
-        spentAmount: parsedAmount,
-        proofUrl: proofUrl.trim(),
-        note: note.trim() || undefined,
-      });
-      setSuccessMessage(
-        "Laporan penggunaan dana berhasil dikirim untuk diverifikasi Bendahara Internal.",
-      );
-      await loadRequest();
+      if (request.status === "SETTLEMENT_REVISION_REQUIRED") {
+        await resubmitSettlement(token, request.id, payload);
+        setSuccessMessage(
+          "Laporan berhasil diperbaiki dan dikirim ulang kepada Bendahara Internal.",
+        );
+      } else {
+        await submitSettlement(token, request.id, payload);
+        setSuccessMessage(
+          "Laporan penggunaan dana berhasil dikirim untuk diverifikasi Bendahara Internal.",
+        );
+      }
+      await loadData();
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -141,6 +184,9 @@ export function RequestSettlementPage() {
     );
   }
 
+  const isRevision = request.status === "SETTLEMENT_REVISION_REQUIRED";
+  const canEditReport = request.status === "FUND_RECEIVED" || isRevision;
+
   return (
     <main className="page-content">
       <section className="page-heading">
@@ -164,6 +210,7 @@ export function RequestSettlementPage() {
         <article className="content-card total-card">
           <p className="eyebrow">DANA DISETUJUI</p>
           <strong>{formatCurrency(request.totalAmount)}</strong>
+          {settlement && <small>Pengiriman laporan ke-{settlement.submissionCount}</small>}
         </article>
       </section>
 
@@ -188,12 +235,30 @@ export function RequestSettlementPage() {
         </section>
       )}
 
-      {request.status === "FUND_RECEIVED" && (
+      {isRevision && settlement && (
+        <section className="content-card">
+          <p className="eyebrow">REVISI DIPERLUKAN</p>
+          <h2>Laporan Dikembalikan oleh Bendahara</h2>
+          <div className="alert alert-error" role="alert">
+            {settlement.lastRevisionNote || "Bendahara meminta laporan diperbaiki."}
+          </div>
+          <dl className="detail-list">
+            <div><dt>Ditinjau oleh</dt><dd>{settlement.reviewedByEmail || "-"}</dd></div>
+            <div><dt>Waktu review</dt><dd>{formatDateTime(settlement.reviewedAt)}</dd></div>
+            <div><dt>Jumlah revisi</dt><dd>{settlement.revisionCount}</dd></div>
+          </dl>
+        </section>
+      )}
+
+      {canEditReport && (
         <section className="content-card item-form">
           <div className="card-heading">
-            <div><p className="eyebrow">LAPORAN ANGGOTA</p><h2>Laporan Penggunaan Dana</h2></div>
+            <div>
+              <p className="eyebrow">LAPORAN PEMOHON</p>
+              <h2>{isRevision ? "Perbaiki Laporan Penggunaan Dana" : "Laporan Penggunaan Dana"}</h2>
+            </div>
           </div>
-          <p>Isi penggunaan aktual, lampirkan bukti atau struk pembayaran, dan jelaskan sisa atau kekurangan dana.</p>
+          <p>Isi penggunaan aktual, lampirkan bukti atau struk penggunaan dana, dan jelaskan sisa atau kekurangan dana.</p>
           <div className="form-grid">
             <label className="form-field">
               <span>Nominal Digunakan</span>
@@ -212,7 +277,7 @@ export function RequestSettlementPage() {
             </div>
           </div>
           <label className="form-field">
-            <span>Bukti/Struk Pembayaran *</span>
+            <span>Bukti/Struk Penggunaan Dana *</span>
             <input
               type="url"
               value={proofUrl}
@@ -220,7 +285,7 @@ export function RequestSettlementPage() {
               placeholder="https://drive.google.com/..."
               required
             />
-            <small>Gunakan tautan bukti yang dapat dibuka oleh Bendahara Internal.</small>
+            <small>Gunakan tautan HTTPS yang dapat dibuka oleh Bendahara Internal.</small>
           </label>
           <label className="form-field">
             <span>Catatan Pertanggungjawaban</span>
@@ -238,23 +303,51 @@ export function RequestSettlementPage() {
               disabled={submitting || !proofUrl.trim()}
               onClick={() => void handleSubmitReport()}
             >
-              {submitting ? "Mengirim..." : "Kirim Laporan Penggunaan Dana"}
+              {submitting
+                ? "Mengirim..."
+                : isRevision
+                  ? "Kirim Ulang Laporan"
+                  : "Kirim Laporan Penggunaan Dana"}
             </button>
           </div>
         </section>
       )}
 
-      {request.status === "SETTLEMENT_SUBMITTED" && (
+      {request.status === "SETTLEMENT_SUBMITTED" && settlement && (
         <section className="content-card">
-          <h2>Menunggu Verifikasi Bendahara</h2>
-          <p>Laporan dan bukti pembayaran telah tersimpan dan menunggu pemeriksaan Bendahara Internal.</p>
+          <p className="eyebrow">MENUNGGU VERIFIKASI</p>
+          <h2>Laporan Sudah Dikirim</h2>
+          <p>Laporan bersifat read-only selama diperiksa oleh Bendahara Internal.</p>
+          <dl className="detail-list">
+            <div><dt>Realisasi</dt><dd>{formatCurrency(settlement.spentAmount)}</dd></div>
+            <div><dt>Sisa dana</dt><dd>{formatCurrency(settlement.remainingAmount)}</dd></div>
+            <div><dt>Kekurangan</dt><dd>{formatCurrency(settlement.shortageAmount)}</dd></div>
+            <div><dt>Dikirim</dt><dd>{formatDateTime(settlement.submittedAt)}</dd></div>
+          </dl>
+          {settlement.proofUrl && (
+            <a className="primary-link-button" href={settlement.proofUrl} target="_blank" rel="noreferrer">
+              Lihat Bukti Penggunaan
+            </a>
+          )}
         </section>
       )}
 
-      {request.status === "COMPLETED" && (
+      {request.status === "COMPLETED" && settlement && (
         <section className="content-card">
-          <h2>Pertanggungjawaban Selesai</h2>
-          <p>Laporan telah disetujui dan pengajuan berstatus COMPLETED.</p>
+          <p className="eyebrow">ALUR SELESAI</p>
+          <h2>Pertanggungjawaban Disetujui</h2>
+          <p>Laporan telah disetujui oleh {settlement.reviewedByEmail || settlement.approvedByEmail || "Bendahara Internal"}.</p>
+          <dl className="detail-list">
+            <div><dt>Realisasi</dt><dd>{formatCurrency(settlement.spentAmount)}</dd></div>
+            <div><dt>Disetujui</dt><dd>{formatDateTime(settlement.approvedAt)}</dd></div>
+            <div><dt>Jumlah pengiriman</dt><dd>{settlement.submissionCount}</dd></div>
+            <div><dt>Jumlah revisi</dt><dd>{settlement.revisionCount}</dd></div>
+          </dl>
+          {settlement.proofUrl && (
+            <a className="primary-link-button" href={settlement.proofUrl} target="_blank" rel="noreferrer">
+              Lihat Bukti Penggunaan
+            </a>
+          )}
         </section>
       )}
     </main>
