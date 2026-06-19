@@ -12,6 +12,7 @@ import { RequestSettlementPage } from "./pages/RequestSettlementPage";
 import { ApprovalPage } from "./pages/ApprovalPage";
 import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
 import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
+import { ReportsPage } from "./pages/ReportsPage";
 
 function App() {
   return (
@@ -46,6 +47,10 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["finance.settlement.verify"]} />}>
             <Route path="/finance/settlements" element={<SettlementVerificationPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["request.read.all"]} />}>
+            <Route path="/reports" element={<ReportsPage />} />
           </Route>
         </Route>
       </Route>
