@@ -30,6 +30,7 @@ import java.util.Locale;
 public class PubStructureOrganizationSeeder {
 
     private static final String PERIOD_NAME = "PUB 2025/2026";
+    private static final String COHORT_NAME = "PUB 2025";
     private static final String EMAIL_DOMAIN = "@orchestria.local";
 
     private final OrganizationPeriodRepository periodRepository;
@@ -97,7 +98,7 @@ public class PubStructureOrganizationSeeder {
                         .orElseGet(() -> Member.builder()
                                 .fullName(fullName)
                                 .email(email)
-                                .cohort("23 SYNTAX")
+                                .cohort(COHORT_NAME)
                                 .status(MemberStatus.ACTIVE)
                                 .publicVisible(true)
                                 .displayOrder(99)
@@ -106,7 +107,7 @@ public class PubStructureOrganizationSeeder {
 
         member.setFullName(fullName);
         member.setEmail(email);
-        member.setCohort("23 SYNTAX");
+        member.setCohort(COHORT_NAME);
         member.setStatus(MemberStatus.ACTIVE);
         member.setPublicVisible(true);
         member.setActive(true);
