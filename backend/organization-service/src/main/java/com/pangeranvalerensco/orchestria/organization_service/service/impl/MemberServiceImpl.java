@@ -166,12 +166,13 @@ public class MemberServiceImpl implements MemberService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Data anggota untuk user login tidak ditemukan"));
 
-        memberRepository.findByAuthUserId(authUserId).ifPresent(linkedMember -> {
-            if (!linkedMember.getId().equals(member.getId())) {
-                throw new BadRequestException(
-                        "Akun auth sudah terhubung dengan anggota organisasi lain");
-            }
-        });
+        Member linkedMember = memberRepository.findByAuthUserId(authUserId)
+                .orElse(null);
+
+        if (linkedMember != null && !linkedMember.getId().equals(member.getId())) {
+            throw new BadRequestException(
+                    "Akun auth sudah terhubung dengan anggota organisasi lain");
+        }
 
         if (member.getAuthUserId() == null) {
             member.setAuthUserId(authUserId);
