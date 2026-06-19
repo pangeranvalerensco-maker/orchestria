@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router";
 
 import { AppLayout } from "./layouts/AppLayout";
+import { PermissionRoute } from "./routes/PermissionRoute";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 import { SuperAdminRoute } from "./routes/SuperAdminRoute";
 import { LoginPage } from "./pages/LoginPage";
@@ -26,9 +27,29 @@ function App() {
           <Route path="/requests/new" element={<CreateRequestPage />} />
           <Route path="/requests/:id" element={<RequestDetailPage />} />
           <Route path="/requests/:id/settlement" element={<RequestSettlementPage />} />
-          <Route path="/approvals" element={<ApprovalPage />} />
-          <Route path="/finance/disbursements" element={<FinanceDisbursementsPage />} />
-          <Route path="/finance/settlements" element={<SettlementVerificationPage />} />
+
+          <Route
+            element={(
+              <PermissionRoute
+                anyOf={[
+                  "request.approve.division",
+                  "request.approve.pub",
+                  "request.approve.pembina",
+                ]}
+              />
+            )}
+          >
+            <Route path="/approvals" element={<ApprovalPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["finance.disburse"]} />}>
+            <Route path="/finance/disbursements" element={<FinanceDisbursementsPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["finance.settlement.verify"]} />}>
+            <Route path="/finance/settlements" element={<SettlementVerificationPage />} />
+          </Route>
+
           <Route element={<SuperAdminRoute />}>
             <Route path="/admin/users" element={<AdminUsersPage />} />
           </Route>
