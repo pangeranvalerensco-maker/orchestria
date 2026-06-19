@@ -4,6 +4,9 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import jakarta.persistence.OptimisticLockException;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -12,8 +15,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.pangeranvalerensco.orchestria.request_service.payload.response.ErrorResponse;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -61,6 +62,24 @@ public class GlobalExceptionHandler {
                                 .build();
 
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+        }
+
+        @ExceptionHandler({
+                        OptimisticLockingFailureException.class,
+                        OptimisticLockException.class
+        })
+        public ResponseEntity<ErrorResponse<Void>> handleOptimisticLockConflict(
+                        Exception ex,
+                        HttpServletRequest request) {
+                ErrorResponse<Void> response = ErrorResponse.<Void>builder()
+                                .success(false)
+                                .message("Settlement sudah berubah atau telah diproses. Muat ulang data sebelum melanjutkan.")
+                                .errors(null)
+                                .path(request.getRequestURI())
+                                .timestamp(LocalDateTime.now())
+                                .build();
+
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
         }
 
         @ExceptionHandler(MethodArgumentNotValidException.class)

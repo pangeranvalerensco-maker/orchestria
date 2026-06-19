@@ -1,5 +1,6 @@
 package com.pangeranvalerensco.orchestria.request_service.entity;
 
+import com.pangeranvalerensco.orchestria.request_service.entity.enums.RequestSettlementStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,6 +24,10 @@ public class RequestSettlement {
     @JoinColumn(name = "fund_request_id", nullable = false, unique = true)
     private FundRequest fundRequest;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30)
+    private RequestSettlementStatus status;
+
     @Column(name = "spent_amount", nullable = false, precision = 18, scale = 2)
     private BigDecimal spentAmount;
 
@@ -38,6 +43,21 @@ public class RequestSettlement {
     @Column(columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "submission_count")
+    private Integer submissionCount;
+
+    @Column(name = "revision_count")
+    private Integer revisionCount;
+
+    @Column(name = "last_revision_note", columnDefinition = "TEXT")
+    private String lastRevisionNote;
+
+    @Column(name = "reviewed_by_email", length = 150)
+    private String reviewedByEmail;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @Column(name = "submitted_by_email", nullable = false, length = 150)
     private String submittedByEmail;
 
@@ -49,6 +69,10 @@ public class RequestSettlement {
 
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
+
+    @Version
+    @Column(name = "lock_version")
+    private Long lockVersion;
 
     @Column(nullable = false)
     private Boolean active;
@@ -67,6 +91,14 @@ public class RequestSettlement {
 
         if (shortageAmount == null) {
             shortageAmount = BigDecimal.ZERO;
+        }
+
+        if (submissionCount == null) {
+            submissionCount = 1;
+        }
+
+        if (revisionCount == null) {
+            revisionCount = 0;
         }
 
         if (submittedAt == null) {

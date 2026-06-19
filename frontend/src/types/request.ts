@@ -16,19 +16,18 @@ export type FundRequestStatus =
   | "DISBURSED"
   | "FUND_RECEIVED"
   | "SETTLEMENT_SUBMITTED"
+  | "SETTLEMENT_REVISION_REQUIRED"
   | "SETTLEMENT_APPROVED"
   | "COMPLETED"
   | "CANCELLED";
 
-  export type ApprovalLevel =
-  | "DIVISION"
-  | "PUB"
-  | "PEMBINA";
+export type RequestSettlementStatus =
+  | "SUBMITTED"
+  | "REVISION_REQUIRED"
+  | "APPROVED";
 
-export type ApprovalAction =
-  | "approve"
-  | "reject"
-  | "revision";
+export type ApprovalLevel = "DIVISION" | "PUB" | "PEMBINA";
+export type ApprovalAction = "approve" | "reject" | "revision";
 
 export interface ProcessApprovalPayload {
   level: ApprovalLevel;
@@ -95,3 +94,33 @@ export interface CreateRequestItemPayload {
   unitPrice: number;
 }
 
+export interface SubmitSettlementPayload {
+  spentAmount: number;
+  proofUrl: string;
+  note?: string;
+}
+
+export interface RequestSettlement {
+  id: number;
+  fundRequestId: number;
+  status: RequestSettlementStatus;
+  requestedAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  shortageAmount: number;
+  proofUrl: string | null;
+  note: string | null;
+  submissionCount: number;
+  revisionCount: number;
+  lastRevisionNote: string | null;
+  reviewedByEmail: string | null;
+  reviewedAt: string | null;
+  submittedByEmail: string | null;
+  submittedAt: string | null;
+  approvedByEmail: string | null;
+  approvedAt: string | null;
+  lockVersion: number | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}

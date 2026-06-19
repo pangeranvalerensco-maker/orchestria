@@ -34,6 +34,7 @@ const statusLabels: Record<
   DISBURSED: "Sudah Dicairkan",
   FUND_RECEIVED: "Dana Diterima",
   SETTLEMENT_SUBMITTED: "Settlement Dikirim",
+  SETTLEMENT_REVISION_REQUIRED: "Laporan Perlu Diperbaiki",
   SETTLEMENT_APPROVED: "Settlement Disetujui",
   COMPLETED: "Selesai",
   CANCELLED: "Dibatalkan",
