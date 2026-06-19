@@ -93,13 +93,18 @@ export function RequestSettlementPage() {
       return;
     }
 
+    if (!proofUrl.trim()) {
+      setErrorMessage("Bukti atau struk pembayaran wajib diisi.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
       await submitSettlement(token, request.id, {
         spentAmount: parsedAmount,
-        proofUrl: proofUrl.trim() || undefined,
+        proofUrl: proofUrl.trim(),
         note: note.trim() || undefined,
       });
       setSuccessMessage(
@@ -188,7 +193,7 @@ export function RequestSettlementPage() {
           <div className="card-heading">
             <div><p className="eyebrow">LAPORAN ANGGOTA</p><h2>Laporan Penggunaan Dana</h2></div>
           </div>
-          <p>Isi penggunaan aktual, lampirkan bukti, dan jelaskan sisa atau kekurangan dana.</p>
+          <p>Isi penggunaan aktual, lampirkan bukti atau struk pembayaran, dan jelaskan sisa atau kekurangan dana.</p>
           <div className="form-grid">
             <label className="form-field">
               <span>Nominal Digunakan</span>
@@ -207,8 +212,15 @@ export function RequestSettlementPage() {
             </div>
           </div>
           <label className="form-field">
-            <span>URL Bukti Penggunaan</span>
-            <input value={proofUrl} onChange={(event) => setProofUrl(event.target.value)} placeholder="https://drive.google.com/..." />
+            <span>Bukti/Struk Pembayaran *</span>
+            <input
+              type="url"
+              value={proofUrl}
+              onChange={(event) => setProofUrl(event.target.value)}
+              placeholder="https://drive.google.com/..."
+              required
+            />
+            <small>Gunakan tautan bukti yang dapat dibuka oleh Bendahara Internal.</small>
           </label>
           <label className="form-field">
             <span>Catatan Pertanggungjawaban</span>
@@ -223,7 +235,7 @@ export function RequestSettlementPage() {
             <button
               className="primary-button"
               type="button"
-              disabled={submitting}
+              disabled={submitting || !proofUrl.trim()}
               onClick={() => void handleSubmitReport()}
             >
               {submitting ? "Mengirim..." : "Kirim Laporan Penggunaan Dana"}
@@ -235,7 +247,7 @@ export function RequestSettlementPage() {
       {request.status === "SETTLEMENT_SUBMITTED" && (
         <section className="content-card">
           <h2>Menunggu Verifikasi Bendahara</h2>
-          <p>Laporan penggunaan dana telah tersimpan dan menunggu pemeriksaan Bendahara Internal.</p>
+          <p>Laporan dan bukti pembayaran telah tersimpan dan menunggu pemeriksaan Bendahara Internal.</p>
         </section>
       )}
 
