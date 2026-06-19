@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from "react-router";
 import { AppLayout } from "./layouts/AppLayout";
 import { PermissionRoute } from "./routes/PermissionRoute";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
-import { SuperAdminRoute } from "./routes/SuperAdminRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MyRequestsPage } from "./pages/MyRequestsPage";
@@ -13,7 +12,6 @@ import { RequestSettlementPage } from "./pages/RequestSettlementPage";
 import { ApprovalPage } from "./pages/ApprovalPage";
 import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
 import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
-import { AdminUsersPage } from "./pages/AdminUsersPage";
 
 function App() {
   return (
@@ -48,10 +46,6 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["finance.settlement.verify"]} />}>
             <Route path="/finance/settlements" element={<SettlementVerificationPage />} />
-          </Route>
-
-          <Route element={<SuperAdminRoute />}>
-            <Route path="/admin/users" element={<AdminUsersPage />} />
           </Route>
         </Route>
       </Route>
