@@ -8,7 +8,7 @@ function navClass({ isActive }: { isActive: boolean }) {
 
 export function AppLayout() {
   const navigate = useNavigate();
-  const { user, logout, hasPermission, hasRole } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
 
   function handleLogout() {
     logout();
@@ -20,7 +20,6 @@ export function AppLayout() {
     || hasPermission("request.approve.pembina");
   const canDisburse = hasPermission("finance.disburse");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
-  const isSuperAdmin = hasRole("SUPER_ADMIN");
 
   return (
     <div className="app-shell">
@@ -36,7 +35,6 @@ export function AppLayout() {
           {canApprove ? <NavLink to="/approvals" className={navClass}>Approval</NavLink> : <span className="nav-item disabled">Approval</span>}
           {canDisburse ? <NavLink to="/finance/disbursements" className={navClass}>Pencairan</NavLink> : <span className="nav-item disabled">Pencairan</span>}
           {canVerifySettlement ? <NavLink to="/finance/settlements" className={navClass}>Verifikasi Laporan</NavLink> : <span className="nav-item disabled">Verifikasi Laporan</span>}
-          {isSuperAdmin && <NavLink to="/admin/users" className={navClass}>Manajemen Akun</NavLink>}
         </nav>
 
         <div className="sidebar-user">
