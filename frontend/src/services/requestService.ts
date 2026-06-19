@@ -47,6 +47,13 @@ export function submitSettlement(token: string, requestId: number, payload: Subm
   }, token);
 }
 
+export function resubmitSettlement(token: string, requestId: number, payload: SubmitSettlementPayload) {
+  return apiRequest<RequestSettlement>(`/api/requests/${requestId}/settlement`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  }, token);
+}
+
 export function getSettlementDetail(token: string, requestId: number) {
   return apiRequest<RequestSettlement>(`/api/requests/${requestId}/settlement`, {
     method: "GET",
