@@ -20,15 +20,8 @@ export type FundRequestStatus =
   | "COMPLETED"
   | "CANCELLED";
 
-  export type ApprovalLevel =
-  | "DIVISION"
-  | "PUB"
-  | "PEMBINA";
-
-export type ApprovalAction =
-  | "approve"
-  | "reject"
-  | "revision";
+export type ApprovalLevel = "DIVISION" | "PUB" | "PEMBINA";
+export type ApprovalAction = "approve" | "reject" | "revision";
 
 export interface ProcessApprovalPayload {
   level: ApprovalLevel;
@@ -95,3 +88,26 @@ export interface CreateRequestItemPayload {
   unitPrice: number;
 }
 
+export interface SubmitSettlementPayload {
+  spentAmount: number;
+  proofUrl?: string;
+  note?: string;
+}
+
+export interface RequestSettlement {
+  id: number;
+  fundRequestId: number;
+  requestedAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  shortageAmount: number;
+  proofUrl: string | null;
+  note: string | null;
+  submittedByEmail: string;
+  submittedAt: string;
+  approvedByEmail: string | null;
+  approvedAt: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
