@@ -89,6 +89,16 @@ public class ReportServiceImpl implements ReportService {
                     String.class
             );
 
+            if (!rawResponse.getStatusCode().is2xxSuccessful()) {
+                log.error(
+                        "[REPORT] Request-service merespons HTTP {}",
+                        rawResponse.getStatusCode().value()
+                );
+                throw new UpstreamServiceException(
+                        "Gagal mengambil data laporan dari request-service"
+                );
+            }
+
             String responseBody = rawResponse.getBody();
             if (responseBody == null || responseBody.isBlank()) {
                 throw new UpstreamServiceException(
