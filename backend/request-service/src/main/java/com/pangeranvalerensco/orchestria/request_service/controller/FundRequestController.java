@@ -2,11 +2,9 @@ package com.pangeranvalerensco.orchestria.request_service.controller;
 
 import com.pangeranvalerensco.orchestria.request_service.entity.enums.FundRequestStatus;
 import com.pangeranvalerensco.orchestria.request_service.payload.request.CreateFundRequestRequest;
-import com.pangeranvalerensco.orchestria.request_service.payload.request.SubmitSettlementRequest;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.FundRequestResponse;
 import com.pangeranvalerensco.orchestria.request_service.payload.response.PageResponse;
-import com.pangeranvalerensco.orchestria.request_service.payload.response.RequestSettlementResponse;
 import com.pangeranvalerensco.orchestria.request_service.service.FundRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -114,8 +112,7 @@ public class FundRequestController {
                 return ResponseEntity.ok(
                                 ApiResponse.<FundRequestResponse>builder()
                                                 .success(true)
-                                                .message(
-                                                                "Detail pengajuan milik saya berhasil diambil")
+                                                .message("Detail pengajuan milik saya berhasil diambil")
                                                 .data(response)
                                                 .build());
         }
@@ -130,18 +127,15 @@ public class FundRequestController {
         @GetMapping("/pending-approvals")
         public ResponseEntity<ApiResponse<List<FundRequestResponse>>> getPendingApprovals(
                         @AuthenticationPrincipal AuthenticatedUser currentUser,
-
                         @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
                 List<FundRequestResponse> response = fundRequestService.getPendingApprovals(
                                 currentUser,
                                 authorizationHeader);
 
                 return ResponseEntity.ok(
-                                ApiResponse
-                                                .<List<FundRequestResponse>>builder()
+                                ApiResponse.<List<FundRequestResponse>>builder()
                                                 .success(true)
-                                                .message(
-                                                                "Daftar approval pending berhasil diambil")
+                                                .message("Daftar approval pending berhasil diambil")
                                                 .data(response)
                                                 .build());
         }
@@ -206,44 +200,6 @@ public class FundRequestController {
                                 ApiResponse.<FundRequestResponse>builder()
                                                 .success(true)
                                                 .message("Dana pengajuan berhasil dikonfirmasi diterima")
-                                                .data(response)
-                                                .build());
-        }
-
-        @PreAuthorize("hasAuthority('request.create')")
-        @PostMapping("/{id}/settlement")
-        public ResponseEntity<ApiResponse<RequestSettlementResponse>> submitSettlement(
-                        @PathVariable Long id,
-                        @Valid @RequestBody SubmitSettlementRequest request,
-                        Authentication authentication) {
-                String currentUserEmail = authentication.getName();
-
-                RequestSettlementResponse response = fundRequestService.submitSettlement(
-                                id,
-                                request,
-                                currentUserEmail);
-
-                return ResponseEntity.ok(
-                                ApiResponse.<RequestSettlementResponse>builder()
-                                                .success(true)
-                                                .message("Settlement pengajuan berhasil dikirim")
-                                                .data(response)
-                                                .build());
-        }
-
-        @PreAuthorize("hasAuthority('finance.settlement.verify')")
-        @PostMapping("/{id}/settlement/approve")
-        public ResponseEntity<ApiResponse<RequestSettlementResponse>> approveSettlement(
-                        @PathVariable Long id,
-                        Authentication authentication) {
-                String currentUserEmail = authentication.getName();
-
-                RequestSettlementResponse response = fundRequestService.approveSettlement(id, currentUserEmail);
-
-                return ResponseEntity.ok(
-                                ApiResponse.<RequestSettlementResponse>builder()
-                                                .success(true)
-                                                .message("Settlement pengajuan berhasil disetujui")
                                                 .data(response)
                                                 .build());
         }
