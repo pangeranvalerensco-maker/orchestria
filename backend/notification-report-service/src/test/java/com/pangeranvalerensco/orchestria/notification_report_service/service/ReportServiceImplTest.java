@@ -1,20 +1,28 @@
 package com.pangeranvalerensco.orchestria.notification_report_service.service;
 
 import com.pangeranvalerensco.orchestria.notification_report_service.dto.FundRequestDto;
+import com.pangeranvalerensco.orchestria.notification_report_service.event.NotificationEvent;
+import com.pangeranvalerensco.orchestria.notification_report_service.exception.UpstreamServiceException;
 import com.pangeranvalerensco.orchestria.notification_report_service.service.impl.ReportServiceImpl;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
@@ -24,22 +32,19 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Unit test untuk ReportServiceImpl.
- *
- * Memverifikasi:
- * 1. Excel dihasilkan dengan benar dari data yang diberikan
- * 2. Header Excel mengandung kolom yang diharapkan
- * 3. Baris data terisi dengan benar
- * 4. Ketika request-service tidak tersedia, kembalikan list kosong (graceful)
- * 5. Event REPORT_READY dipublikasikan setelah Excel selesai dibuat
- */
 @ExtendWith(MockitoExtension.class)
 class ReportServiceImplTest {
+
+    private static final String AUTHORIZATION = "Bearer test-token";
 
     @Mock
     private RestTemplate restTemplate;
@@ -61,103 +66,128 @@ class ReportServiceImplTest {
         ReflectionTestUtils.setField(reportService, "requestServiceBaseUrl", "http://localhost:8099");
     }
 
-    // =========================================================================
-    //  Test: Fetch Fund Requests
-    // =========================================================================
-
     @Test
-    void whenRequestServiceUnavailable_thenFetchReturnsEmptyList() {
+    void whenRequestServiceUnavailable_thenThrowUpstreamException() {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenThrow(new org.springframework.web.client.ResourceAccessException("Connection refused"));
+                .thenThrow(new ResourceAccessException("Connection refused"));
 
-        List<FundRequestDto> result = reportService.fetchFundRequests();
-
-        assertThat(result).isEmpty();
+        assertThatThrownBy(() -> reportService.fetchFundRequests(AUTHORIZATION))
+                .isInstanceOf(UpstreamServiceException.class)
+                .hasMessageContaining("tidak dapat dihubungi");
     }
 
     @Test
-    void whenRequestServiceReturnsNull_thenFetchReturnsEmptyList() {
+    void whenRequestServiceReturnsNullBody_thenThrowUpstreamException() {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
                 .thenReturn(ResponseEntity.ok(null));
 
-        List<FundRequestDto> result = reportService.fetchFundRequests();
-
-        assertThat(result).isEmpty();
+        assertThatThrownBy(() -> reportService.fetchFundRequests(AUTHORIZATION))
+                .isInstanceOf(UpstreamServiceException.class)
+                .hasMessageContaining("respons kosong");
     }
 
     @Test
-    void whenRequestServiceReturnsValidData_thenFetchReturnsRecords() throws Exception {
-        String mockJson = """
+    void whenUpstreamReturnsErrorStatus_thenDoNotGenerateEmptyReport() {
+        for (HttpStatus status : List.of(
+                HttpStatus.UNAUTHORIZED,
+                HttpStatus.FORBIDDEN,
+                HttpStatus.INTERNAL_SERVER_ERROR)) {
+            when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                    .thenReturn(ResponseEntity.status(status).body("{}"));
+
+            assertThatThrownBy(() -> reportService.generateFundRequestExcel(AUTHORIZATION))
+                    .isInstanceOf(UpstreamServiceException.class);
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void whenFetchingData_thenAuthorizationHeaderIsForwarded() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(successResponseWithOneRecord()));
+
+        List<FundRequestDto> result = reportService.fetchFundRequests(AUTHORIZATION);
+
+        ArgumentCaptor<HttpEntity> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(restTemplate).exchange(
+                anyString(),
+                eq(HttpMethod.GET),
+                entityCaptor.capture(),
+                eq(String.class)
+        );
+
+        assertThat(result).hasSize(1);
+        assertThat(entityCaptor.getValue().getHeaders().getFirst(HttpHeaders.AUTHORIZATION))
+                .isEqualTo(AUTHORIZATION);
+    }
+
+    @Test
+    void whenUpstreamReturnsSuccessfulEmptyContent_thenGenerateValidExcel() throws Exception {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(successResponseWithEmptyContent()));
+
+        ByteArrayOutputStream output = reportService.generateFundRequestExcel(AUTHORIZATION);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(
+                new ByteArrayInputStream(output.toByteArray()))) {
+            Sheet sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getLastRowNum()).isZero();
+            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("ID");
+            assertThat(sheet.getRow(0).getCell(6).getStringCellValue())
+                    .isEqualTo("Tanggal Dibuat");
+        }
+    }
+
+    @Test
+    void whenGenerateExcelWithData_thenDataRowsArePresent() throws Exception {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(successResponseWithOneRecord()));
+
+        ByteArrayOutputStream output = reportService.generateFundRequestExcel(AUTHORIZATION);
+
+        try (XSSFWorkbook workbook = new XSSFWorkbook(
+                new ByteArrayInputStream(output.toByteArray()))) {
+            Sheet sheet = workbook.getSheetAt(0);
+            assertThat(sheet.getLastRowNum()).isEqualTo(1);
+
+            Row dataRow = sheet.getRow(1);
+            assertThat(dataRow.getCell(0).getNumericCellValue()).isEqualTo(42.0);
+            assertThat(dataRow.getCell(1).getStringCellValue()).isEqualTo("Pengadaan Projector");
+            assertThat(dataRow.getCell(4).getStringCellValue()).isEqualTo("COMPLETED");
+            assertThat(dataRow.getCell(5).getNumericCellValue()).isEqualTo(5000000.0);
+        }
+    }
+
+    @Test
+    void whenGenerateExcelSucceeds_thenReportReadyEventIsPublished() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.ok(successResponseWithEmptyContent()));
+
+        reportService.generateFundRequestExcel(AUTHORIZATION);
+
+        verify(eventPublisher, times(1)).publishEvent(any(NotificationEvent.class));
+    }
+
+    private String successResponseWithEmptyContent() {
+        return """
                 {
                   "success": true,
                   "message": "OK",
                   "data": {
-                    "content": [
-                      {
-                        "id": 1,
-                        "title": "Test Request",
-                        "divisionName": "Keuangan",
-                        "requesterName": "Budi",
-                        "status": "APPROVED",
-                        "totalAmount": 1500000.00,
-                        "createdAt": "2026-06-01T10:00:00"
-                      }
-                    ],
+                    "content": [],
                     "page": 0,
-                    "size": 1,
-                    "totalElements": 1,
-                    "totalPages": 1,
+                    "size": 0,
+                    "totalElements": 0,
+                    "totalPages": 0,
                     "first": true,
                     "last": true
                   }
                 }
                 """;
-
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenReturn(ResponseEntity.ok(mockJson));
-
-        List<FundRequestDto> result = reportService.fetchFundRequests();
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getId()).isEqualTo(1L);
-        assertThat(result.get(0).getTitle()).isEqualTo("Test Request");
-        assertThat(result.get(0).getDivisionName()).isEqualTo("Keuangan");
-        assertThat(result.get(0).getStatus()).isEqualTo("APPROVED");
     }
 
-    // =========================================================================
-    //  Test: Excel Generator
-    // =========================================================================
-
-    @Test
-    void whenGenerateExcelWithEmptyData_thenOnlyHeaderRow() throws Exception {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenReturn(ResponseEntity.ok(null));
-
-        ByteArrayOutputStream out = reportService.generateFundRequestExcel();
-
-        assertThat(out).isNotNull();
-        assertThat(out.size()).isGreaterThan(0);
-
-        try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(out.toByteArray()))) {
-            Sheet sheet = wb.getSheetAt(0);
-            assertThat(sheet.getSheetName()).isEqualTo("Fund Requests");
-            assertThat(sheet.getLastRowNum()).isEqualTo(0);
-
-            Row headerRow = sheet.getRow(0);
-            assertThat(headerRow.getCell(0).getStringCellValue()).isEqualTo("ID");
-            assertThat(headerRow.getCell(1).getStringCellValue()).isEqualTo("Judul");
-            assertThat(headerRow.getCell(2).getStringCellValue()).isEqualTo("Divisi");
-            assertThat(headerRow.getCell(3).getStringCellValue()).isEqualTo("Pemohon");
-            assertThat(headerRow.getCell(4).getStringCellValue()).isEqualTo("Status");
-            assertThat(headerRow.getCell(5).getStringCellValue()).isEqualTo("Total (Rp)");
-            assertThat(headerRow.getCell(6).getStringCellValue()).isEqualTo("Tanggal Dibuat");
-        }
-    }
-
-    @Test
-    void whenGenerateExcelWithData_thenDataRowsPresent() throws Exception {
-        String mockJson = """
+    private String successResponseWithOneRecord() {
+        return """
                 {
                   "success": true,
                   "message": "OK",
@@ -182,37 +212,5 @@ class ReportServiceImplTest {
                   }
                 }
                 """;
-
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenReturn(ResponseEntity.ok(mockJson));
-
-        ByteArrayOutputStream out = reportService.generateFundRequestExcel();
-
-        try (XSSFWorkbook wb = new XSSFWorkbook(new ByteArrayInputStream(out.toByteArray()))) {
-            Sheet sheet = wb.getSheetAt(0);
-            assertThat(sheet.getLastRowNum()).isEqualTo(1);
-
-            Row dataRow = sheet.getRow(1);
-            assertThat(dataRow.getCell(0).getNumericCellValue()).isEqualTo(42.0);
-            assertThat(dataRow.getCell(1).getStringCellValue()).isEqualTo("Pengadaan Projector");
-            assertThat(dataRow.getCell(2).getStringCellValue()).isEqualTo("IT");
-            assertThat(dataRow.getCell(3).getStringCellValue()).isEqualTo("Siti");
-            assertThat(dataRow.getCell(4).getStringCellValue()).isEqualTo("COMPLETED");
-            assertThat(dataRow.getCell(5).getNumericCellValue()).isEqualTo(5000000.0);
-        }
-    }
-
-    @Test
-    void whenGenerateExcel_thenReportReadyEventPublished() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenReturn(ResponseEntity.ok(null));
-
-        reportService.generateFundRequestExcel();
-
-        verify(eventPublisher, times(1)).publishEvent(
-                argThat(event -> event instanceof com.pangeranvalerensco.orchestria
-                        .notification_report_service.event.NotificationEvent notifEvent
-                        && "REPORT_READY".equals(notifEvent.getEventType()))
-        );
     }
 }
