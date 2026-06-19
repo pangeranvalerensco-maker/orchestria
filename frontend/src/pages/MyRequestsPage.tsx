@@ -18,6 +18,7 @@ const statusLabels: Record<FundRequestStatus, string> = {
   DISBURSED: "Dicairkan · Belum Dikonfirmasi",
   FUND_RECEIVED: "Dana Diterima · Laporan Belum Dikirim",
   SETTLEMENT_SUBMITTED: "Laporan Dikirim",
+  SETTLEMENT_REVISION_REQUIRED: "Laporan Perlu Diperbaiki",
   SETTLEMENT_APPROVED: "Laporan Disetujui",
   COMPLETED: "Selesai",
   CANCELLED: "Dibatalkan",
@@ -41,6 +42,7 @@ function hasReportFlow(request: FundRequest) {
     "DISBURSED",
     "FUND_RECEIVED",
     "SETTLEMENT_SUBMITTED",
+    "SETTLEMENT_REVISION_REQUIRED",
     "COMPLETED",
   ].includes(request.status);
 }
@@ -48,6 +50,7 @@ function hasReportFlow(request: FundRequest) {
 function reportActionLabel(status: FundRequestStatus) {
   if (status === "DISBURSED") return "Konfirmasi Dana";
   if (status === "FUND_RECEIVED") return "Isi Laporan Dana";
+  if (status === "SETTLEMENT_REVISION_REQUIRED") return "Perbaiki Laporan";
   return "Lihat Pertanggungjawaban";
 }
 
