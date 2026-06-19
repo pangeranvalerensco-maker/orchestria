@@ -47,6 +47,12 @@ export function submitSettlement(token: string, requestId: number, payload: Subm
   }, token);
 }
 
+export function getSettlementDetail(token: string, requestId: number) {
+  return apiRequest<RequestSettlement>(`/api/requests/${requestId}/settlement`, {
+    method: "GET",
+  }, token);
+}
+
 export function getPendingApprovals(token: string) {
   return apiRequest<FundRequest[]>("/api/requests/pending-approvals", { method: "GET" }, token);
 }
