@@ -16,9 +16,15 @@ export type FundRequestStatus =
   | "DISBURSED"
   | "FUND_RECEIVED"
   | "SETTLEMENT_SUBMITTED"
+  | "SETTLEMENT_REVISION_REQUIRED"
   | "SETTLEMENT_APPROVED"
   | "COMPLETED"
   | "CANCELLED";
+
+export type RequestSettlementStatus =
+  | "SUBMITTED"
+  | "REVISION_REQUIRED"
+  | "APPROVED";
 
 export type ApprovalLevel = "DIVISION" | "PUB" | "PEMBINA";
 export type ApprovalAction = "approve" | "reject" | "revision";
@@ -97,17 +103,24 @@ export interface SubmitSettlementPayload {
 export interface RequestSettlement {
   id: number;
   fundRequestId: number;
+  status: RequestSettlementStatus;
   requestedAmount: number;
   spentAmount: number;
   remainingAmount: number;
   shortageAmount: number;
-  proofUrl: string;
+  proofUrl: string | null;
   note: string | null;
-  submittedByEmail: string;
-  submittedAt: string;
+  submissionCount: number;
+  revisionCount: number;
+  lastRevisionNote: string | null;
+  reviewedByEmail: string | null;
+  reviewedAt: string | null;
+  submittedByEmail: string | null;
+  submittedAt: string | null;
   approvedByEmail: string | null;
   approvedAt: string | null;
+  lockVersion: number | null;
   active: boolean;
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string | null;
 }
