@@ -6,6 +6,7 @@ import { useAuth } from "../auth/useAuth";
 import {
   approveSettlement,
   getPendingSettlements,
+  requestSettlementRevision,
 } from "../services/financeService";
 import { getSettlementDetail } from "../services/requestService";
 import type { FundRequest, RequestSettlement } from "../types/request";
@@ -18,14 +19,23 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function SettlementVerificationPage() {
   const { token } = useAuth();
   const [requests, setRequests] = useState<FundRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<FundRequest | null>(null);
   const [settlement, setSettlement] = useState<RequestSettlement | null>(null);
+  const [revisionNote, setRevisionNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processingAction, setProcessingAction] = useState<"approve" | "revision" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -56,6 +66,7 @@ export function SettlementVerificationPage() {
 
     setSelectedRequest(request);
     setSettlement(null);
+    setRevisionNote("");
     setLoadingDetail(true);
     setErrorMessage(null);
     try {
@@ -80,7 +91,7 @@ export function SettlementVerificationPage() {
     );
     if (!confirmed) return;
 
-    setProcessingId(request.id);
+    setProcessingAction("approve");
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
@@ -90,6 +101,7 @@ export function SettlementVerificationPage() {
       );
       setSelectedRequest(null);
       setSettlement(null);
+      setRevisionNote("");
       await loadRequests();
     } catch (error) {
       setErrorMessage(
@@ -98,7 +110,44 @@ export function SettlementVerificationPage() {
           : "Laporan penggunaan dana gagal disetujui.",
       );
     } finally {
-      setProcessingId(null);
+      setProcessingAction(null);
+    }
+  }
+
+  async function handleRequestRevision(request: FundRequest) {
+    if (!token) return;
+
+    const normalizedNote = revisionNote.trim();
+    if (!normalizedNote) {
+      setErrorMessage("Catatan revisi wajib diisi.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Kembalikan laporan pengajuan #${request.id} kepada pemohon untuk diperbaiki?`,
+    );
+    if (!confirmed) return;
+
+    setProcessingAction("revision");
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      await requestSettlementRevision(token, request.id, normalizedNote);
+      setSuccessMessage(
+        `Revisi laporan pengajuan #${request.id} berhasil diminta kepada pemohon.`,
+      );
+      setSelectedRequest(null);
+      setSettlement(null);
+      setRevisionNote("");
+      await loadRequests();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Permintaan revisi laporan gagal disimpan.",
+      );
+    } finally {
+      setProcessingAction(null);
     }
   }
 
@@ -108,7 +157,7 @@ export function SettlementVerificationPage() {
         <div>
           <p className="eyebrow">FINANCE · PERTANGGUNGJAWABAN</p>
           <h1>Verifikasi Laporan Dana</h1>
-          <p>Bendahara wajib memeriksa nominal realisasi, catatan, dan bukti pembayaran sebelum menyelesaikan pengajuan.</p>
+          <p>Bendahara wajib memeriksa nominal realisasi, catatan, dan bukti penggunaan sebelum mengambil keputusan.</p>
         </div>
         <Link className="secondary-link-button" to="/finance/disbursements">Pencairan Dana</Link>
       </section>
@@ -165,9 +214,11 @@ export function SettlementVerificationPage() {
             </div>
             <button
               type="button"
+              disabled={processingAction !== null}
               onClick={() => {
                 setSelectedRequest(null);
                 setSettlement(null);
+                setRevisionNote("");
               }}
             >
               Tutup
@@ -179,11 +230,15 @@ export function SettlementVerificationPage() {
           ) : settlement ? (
             <>
               <dl className="detail-list">
+                <div><dt>Status laporan</dt><dd>{settlement.status.replaceAll("_", " ")}</dd></div>
                 <div><dt>Dana Disetujui</dt><dd>{formatCurrency(settlement.requestedAmount)}</dd></div>
                 <div><dt>Realisasi</dt><dd>{formatCurrency(settlement.spentAmount)}</dd></div>
                 <div><dt>Sisa Dana</dt><dd>{formatCurrency(settlement.remainingAmount)}</dd></div>
                 <div><dt>Kekurangan</dt><dd>{formatCurrency(settlement.shortageAmount)}</dd></div>
-                <div><dt>Dikirim Oleh</dt><dd>{settlement.submittedByEmail}</dd></div>
+                <div><dt>Dikirim Oleh</dt><dd>{settlement.submittedByEmail || "-"}</dd></div>
+                <div><dt>Waktu Kirim</dt><dd>{formatDateTime(settlement.submittedAt)}</dd></div>
+                <div><dt>Pengiriman Ke</dt><dd>{settlement.submissionCount}</dd></div>
+                <div><dt>Jumlah Revisi</dt><dd>{settlement.revisionCount}</dd></div>
               </dl>
 
               <div className="detail-description">
@@ -192,25 +247,48 @@ export function SettlementVerificationPage() {
               </div>
 
               <div className="form-field">
-                <span>Bukti/Struk Pembayaran</span>
-                <a
-                  className="primary-link-button"
-                  href={settlement.proofUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Buka Bukti Pembayaran
-                </a>
+                <span>Bukti/Struk Penggunaan Dana</span>
+                {settlement.proofUrl ? (
+                  <a
+                    className="primary-link-button"
+                    href={settlement.proofUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Buka Bukti Penggunaan
+                  </a>
+                ) : (
+                  <div className="alert alert-error" role="alert">Bukti penggunaan belum tersedia.</div>
+                )}
               </div>
+
+              <label className="form-field">
+                <span>Catatan Revisi</span>
+                <textarea
+                  rows={4}
+                  maxLength={2000}
+                  value={revisionNote}
+                  onChange={(event) => setRevisionNote(event.target.value)}
+                  placeholder="Jelaskan bagian laporan atau bukti yang harus diperbaiki"
+                />
+                <small>Wajib diisi apabila laporan dikembalikan kepada pemohon.</small>
+              </label>
 
               <div className="form-actions">
                 <button
                   className="primary-button"
                   type="button"
-                  disabled={processingId === selectedRequest.id || !settlement.proofUrl}
+                  disabled={processingAction !== null || !settlement.proofUrl}
                   onClick={() => void handleApprove(selectedRequest)}
                 >
-                  {processingId === selectedRequest.id ? "Memproses..." : "Setujui & Selesaikan"}
+                  {processingAction === "approve" ? "Memproses..." : "Setujui & Selesaikan"}
+                </button>
+                <button
+                  type="button"
+                  disabled={processingAction !== null || !revisionNote.trim()}
+                  onClick={() => void handleRequestRevision(selectedRequest)}
+                >
+                  {processingAction === "revision" ? "Menyimpan..." : "Minta Revisi"}
                 </button>
               </div>
             </>
