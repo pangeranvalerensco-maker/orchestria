@@ -7,8 +7,10 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { MyRequestsPage } from "./pages/MyRequestsPage";
 import { CreateRequestPage } from "./pages/CreateRequestPage";
 import { RequestDetailPage } from "./pages/RequestDetailPage";
+import { RequestSettlementPage } from "./pages/RequestSettlementPage";
 import { ApprovalPage } from "./pages/ApprovalPage";
 import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
+import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 
 function App() {
   return (
@@ -21,8 +23,10 @@ function App() {
           <Route path="/requests" element={<MyRequestsPage />} />
           <Route path="/requests/new" element={<CreateRequestPage />} />
           <Route path="/requests/:id" element={<RequestDetailPage />} />
+          <Route path="/requests/:id/settlement" element={<RequestSettlementPage />} />
           <Route path="/approvals" element={<ApprovalPage />} />
           <Route path="/finance/disbursements" element={<FinanceDisbursementsPage />} />
+          <Route path="/finance/settlements" element={<SettlementVerificationPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
