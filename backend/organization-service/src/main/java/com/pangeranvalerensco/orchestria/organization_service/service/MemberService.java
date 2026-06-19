@@ -8,7 +8,7 @@ import com.pangeranvalerensco.orchestria.organization_service.payload.response.M
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.CurrentMemberContextResponse;
 
 public interface MemberService {
-    
+
     ApiResponse<List<MemberResponse>> getAllMembers();
 
     ApiResponse<MemberResponse> getMemberById(Long id);
@@ -19,5 +19,7 @@ public interface MemberService {
 
     ApiResponse<Void> deleteMember(Long id);
 
-    ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(String email);
+    ApiResponse<CurrentMemberContextResponse> getCurrentMemberContext(
+            String email,
+            Long authUserId);
 }
