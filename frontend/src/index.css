@@ -1256,3 +1256,274 @@ button {
   background: #2563eb;
   color: white;
 }
+
+/* -------------------------------------
+   ARCHIVE PAGE STYLES
+------------------------------------- */
+
+.archive-page-heading {
+  margin-bottom: 24px;
+}
+
+.archive-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .archive-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.archive-list-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.archive-filters {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #edf0f5;
+  flex-wrap: wrap;
+}
+
+.archive-search-form {
+  display: flex;
+  gap: 12px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.archive-search-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.archive-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.archive-category-filter {
+  min-width: 180px;
+}
+
+.archive-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.archive-empty-state {
+  min-height: 240px;
+}
+
+.archive-table-wrapper {
+  overflow-x: auto;
+}
+
+.archive-row {
+  transition: background-color 0.15s;
+}
+
+.archive-row:hover {
+  background-color: #f8fafc;
+}
+
+.archive-doc-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.archive-doc-title strong {
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.archive-doc-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+  max-width: 300px;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.archive-category-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.archive-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.archive-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.archive-action-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.button-outline {
+  background: white;
+  border: 1px solid #dbe3ef;
+  color: #334155;
+}
+
+.button-outline:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.button-danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+.button-danger:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.archive-upload-card {
+  position: sticky;
+  top: 24px;
+}
+
+.archive-upload-card h3 {
+  margin: 0 0 6px 0;
+  font-size: 18px;
+}
+
+.upload-subtitle {
+  color: #64748b;
+  font-size: 13px;
+  margin: 0 0 20px 0;
+}
+
+.archive-upload-form .form-group {
+  margin-bottom: 16px;
+}
+
+.archive-upload-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.text-danger {
+  color: #dc2626;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-control:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.archive-file-input-wrapper {
+  position: relative;
+}
+
+.file-input {
+  padding: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  cursor: pointer;
+}
+
+.file-input:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.form-help {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 6px;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.archive-error-alert {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  border: 1px solid #fecaca;
+}
+
+.button-primary {
+  padding: 10px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.button-primary:hover {
+  background: #1d4ed8;
+}
+
+.button-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.archive-error-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
