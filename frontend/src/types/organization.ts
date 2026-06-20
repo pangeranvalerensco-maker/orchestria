@@ -34,43 +34,43 @@ export interface CurrentMemberContext {
 
 export interface MemberResponse {
   id: number;
-  authUserId: number;
+  authUserId: number | null;
   fullName: string;
   email: string;
-  studentNumber: string;
-  phoneNumber: string;
-  cohort: string;
-  profilePhotoUrl: string;
-  major: string;
-  campusClass: string;
+  studentNumber: string | null;
+  phoneNumber: string | null;
+  cohort: string | null;
+  profilePhotoUrl: string | null;
+  major: string | null;
+  campusClass: string | null;
   publicVisible: boolean;
-  displayOrder: number;
+  displayOrder: number | null;
   status: string;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface DivisionResponse {
   id: number;
   code: string;
   name: string;
-  description: string;
-  displayOrder: number;
+  description: string | null;
+  displayOrder: number | null;
   publicVisible: boolean;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface PositionResponse {
   id: number;
   code: string;
   name: string;
-  description: string;
-  levelOrder: number;
+  description: string | null;
+  levelOrder: number | null;
   publicVisible: boolean;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | null;
+  updatedAt: string | null;
 }

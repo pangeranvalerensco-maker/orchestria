@@ -1,52 +1,70 @@
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../auth/useAuth";
 import { getMembers, getDivisions, getPositions } from "../services/organizationService";
+import { ApiError } from "../api/http";
 import type { MemberResponse, DivisionResponse, PositionResponse } from "../types/organization";
 
 type Tab = "members" | "divisions" | "positions";
 
+function normalizeMemberStatus(member: MemberResponse): string {
+  const raw = member.status?.toUpperCase();
+  if (raw === "ACTIVE") return "AKTIF";
+  if (raw === "INACTIVE") return "TIDAK AKTIF";
+  if (raw) return raw;
+  return member.active ? "AKTIF" : "TIDAK AKTIF";
+}
+
 export function OrganizationDirectoryPage() {
   const { token } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState<Tab>("members");
-  
+
   const [members, setMembers] = useState<MemberResponse[]>([]);
   const [divisions, setDivisions] = useState<DivisionResponse[]>([]);
   const [positions, setPositions] = useState<PositionResponse[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    if (!token) {
+      setIsLoading(false);
+      setError("Sesi tidak valid. Silakan login kembali.");
+      return;
+    }
+
     async function fetchData() {
-      if (!token) return;
       setIsLoading(true);
       setError(null);
       try {
         const [membersRes, divisionsRes, positionsRes] = await Promise.all([
-          getMembers(token),
-          getDivisions(token),
-          getPositions(token),
+          getMembers(token!),
+          getDivisions(token!),
+          getPositions(token!),
         ]);
-        
+
         setMembers(membersRes.data ?? []);
         setDivisions(divisionsRes.data ?? []);
         setPositions(positionsRes.data ?? []);
-      } catch (err: any) {
-        if (err.status === 401) {
-          setError("Sesi tidak valid. Silakan login kembali.");
-        } else if (err.status === 403) {
-          setError("Anda tidak memiliki akses untuk melihat direktori organisasi.");
+      } catch (err: unknown) {
+        if (err instanceof ApiError) {
+          if (err.status === 401) {
+            setError("Sesi tidak valid. Silakan login kembali.");
+          } else if (err.status === 403) {
+            setError("Anda tidak memiliki akses untuk melihat direktori organisasi.");
+          } else {
+            setError("Layanan organisasi sedang bermasalah. Silakan coba beberapa saat lagi.");
+          }
         } else {
-          setError("Layanan organisasi sedang bermasalah. Silakan coba beberapa saat lagi.");
+          setError("Terjadi kesalahan tak terduga. Silakan coba beberapa saat lagi.");
         }
       } finally {
         setIsLoading(false);
       }
     }
-    
+
     fetchData();
   }, [token]);
 
@@ -62,7 +80,7 @@ export function OrganizationDirectoryPage() {
 
   if (isLoading) {
     return (
-      <div className="page-content center-screen" style={{ minHeight: "50vh" }}>
+      <div className="page-content org-loading-container">
         <div className="loading-card">
           <div className="spinner"></div>
           <p>Memuat direktori organisasi...</p>
@@ -75,7 +93,7 @@ export function OrganizationDirectoryPage() {
     return (
       <div className="page-content">
         <div className="empty-state">
-          <div className="empty-state-icon" style={{ color: "#991b1b", background: "#fee2e2" }}>!</div>
+          <div className="empty-state-icon org-error-icon">!</div>
           <h2>Akses Gagal</h2>
           <p>{error}</p>
         </div>
@@ -85,13 +103,13 @@ export function OrganizationDirectoryPage() {
 
   return (
     <div className="page-content">
-      <div className="page-heading" style={{ display: "block" }}>
-        <p className="eyebrow" style={{ marginBottom: "8px" }}>ORGANIZATION</p>
+      <div className="page-heading org-page-heading">
+        <p className="eyebrow">ORGANIZATION</p>
         <h1>Direktori Organisasi</h1>
         <p>Daftar lengkap anggota, divisi, dan jabatan dalam organisasi.</p>
       </div>
 
-      <div className="summary-grid" style={{ marginBottom: "28px" }}>
+      <div className="summary-grid org-summary-grid">
         <div className="summary-card">
           <span>Total Anggota</span>
           <strong>{members.length}</strong>
@@ -107,21 +125,24 @@ export function OrganizationDirectoryPage() {
       </div>
 
       <div className="content-card request-list-card">
-        <div style={{ padding: "22px 22px 0" }}>
+        <div className="org-tabs-header">
           <div className="tabs-nav">
             <button
+              id="org-tab-members"
               className={`tab-button ${activeTab === "members" ? "active" : ""}`}
               onClick={() => setActiveTab("members")}
             >
               Anggota
             </button>
             <button
+              id="org-tab-divisions"
               className={`tab-button ${activeTab === "divisions" ? "active" : ""}`}
               onClick={() => setActiveTab("divisions")}
             >
               Divisi
             </button>
             <button
+              id="org-tab-positions"
               className={`tab-button ${activeTab === "positions" ? "active" : ""}`}
               onClick={() => setActiveTab("positions")}
             >
@@ -131,25 +152,24 @@ export function OrganizationDirectoryPage() {
         </div>
 
         {activeTab === "members" && (
-          <div style={{ padding: "0 22px 22px" }}>
-            <div style={{ marginBottom: "16px", maxWidth: "300px" }}>
+          <div className="org-tab-content">
+            <div className="org-search-wrapper">
               <input
+                id="org-member-search"
                 type="text"
+                className="org-search-input"
                 placeholder="Cari nama atau email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  border: "1px solid #dbe3ef",
-                  outline: "none"
-                }}
               />
             </div>
             {filteredMembers.length === 0 ? (
-              <div className="empty-state" style={{ minHeight: "200px" }}>
-                <p>Tidak ada anggota yang ditemukan.</p>
+              <div className="empty-state org-empty-state">
+                <p>
+                  {searchQuery
+                    ? "Tidak ada anggota yang cocok dengan pencarian."
+                    : "Tidak ada anggota yang ditemukan."}
+                </p>
               </div>
             ) : (
               <div className="request-table-wrapper">
@@ -169,13 +189,19 @@ export function OrganizationDirectoryPage() {
                         <td><strong>{m.fullName}</strong></td>
                         <td>{m.email}</td>
                         <td>
-                          <strong>{m.studentNumber || "-"}</strong>
-                          <small>{m.cohort || "-"}</small>
+                          <strong>{m.studentNumber ?? "-"}</strong>
+                          <small>{m.cohort ?? "-"}</small>
                         </td>
-                        <td>{m.major || "-"}</td>
+                        <td>{m.major ?? "-"}</td>
                         <td>
-                          <span className={m.active ? "status-chip status-completed" : "status-chip status-draft"}>
-                            {m.status || (m.active ? "AKTIF" : "TIDAK AKTIF")}
+                          <span
+                            className={
+                              m.active
+                                ? "status-chip status-completed"
+                                : "status-chip status-draft"
+                            }
+                          >
+                            {normalizeMemberStatus(m)}
                           </span>
                         </td>
                       </tr>
@@ -188,9 +214,9 @@ export function OrganizationDirectoryPage() {
         )}
 
         {activeTab === "divisions" && (
-          <div style={{ padding: "0 22px 22px" }}>
+          <div className="org-tab-content">
             {divisions.length === 0 ? (
-              <div className="empty-state" style={{ minHeight: "200px" }}>
+              <div className="empty-state org-empty-state">
                 <p>Tidak ada divisi yang ditemukan.</p>
               </div>
             ) : (
@@ -209,9 +235,15 @@ export function OrganizationDirectoryPage() {
                       <tr key={d.id}>
                         <td><strong>{d.code}</strong></td>
                         <td>{d.name}</td>
-                        <td>{d.description || "-"}</td>
+                        <td>{d.description ?? "-"}</td>
                         <td>
-                          <span className={d.active ? "status-chip status-completed" : "status-chip status-draft"}>
+                          <span
+                            className={
+                              d.active
+                                ? "status-chip status-completed"
+                                : "status-chip status-draft"
+                            }
+                          >
                             {d.active ? "AKTIF" : "TIDAK AKTIF"}
                           </span>
                         </td>
@@ -225,9 +257,9 @@ export function OrganizationDirectoryPage() {
         )}
 
         {activeTab === "positions" && (
-          <div style={{ padding: "0 22px 22px" }}>
+          <div className="org-tab-content">
             {positions.length === 0 ? (
-              <div className="empty-state" style={{ minHeight: "200px" }}>
+              <div className="empty-state org-empty-state">
                 <p>Tidak ada jabatan yang ditemukan.</p>
               </div>
             ) : (
@@ -237,7 +269,8 @@ export function OrganizationDirectoryPage() {
                     <tr>
                       <th>Kode</th>
                       <th>Nama Jabatan</th>
-                      <th>Deskripsi / Level</th>
+                      <th>Deskripsi</th>
+                      <th>Level</th>
                       <th>Status</th>
                     </tr>
                   </thead>
@@ -246,12 +279,16 @@ export function OrganizationDirectoryPage() {
                       <tr key={p.id}>
                         <td><strong>{p.code}</strong></td>
                         <td>{p.name}</td>
+                        <td>{p.description ?? "-"}</td>
+                        <td>{p.levelOrder ?? "-"}</td>
                         <td>
-                          {p.description || "-"}
-                          <small>Level: {p.levelOrder}</small>
-                        </td>
-                        <td>
-                          <span className={p.active ? "status-chip status-completed" : "status-chip status-draft"}>
+                          <span
+                            className={
+                              p.active
+                                ? "status-chip status-completed"
+                                : "status-chip status-draft"
+                            }
+                          >
                             {p.active ? "AKTIF" : "TIDAK AKTIF"}
                           </span>
                         </td>
