@@ -8,7 +8,8 @@
             "mainClass": "com.pangeranvalerensco.orchestria.api_gateway.ApiGatewayApplication",
             "projectName": "api-gateway",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote"
         },
         {
             "type": "java",
@@ -18,7 +19,8 @@
             "mainClass": "com.pangeranvalerensco.orchestria.auth_service.AuthServiceApplication",
             "projectName": "auth-service",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote"
         },
         {
             "type": "java",
@@ -28,7 +30,8 @@
             "mainClass": "com.pangeranvalerensco.orchestria.finance_service.FinanceServiceApplication",
             "projectName": "finance-service",
             "args": "",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote"
         },
         {
             "type": "java",
@@ -47,6 +50,16 @@
             "cwd": "${workspaceFolder}",
             "mainClass": "com.pangeranvalerensco.orchestria.request_service.RequestServiceApplication",
             "projectName": "request-service",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-NotificationReportServiceApplication<notification-report-service>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.pangeranvalerensco.orchestria.notification_report_service.NotificationReportServiceApplication",
+            "projectName": "notification-report-service",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
         }
