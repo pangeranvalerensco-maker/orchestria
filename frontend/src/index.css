@@ -183,6 +183,11 @@ button {
   background: #fee2e2;
 }
 
+.alert-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
 .login-footer {
   margin: 22px 0 0;
   text-align: center;
@@ -937,11 +942,6 @@ button {
   color: #334155;
   border: 1px solid #dbe3ef;
   background: white;
-}
-
-.alert-success {
-  color: #166534;
-  background: #dcfce7;
 }
 
 .approval-list {

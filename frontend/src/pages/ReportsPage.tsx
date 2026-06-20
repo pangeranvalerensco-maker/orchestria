@@ -85,7 +85,7 @@ export function ReportsPage() {
           <h2>Laporan Pengajuan Dana</h2>
           <p>Unduh seluruh data histori pengajuan dana, termasuk status approval, detail nilai nominal, divisi, dan waktu pengajuan untuk kebutuhan audit.</p>
           <div className="report-meta">
-            <span>🗄️ Sumber: Finance Service</span>
+            <span>🗄️ Sumber: Request Service</span>
           </div>
           <button 
             className="primary-button" 
