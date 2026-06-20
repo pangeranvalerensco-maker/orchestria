@@ -62,28 +62,37 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="page">
-      <div className="page-header">
-        <h1>Laporan</h1>
+    <div className="page-content">
+      <div className="report-header">
+        <span className="eyebrow">REPORTING</span>
+        <h1>Laporan Organisasi</h1>
+        <p>Pusat kontrol untuk mengunduh seluruh laporan operasional dan keuangan. Data terekspor dalam format standar untuk kemudahan rekonsiliasi.</p>
       </div>
 
-      <div className="page-content">
-        {message && (
-          <div className={`alert alert-${message.type}`} style={{ marginBottom: "20px", padding: "12px", borderRadius: "4px", backgroundColor: message.type === 'success' ? "#e6f4ea" : "#fce8e6", color: message.type === 'success' ? "#137333" : "#c5221f" }}>
-            {message.text}
-          </div>
-        )}
+      {message && (
+        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+          {message.type === 'success' ? '✓ ' : '⚠ '}
+          {message.text}
+        </div>
+      )}
 
-        <div className="card" style={{ padding: "24px", maxWidth: "400px" }}>
-          <h2 style={{ marginTop: 0, marginBottom: "16px", fontSize: "1.25rem" }}>Laporan Pengajuan Dana</h2>
-          <p style={{ marginBottom: "24px", color: "#5f6368" }}>Unduh seluruh data pengajuan dana dalam format Excel (.xlsx).</p>
+      <div className="report-cards-grid">
+        <div className="report-card">
+          <div className="report-card-header">
+            <span className="report-label">Laporan Keuangan</span>
+            <span className="report-badge">XLSX</span>
+          </div>
+          <h2>Laporan Pengajuan Dana</h2>
+          <p>Unduh seluruh data histori pengajuan dana, termasuk status approval, detail nilai nominal, divisi, dan waktu pengajuan untuk kebutuhan audit.</p>
+          <div className="report-meta">
+            <span>🗄️ Sumber: Finance Service</span>
+          </div>
           <button 
-            className="button button-primary" 
+            className="primary-button" 
             onClick={handleDownload} 
             disabled={loading}
-            style={{ width: "100%", justifyContent: "center" }}
           >
-            {loading ? "Mengunduh..." : "Unduh Excel"}
+            {loading ? "⏳ Mengunduh..." : "⬇️ Unduh Excel"}
           </button>
         </div>
       </div>
