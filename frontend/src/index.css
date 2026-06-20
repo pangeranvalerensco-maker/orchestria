@@ -1170,3 +1170,31 @@ button {
   align-items: center;
   gap: 8px;
 }
+
+/* Organization Directory Tabs */
+.tabs-nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #edf0f5;
+  padding-bottom: 12px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.tab-button:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.tab-button.active {
+  background: #2563eb;
+  color: white;
+}
