@@ -15,11 +15,30 @@ import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { OrganizationDirectoryPage } from "./pages/OrganizationDirectoryPage";
 import { ArchivePage } from "./pages/ArchivePage";
+import { PublicLayout } from "./layouts/PublicLayout";
+import { PublicHomePage } from "./pages/public/PublicHomePage";
+import { PublicAboutPage } from "./pages/public/PublicAboutPage";
+import { PublicOrganizationPage } from "./pages/public/PublicOrganizationPage";
+import { PublicActivitiesPage } from "./pages/public/PublicActivitiesPage";
+import { useAuth } from "./auth/useAuth";
+
+function NotFoundRedirect() {
+  const { token } = useAuth();
+  return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />;
+}
 
 function App() {
   return (
     <Routes>
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<PublicHomePage />} />
+        <Route path="/about" element={<PublicAboutPage />} />
+        <Route path="/public/organization" element={<PublicOrganizationPage />} />
+        <Route path="/activities" element={<PublicActivitiesPage />} />
+      </Route>
+
       <Route path="/login" element={<LoginPage />} />
+
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -64,7 +83,8 @@ function App() {
           </Route>
         </Route>
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      
+      <Route path="*" element={<NotFoundRedirect />} />
     </Routes>
   );
 }

@@ -6,6 +6,7 @@ import {
 import {
   Navigate,
   useNavigate,
+  Link,
 } from "react-router";
 
 import { ApiError } from "../api/http";
@@ -96,9 +97,9 @@ export function LoginPage() {
         >
           <div className="login-heading">
             <p className="eyebrow">SELAMAT DATANG</p>
-            <h2>Masuk ke Orchestria</h2>
+            <h2>Masuk ke Internal OS</h2>
             <p>
-              Gunakan akun organisasi yang telah terdaftar.
+              Portal ini khusus untuk anggota dan pengurus PUB yang telah terdaftar.
             </p>
           </div>
 
@@ -152,6 +153,8 @@ export function LoginPage() {
           </button>
 
           <p className="login-footer">
+            <Link to="/" className="login-public-link">&larr; Kembali ke Beranda Publik</Link>
+            <br />
             Orchestria · Universitas Nasional PASIM
           </p>
         </form>
