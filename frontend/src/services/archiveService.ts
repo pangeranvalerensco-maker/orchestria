@@ -1,4 +1,4 @@
-import { apiRequest } from "../api/http";
+import { apiRequest, API_BASE_URL, ApiError } from "../api/http";
 import type { ArchiveDocumentResponse, DocumentCategory } from "../types/archive";
 
 export function listDocuments(token: string, keyword?: string, category?: DocumentCategory) {
@@ -8,6 +8,14 @@ export function listDocuments(token: string, keyword?: string, category?: Docume
     
     return apiRequest<ArchiveDocumentResponse[]>(
         `/api/organization/archive/documents?${params.toString()}`,
+        { method: "GET" },
+        token
+    );
+}
+
+export function getDocumentCategories(token: string) {
+    return apiRequest<DocumentCategory[]>(
+        `/api/organization/archive/documents/categories`,
         { method: "GET" },
         token
     );
@@ -45,9 +53,6 @@ export function uploadDocument(
 }
 
 export async function downloadDocument(token: string, id: number, originalFileName: string) {
-    // Gunakan fetch langsung karena kita butuh Blob, bukan JSON yang di-parse oleh apiRequest
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-    
     const response = await fetch(`${API_BASE_URL}/api/organization/archive/documents/${id}/download`, {
         method: "GET",
         headers: {
@@ -56,7 +61,16 @@ export async function downloadDocument(token: string, id: number, originalFileNa
     });
 
     if (!response.ok) {
-        throw new Error(`Gagal mengunduh dokumen dengan status ${response.status}`);
+        let errorMessage = "Gagal mengunduh dokumen";
+        let errors = undefined;
+        try {
+            const errorJson = await response.json();
+            errorMessage = errorJson.message || errorMessage;
+            errors = errorJson.errors;
+        } catch {
+            // Abaikan jika tidak ada JSON
+        }
+        throw new ApiError(errorMessage, response.status, errors);
     }
 
     const blob = await response.blob();
@@ -82,7 +96,7 @@ export async function downloadDocument(token: string, id: number, originalFileNa
 }
 
 export function softDeleteDocument(token: string, id: number) {
-    return apiRequest<{success: boolean, message: string}>(
+    return apiRequest<void>(
         `/api/organization/archive/documents/${id}`,
         { method: "DELETE" },
         token

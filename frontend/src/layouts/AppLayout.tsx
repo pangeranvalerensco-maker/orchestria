@@ -47,9 +47,13 @@ export function AppLayout() {
             <div className="nav-group">
               <span className="nav-group-title">Organisasi</span>
               <NavLink to="/organization" className={navClass}>Direktori Organisasi</NavLink>
-              {hasPermission("archive.manage") && (
-                <NavLink to="/archive" className={navClass}>Arsip Dokumen</NavLink>
-              )}
+            </div>
+          )}
+
+          {hasPermission("archive.manage") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Administrasi</span>
+              <NavLink to="/archive" className={navClass}>Arsip Dokumen</NavLink>
             </div>
           )}
 

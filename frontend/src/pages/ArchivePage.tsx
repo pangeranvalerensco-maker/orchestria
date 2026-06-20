@@ -1,13 +1,33 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "../auth/useAuth";
-import { listDocuments, uploadDocument, downloadDocument, softDeleteDocument } from "../services/archiveService";
+import { 
+  listDocuments, 
+  uploadDocument, 
+  downloadDocument, 
+  softDeleteDocument,
+  getDocumentCategories
+} from "../services/archiveService";
 import type { DocumentCategory, ArchiveDocumentResponse } from "../types/archive";
 import { ApiError } from "../api/http";
+
+const categoryLabelMapper: Record<DocumentCategory | string, string> = {
+  SURAT_MASUK: "Surat Masuk",
+  SURAT_KELUAR: "Surat Keluar",
+  PROPOSAL: "Proposal",
+  LAPORAN: "Laporan",
+  NOTULEN: "Notulen",
+  DOKUMENTASI: "Dokumentasi",
+  LAINNYA: "Lainnya"
+};
+
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export function ArchivePage() {
   const { token } = useAuth();
 
   const [documents, setDocuments] = useState<ArchiveDocumentResponse[]>([]);
+  const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +45,22 @@ export function ArchivePage() {
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
   const categorySelectRef = useRef<HTMLSelectElement>(null);
 
-  const fetchDocuments = async () => {
+  const fetchCategories = async () => {
     if (!token) return;
+    try {
+      const data = await getDocumentCategories(token);
+      setCategories(data.data ?? []);
+    } catch {
+      // Abaikan error saat mengambil kategori, biarkan list dokumen yang menampilkan pesan error utama
+    }
+  };
+
+  const fetchDocuments = async () => {
+    if (!token) {
+      setIsLoading(false);
+      setError("Sesi tidak valid.");
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
@@ -50,14 +84,54 @@ export function ArchivePage() {
   };
 
   useEffect(() => {
+    if (token) {
+      fetchCategories();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  useEffect(() => {
     fetchDocuments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, categoryFilter]);
 
-  // Handle Search dengan debounce sederhana (submit manual atau tekan enter)
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    fetchDocuments();
+    await fetchDocuments();
+  };
+
+  const handleResetFilter = async () => {
+    setSearchQuery("");
+    setCategoryFilter("ALL");
+    // Karena setState bersifat asinkron, pemanggilan fetchDocuments akan ditangani
+    // oleh useEffect yang bereaksi terhadap perubahan categoryFilter jika categoryFilter berubah.
+    // Jika hanya search query yang berubah, useEffect tidak akan jalan.
+    // Solusi terbaik: kita setState, dan setelah dirender useEffect menangkapnya.
+    // Jika tidak ada perubahan filter (sudah "ALL" dan query kosong), fetchDocuments dipanggil langsung.
+    if (categoryFilter === "ALL") {
+      // Kita panggil fetch langsung dengan nilai baru karena useEffect tidak akan ter-trigger
+      try {
+        setIsLoading(true);
+        const res = await listDocuments(token!, undefined, undefined);
+        setDocuments(res.data ?? []);
+      } catch (err) {
+        // error handling handled in normal fetch
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return "Ukuran file melebihi 10 MB.";
+    }
+    const fileName = file.name.toLowerCase();
+    const isExtensionValid = ALLOWED_EXTENSIONS.some(ext => fileName.endsWith(ext));
+    if (!isExtensionValid) {
+      return "Format file tidak didukung. Harap gunakan PDF, DOCX, XLSX, PNG, atau JPG/JPEG.";
+    }
+    return null;
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -74,6 +148,12 @@ export function ArchivePage() {
       return;
     }
 
+    const validationError = validateFile(file);
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
+
     setIsUploading(true);
     setUploadError(null);
 
@@ -84,13 +164,18 @@ export function ArchivePage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (titleInputRef.current) titleInputRef.current.value = "";
       if (descriptionInputRef.current) descriptionInputRef.current.value = "";
-      if (categorySelectRef.current) categorySelectRef.current.value = "SURAT_MASUK";
+      if (categorySelectRef.current && categories.length > 0) {
+        categorySelectRef.current.value = categories[0];
+      }
       
-      // Refresh list
-      fetchDocuments();
+      await fetchDocuments();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        setUploadError(err.message || "Gagal mengunggah dokumen.");
+        if (err.status === 401) setUploadError("Sesi tidak valid.");
+        else if (err.status === 403) setUploadError("Anda tidak memiliki akses.");
+        else if (err.status === 413) setUploadError("Ukuran file melebihi 10 MB.");
+        else if (err.status === 415) setUploadError("Format file tidak didukung.");
+        else setUploadError(err.message || "Gagal mengunggah dokumen.");
       } else {
         setUploadError("Terjadi kesalahan tak terduga saat mengunggah.");
       }
@@ -103,8 +188,12 @@ export function ArchivePage() {
     if (!token) return;
     try {
       await downloadDocument(token, id, fileName);
-    } catch (err) {
-      alert("Gagal mengunduh dokumen.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        alert(`Gagal mengunduh dokumen: ${err.message}`);
+      } else {
+        alert("Gagal mengunduh dokumen karena kesalahan sistem.");
+      }
     }
   };
 
@@ -114,9 +203,13 @@ export function ArchivePage() {
 
     try {
       await softDeleteDocument(token, id);
-      fetchDocuments(); // Refresh
-    } catch (err) {
-      alert("Gagal menghapus dokumen.");
+      await fetchDocuments();
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        alert(`Gagal menghapus dokumen: ${err.message}`);
+      } else {
+        alert("Gagal menghapus dokumen karena kesalahan sistem.");
+      }
     }
   };
 
@@ -139,6 +232,16 @@ export function ArchivePage() {
     });
   }
 
+  const getCategoryLabel = (categoryValue: string) => {
+    return categoryLabelMapper[categoryValue] || categoryValue;
+  };
+
+  // Hitung kategori terpakai
+  const usedCategoriesCount = useMemo(() => {
+    const uniqueCategories = new Set(documents.map(d => d.category));
+    return uniqueCategories.size;
+  }, [documents]);
+
   if (error && !documents.length) {
     return (
       <div className="page-content">
@@ -154,12 +257,23 @@ export function ArchivePage() {
   return (
     <div className="page-content archive-page">
       <div className="page-heading archive-page-heading">
-        <p className="eyebrow">ORGANIZATION</p>
+        <p className="eyebrow">ADMINISTRATION</p>
         <h1>Arsip Dokumen</h1>
-        <p>Kelola dan simpan dokumen penting organisasi dengan aman.</p>
+        <p>Kelola dan simpan dokumen penting administrasi organisasi secara terpusat.</p>
       </div>
 
-      <div className="archive-layout-grid">
+      <div className="summary-grid">
+        <div className="summary-card">
+          <span>Total Dokumen</span>
+          <strong>{documents.length}</strong>
+        </div>
+        <div className="summary-card">
+          <span>Kategori Terpakai</span>
+          <strong>{usedCategoriesCount}</strong>
+        </div>
+      </div>
+
+      <div className="archive-layout-grid" style={{ marginTop: '24px' }}>
         <div className="archive-main-column">
           <div className="content-card request-list-card archive-list-card">
             <div className="archive-filters">
@@ -178,18 +292,29 @@ export function ArchivePage() {
                 <select 
                   className="form-control" 
                   value={categoryFilter} 
-                  onChange={(e) => setCategoryFilter(e.target.value as any)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "ALL") {
+                      setCategoryFilter("ALL");
+                    } else {
+                      setCategoryFilter(val as DocumentCategory);
+                    }
+                  }}
                 >
                   <option value="ALL">Semua Kategori</option>
-                  <option value="SURAT_MASUK">Surat Masuk</option>
-                  <option value="SURAT_KELUAR">Surat Keluar</option>
-                  <option value="PROPOSAL">Proposal</option>
-                  <option value="LPJ">LPJ</option>
-                  <option value="SK">SK</option>
-                  <option value="SERTIFIKAT">Sertifikat</option>
-                  <option value="LAINNYA">Lainnya</option>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                  ))}
                 </select>
               </div>
+
+              <button 
+                type="button" 
+                className="button button-outline" 
+                onClick={handleResetFilter}
+              >
+                Reset Filter
+              </button>
             </div>
 
             {isLoading && documents.length === 0 ? (
@@ -224,7 +349,7 @@ export function ArchivePage() {
                           </div>
                         </td>
                         <td>
-                          <span className="archive-category-badge">{doc.category.replace('_', ' ')}</span>
+                          <span className="archive-category-badge">{getCategoryLabel(doc.category)}</span>
                         </td>
                         <td>{formatBytes(doc.sizeBytes)}</td>
                         <td>
@@ -236,6 +361,7 @@ export function ArchivePage() {
                         <td className="action-col">
                           <div className="archive-actions">
                             <button 
+                              type="button"
                               className="button button-outline archive-action-btn"
                               onClick={() => handleDownload(doc.id, doc.originalFileName)}
                               title="Unduh Dokumen"
@@ -243,6 +369,7 @@ export function ArchivePage() {
                               Unduh
                             </button>
                             <button 
+                              type="button"
                               className="button button-danger archive-action-btn"
                               onClick={() => handleDelete(doc.id)}
                               title="Hapus Dokumen"
@@ -263,7 +390,7 @@ export function ArchivePage() {
         <div className="archive-sidebar">
           <div className="content-card archive-upload-card">
             <h3>Unggah Dokumen Baru</h3>
-            <p className="upload-subtitle">Format didukung: PDF, PNG, JPG/JPEG.</p>
+            <p className="upload-subtitle">Maks 10MB (.pdf, .docx, .xlsx, .png, .jpg).</p>
             
             {uploadError && <div className="archive-error-alert">{uploadError}</div>}
             
@@ -275,23 +402,25 @@ export function ArchivePage() {
               
               <div className="form-group">
                 <label>Kategori <span className="text-danger">*</span></label>
-                <select ref={categorySelectRef} className="form-control" required defaultValue="SURAT_MASUK">
-                  <option value="SURAT_MASUK">Surat Masuk</option>
-                  <option value="SURAT_KELUAR">Surat Keluar</option>
-                  <option value="PROPOSAL">Proposal</option>
-                  <option value="LPJ">LPJ</option>
-                  <option value="SK">SK</option>
-                  <option value="SERTIFIKAT">Sertifikat</option>
-                  <option value="LAINNYA">Lainnya</option>
+                <select ref={categorySelectRef} className="form-control" required>
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat}>{getCategoryLabel(cat)}</option>
+                  ))}
                 </select>
               </div>
 
               <div className="form-group">
                 <label>File <span className="text-danger">*</span></label>
                 <div className="archive-file-input-wrapper">
-                  <input ref={fileInputRef} type="file" className="form-control file-input" required accept=".pdf,image/png,image/jpeg,image/jpg" />
+                  <input 
+                    ref={fileInputRef} 
+                    type="file" 
+                    className="form-control file-input" 
+                    required 
+                    accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" 
+                  />
                 </div>
-                <small className="form-help">Maksimal 10 MB.</small>
+                <small className="form-help">Pilih dokumen untuk diunggah.</small>
               </div>
               
               <div className="form-group">
@@ -302,7 +431,7 @@ export function ArchivePage() {
               <button 
                 type="submit" 
                 className="button button-primary w-100" 
-                disabled={isUploading}
+                disabled={isUploading || categories.length === 0}
               >
                 {isUploading ? "Mengunggah..." : "Unggah Dokumen"}
               </button>
