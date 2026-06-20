@@ -13,6 +13,7 @@ import { ApprovalPage } from "./pages/ApprovalPage";
 import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
 import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { OrganizationDirectoryPage } from "./pages/OrganizationDirectoryPage";
 
 function App() {
   return (
@@ -51,6 +52,10 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["request.read.all"]} />}>
             <Route path="/reports" element={<ReportsPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["organization.read"]} />}>
+            <Route path="/organization" element={<OrganizationDirectoryPage />} />
           </Route>
         </Route>
       </Route>

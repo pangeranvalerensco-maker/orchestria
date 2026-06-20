@@ -43,6 +43,13 @@ export function AppLayout() {
             {canVerifySettlement && <NavLink to="/finance/settlements" className={navClass}>Verifikasi Laporan</NavLink>}
           </div>
 
+          {hasPermission("organization.read") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Organisasi</span>
+              <NavLink to="/organization" className={navClass}>Direktori Organisasi</NavLink>
+            </div>
+          )}
+
           {hasPermission("request.read.all") && (
             <div className="nav-group">
               <span className="nav-group-title">Laporan</span>

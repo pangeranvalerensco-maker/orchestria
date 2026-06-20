@@ -1170,3 +1170,89 @@ button {
   align-items: center;
   gap: 8px;
 }
+
+/* Organization Directory */
+.org-loading-container {
+  min-height: 50vh;
+  display: grid;
+  place-items: center;
+}
+
+.org-error-icon {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.org-page-heading {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.org-page-heading .eyebrow {
+  margin-bottom: 8px;
+}
+
+.org-summary-grid {
+  margin-bottom: 28px;
+}
+
+.org-tabs-header {
+  padding: 22px 22px 0;
+}
+
+.org-tab-content {
+  padding: 0 22px 22px;
+}
+
+.org-search-wrapper {
+  margin-bottom: 16px;
+  max-width: 300px;
+}
+
+.org-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #dbe3ef;
+  outline: none;
+  font: inherit;
+  color: #172033;
+  background: white;
+}
+
+.org-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.org-empty-state {
+  min-height: 200px;
+}
+
+/* Organization Directory Tabs */
+.tabs-nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #edf0f5;
+  padding-bottom: 12px;
+}
+
+.tab-button {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  border-radius: 8px;
+}
+
+.tab-button:hover {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.tab-button.active {
+  background: #2563eb;
+  color: white;
+}
