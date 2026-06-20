@@ -29,9 +29,20 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
     @Override
     @Transactional(readOnly = true)
     public List<ArchiveDocumentResponse> listDocuments(String keyword, DocumentCategory category) {
-        String kw = (keyword != null && keyword.isBlank()) ? null : keyword;
-        return repository.findActiveDocuments(kw, category)
-                .stream()
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        List<ArchiveDocument> documents;
+
+        if (normalizedKeyword != null && category != null) {
+            documents = repository.searchActiveDocumentsByCategory(normalizedKeyword, category);
+        } else if (normalizedKeyword != null) {
+            documents = repository.searchActiveDocuments(normalizedKeyword);
+        } else if (category != null) {
+            documents = repository.findByDeletedFalseAndCategoryOrderByUploadedAtDesc(category);
+        } else {
+            documents = repository.findByDeletedFalseOrderByUploadedAtDesc();
+        }
+
+        return documents.stream()
                 .map(ArchiveDocumentResponse::from)
                 .toList();
     }
