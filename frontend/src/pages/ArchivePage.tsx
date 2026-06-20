@@ -257,9 +257,11 @@ export function ArchivePage() {
   return (
     <div className="page-content archive-page">
       <div className="page-heading archive-page-heading">
-        <p className="eyebrow">ADMINISTRATION</p>
-        <h1>Arsip Dokumen</h1>
-        <p>Kelola dan simpan dokumen penting administrasi organisasi secara terpusat.</p>
+        <div>
+          <p className="eyebrow">ADMINISTRATION</p>
+          <h1>Arsip Dokumen</h1>
+          <p>Kelola dan simpan dokumen penting administrasi organisasi secara terpusat.</p>
+        </div>
       </div>
 
       <div className="summary-grid">
@@ -273,7 +275,7 @@ export function ArchivePage() {
         </div>
       </div>
 
-      <div className="archive-layout-grid" style={{ marginTop: '24px' }}>
+      <div className="archive-layout-grid archive-layout-spacing">
         <div className="archive-main-column">
           <div className="content-card request-list-card archive-list-card">
             <div className="archive-filters">

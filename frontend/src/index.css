@@ -381,6 +381,8 @@ button {
 
 .page-content {
   padding: 28px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .welcome-card {
@@ -592,6 +594,7 @@ button {
 
 .request-table {
   width: 100%;
+  min-width: 780px;
   border-collapse: collapse;
 }
 
@@ -1267,20 +1270,55 @@ button {
 
 .archive-layout-grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   gap: 24px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
 }
 
-@media (max-width: 992px) {
+.archive-main-column {
+  min-width: 0;
+}
+
+.archive-sidebar {
+  min-width: 0;
+}
+
+.archive-layout-spacing {
+  margin-top: 24px;
+}
+
+@media (max-width: 1100px) {
   .archive-layout-grid {
     grid-template-columns: 1fr;
+  }
+  .archive-upload-card {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .archive-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .archive-search-form {
+    flex-direction: column;
+  }
+  .archive-category-filter {
+    width: 100%;
+  }
+  .archive-filters .button {
+    width: 100%;
   }
 }
 
 .archive-list-card {
   padding: 0;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .archive-filters {
@@ -1307,6 +1345,8 @@ button {
   font-size: 14px;
   outline: none;
   transition: all 0.2s;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .archive-search-input:focus {
@@ -1329,6 +1369,8 @@ button {
 }
 
 .archive-table-wrapper {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
 }
 
@@ -1417,6 +1459,8 @@ button {
 .archive-upload-card {
   position: sticky;
   top: 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .archive-upload-card h3 {
@@ -1448,6 +1492,8 @@ button {
 
 .form-control {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
@@ -1469,6 +1515,9 @@ textarea.form-control {
 
 .archive-file-input-wrapper {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .file-input {
@@ -1502,6 +1551,8 @@ textarea.form-control {
   font-size: 13px;
   margin-bottom: 16px;
   border: 1px solid #fecaca;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .button-primary {
@@ -1512,6 +1563,8 @@ textarea.form-control {
   border-radius: 8px;
   font-weight: 600;
   transition: background 0.2s;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .button-primary:hover {
