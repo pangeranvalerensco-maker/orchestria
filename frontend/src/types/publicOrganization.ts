@@ -8,7 +8,11 @@ export interface PublicPeriodResponse {
     name: string;
     startDate: string;
     endDate: string | null;
+    currentPeriod: boolean;
+    publicVisible: boolean;
     active: boolean;
+    createdAt: string;
+    updatedAt: string | null;
 }
 
 export interface PublicMemberAssignmentResponse {

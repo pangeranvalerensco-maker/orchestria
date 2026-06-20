@@ -30,11 +30,12 @@ export function PublicHomePage() {
     if (isLoadingStats) return { members: "...", divisions: "...", positions: "..." };
     if (!structure.length) return { members: "—", divisions: "—", positions: "—" };
 
+    const uniqueMembers = new Set(structure.map(s => s.memberId));
     const uniqueDivisions = new Set(structure.map(s => s.divisionId));
     const uniquePositions = new Set(structure.map(s => s.positionId));
 
     return {
-      members: structure.length.toString(),
+      members: uniqueMembers.size.toString(),
       divisions: uniqueDivisions.size.toString(),
       positions: uniquePositions.size.toString()
     };
@@ -144,7 +145,7 @@ export function PublicHomePage() {
           ) : topStructure.length > 0 ? (
             <div className="public-grid-4">
               {topStructure.map(member => (
-                <div key={member.memberId} className="public-profile-card">
+                <div key={`${member.memberId}-${member.positionId}-${member.divisionId}`} className="public-profile-card">
                   <div className="profile-avatar">
                     {member.profilePhotoUrl ? (
                       <img src={member.profilePhotoUrl} alt={member.memberName} />
@@ -165,7 +166,7 @@ export function PublicHomePage() {
           )}
           
           <div className="public-center-action">
-            <Link to="/public/organization" className="public-btn public-btn-outline">
+            <Link to="/public/organization" className="public-btn public-btn-secondary">
               Lihat Struktur Lengkap
             </Link>
           </div>
@@ -183,14 +184,14 @@ export function PublicHomePage() {
             {staticActivities.slice(0, 3).map(act => (
               <div key={act.id} className="public-card">
                 <span className="public-badge">{act.category}</span>
-                <h3 style={{ marginTop: "12px", marginBottom: "8px" }}>{act.title}</h3>
+                <h3 className="public-card-title-spacing">{act.title}</h3>
                 <p>{act.description}</p>
                 <small className="public-meta">{act.date} • {act.status}</small>
               </div>
             ))}
           </div>
           <div className="public-center-action">
-            <Link to="/activities" className="public-btn public-btn-outline">
+            <Link to="/activities" className="public-btn public-btn-secondary">
               Lihat Semua Kegiatan
             </Link>
           </div>
@@ -224,7 +225,7 @@ export function PublicHomePage() {
         <div className="public-container">
           <h2>Siap Menjadi Bagian dari PUB?</h2>
           <p>Jika Anda adalah anggota yang terdaftar, silakan masuk ke portal internal.</p>
-          <div className="public-hero-cta" style={{ justifyContent: "center" }}>
+          <div className="public-hero-cta public-cta-actions-center">
             <Link to="/public/organization" className="public-btn public-btn-outline-light">Lihat Struktur</Link>
             <Link to="/login" className="public-btn public-btn-light">Masuk Anggota</Link>
           </div>

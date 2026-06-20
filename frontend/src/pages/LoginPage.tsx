@@ -153,7 +153,7 @@ export function LoginPage() {
           </button>
 
           <p className="login-footer">
-            <Link to="/" style={{ color: "inherit", textDecoration: "underline", display: "inline-block", marginBottom: "8px" }}>&larr; Kembali ke Beranda Publik</Link>
+            <Link to="/" className="login-public-link">&larr; Kembali ke Beranda Publik</Link>
             <br />
             Orchestria · Universitas Nasional PASIM
           </p>

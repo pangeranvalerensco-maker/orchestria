@@ -86,7 +86,7 @@ export function PublicAboutPage() {
           </ul>
         </section>
 
-        <div className="public-center-action" style={{ marginTop: "40px" }}>
+        <div className="public-center-action public-center-action-spacing">
           <Link to="/login" className="public-btn public-btn-primary">Masuk ke Internal OS</Link>
         </div>
       </div>

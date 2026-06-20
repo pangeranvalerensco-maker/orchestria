@@ -25,14 +25,17 @@ export function PublicLayout() {
           </Link>
 
           <button 
+            type="button"
             className="public-mobile-toggle" 
             onClick={toggleMenu}
             aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="public-mobile-nav"
           >
             {isMobileMenuOpen ? "✕" : "☰"}
           </button>
 
-          <nav className={`public-nav ${isMobileMenuOpen ? "open" : ""}`}>
+          <nav id="public-mobile-nav" className={`public-nav ${isMobileMenuOpen ? "open" : ""}`}>
             <NavLink to="/" className="public-nav-link" onClick={closeMenu} end>Beranda</NavLink>
             <NavLink to="/about" className="public-nav-link" onClick={closeMenu}>Tentang PUB</NavLink>
             <NavLink to="/public/organization" className="public-nav-link" onClick={closeMenu}>Struktur Organisasi</NavLink>
@@ -52,7 +55,7 @@ export function PublicLayout() {
       <footer className="public-footer">
         <div className="public-footer-container">
           <div className="public-footer-col">
-            <div className="public-brand-logo" style={{ marginBottom: "16px" }}>PUB</div>
+            <div className="public-brand-logo public-footer-logo">PUB</div>
             <p>
               Program Unggulan Bersama (PUB) merupakan program pembinaan dan organisasi mahasiswa 
               di bawah naungan Universitas Nasional PASIM.

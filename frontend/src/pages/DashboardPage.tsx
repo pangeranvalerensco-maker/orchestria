@@ -15,6 +15,7 @@ export function DashboardPage() {
   const [readyDisburseCount, setReadyDisburseCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
 
   // Permissions checks
   const canReadOwnRequest = hasPermission("request.read.own") || hasPermission("request.create");
@@ -27,8 +28,12 @@ export function DashboardPage() {
 
   useEffect(() => {
     async function loadDashboardData() {
-      if (!user || !token) return;
+      if (!user || !token) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
+      setDashboardWarning(null);
 
       const promises: Promise<void>[] = [];
 
@@ -39,7 +44,7 @@ export function DashboardPage() {
               setMyRequests(res.data.content);
               setMyRequestsCount(res.data.totalElements);
             }
-          }).catch(() => {})
+          })
         );
       }
 
@@ -47,7 +52,7 @@ export function DashboardPage() {
         promises.push(
           getPendingApprovals(token).then((res) => {
             if (res.data) setPendingApprovalsCount(res.data.length);
-          }).catch(() => {})
+          })
         );
       }
 
@@ -55,16 +60,26 @@ export function DashboardPage() {
         promises.push(
           getReadyForDisbursement(token).then((res) => {
             if (res.data) setReadyDisburseCount(res.data.content.length);
-          }).catch(() => {})
+          })
         );
       }
 
-      await Promise.all(promises);
+      const results = await Promise.allSettled(promises);
+      const hasError = results.some(r => r.status === "rejected");
+      if (hasError) {
+        setDashboardWarning("Sebagian data dashboard belum dapat dimuat.");
+      }
+
       setIsLoading(false);
     }
 
     loadDashboardData();
-  }, [user, canReadOwnRequest, canApprove, canDisburse]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse]);
+
+  const renderCount = (count: number | null) => {
+    if (isLoading) return "...";
+    return count !== null ? count : "—";
+  };
 
   const todayDate = new Date().toLocaleDateString("id-ID", {
     weekday: "long",
@@ -100,12 +115,20 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {dashboardWarning && (
+        <div style={{ padding: "0 32px", marginTop: "24px" }}>
+          <div className="public-alert-error" style={{ padding: "12px 16px" }}>
+            ⚠️ {dashboardWarning}
+          </div>
+        </div>
+      )}
+
       {/* SUMMARY CARDS */}
       <section className="dashboard-summary-grid">
         {canReadOwnRequest && (
           <div className="dashboard-card stat-card">
             <span className="stat-label">Pengajuan Saya</span>
-            <strong className="stat-value">{myRequestsCount !== null ? myRequestsCount : "..."}</strong>
+            <strong className="stat-value">{renderCount(myRequestsCount)}</strong>
             <Link to="/requests" className="stat-link">Lihat semua &rarr;</Link>
           </div>
         )}
@@ -113,7 +136,7 @@ export function DashboardPage() {
         {canApprove && (
           <div className="dashboard-card stat-card stat-warning">
             <span className="stat-label">Approval Menunggu</span>
-            <strong className="stat-value">{pendingApprovalsCount !== null ? pendingApprovalsCount : "..."}</strong>
+            <strong className="stat-value">{renderCount(pendingApprovalsCount)}</strong>
             <Link to="/approvals" className="stat-link">Proses sekarang &rarr;</Link>
           </div>
         )}
@@ -121,7 +144,7 @@ export function DashboardPage() {
         {canDisburse && (
           <div className="dashboard-card stat-card stat-success">
             <span className="stat-label">Siap Cair</span>
-            <strong className="stat-value">{readyDisburseCount !== null ? readyDisburseCount : "..."}</strong>
+            <strong className="stat-value">{renderCount(readyDisburseCount)}</strong>
             <Link to="/finance/disbursements" className="stat-link">Menu Pencairan &rarr;</Link>
           </div>
         )}

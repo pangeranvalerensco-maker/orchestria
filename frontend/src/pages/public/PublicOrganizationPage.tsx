@@ -121,7 +121,7 @@ export function PublicOrganizationPage() {
                     <h3 className="group-title">{divName}</h3>
                     <div className="public-grid-4">
                       {members.map((member) => (
-                        <div key={member.memberId} className="public-profile-card">
+                        <div key={`${member.memberId}-${member.positionId}-${member.divisionId}`} className="public-profile-card">
                           <div className="profile-avatar">
                             {member.profilePhotoUrl ? (
                               <img src={member.profilePhotoUrl} alt={member.memberName} />

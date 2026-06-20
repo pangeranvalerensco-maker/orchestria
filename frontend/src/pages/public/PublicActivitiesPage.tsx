@@ -19,13 +19,14 @@ export function PublicActivitiesPage() {
       </div>
 
       <div className="public-container public-content-wrapper">
-        <div className="public-alert-info" style={{ marginBottom: "24px" }}>
-          <strong>Catatan Demo:</strong> Data kegiatan di bawah ini adalah konten *static seed* untuk demo portal publik Orchestria.
+        <div className="public-alert-info public-demo-note-spacing">
+          <strong>Catatan Demo:</strong> Data kegiatan berikut merupakan konten demo sementara.
         </div>
 
-        <div className="public-filters" style={{ marginBottom: "32px" }}>
+        <div className="public-filters public-filter-spacing">
           <div className="public-category-tabs">
             <button 
+              type="button"
               className={`public-tab ${selectedCategory === "ALL" ? "active" : ""}`}
               onClick={() => setSelectedCategory("ALL")}
             >
@@ -33,6 +34,7 @@ export function PublicActivitiesPage() {
             </button>
             {activityCategories.map(cat => (
               <button 
+                type="button"
                 key={cat}
                 className={`public-tab ${selectedCategory === cat ? "active" : ""}`}
                 onClick={() => setSelectedCategory(cat)}

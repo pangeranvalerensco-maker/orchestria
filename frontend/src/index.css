@@ -1770,6 +1770,18 @@ textarea.form-control {
   border-color: white;
 }
 
+.public-btn-secondary {
+  background-color: white;
+  color: #1e3a8a;
+  border: 1px solid #cbd5e1;
+}
+
+.public-btn-secondary:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #172554;
+}
+
 .public-btn-light {
   background-color: white;
   color: #101a35;
@@ -2369,6 +2381,39 @@ textarea.form-control {
   .public-hero h1 {
     font-size: 36px;
   }
+}
+
+/* CLEANUP UTILITIES */
+.public-footer-logo {
+  margin-bottom: 16px;
+}
+
+.public-card-title-spacing {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.public-center-action-spacing {
+  margin-top: 40px;
+}
+
+.public-demo-note-spacing {
+  margin-bottom: 24px;
+}
+
+.public-filter-spacing {
+  margin-bottom: 32px;
+}
+
+.public-cta-actions-center {
+  justify-content: center;
+}
+
+.login-public-link {
+  color: inherit;
+  text-decoration: underline;
+  display: inline-block;
+  margin-bottom: 8px;
 }
 
 /* =========================================================
