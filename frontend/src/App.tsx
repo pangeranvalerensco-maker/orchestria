@@ -14,6 +14,7 @@ import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
 import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { OrganizationDirectoryPage } from "./pages/OrganizationDirectoryPage";
+import { ArchivePage } from "./pages/ArchivePage";
 
 function App() {
   return (
@@ -56,6 +57,10 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["organization.read"]} />}>
             <Route path="/organization" element={<OrganizationDirectoryPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["archive.manage"]} />}>
+            <Route path="/archive" element={<ArchivePage />} />
           </Route>
         </Route>
       </Route>

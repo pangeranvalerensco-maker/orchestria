@@ -50,6 +50,13 @@ export function AppLayout() {
             </div>
           )}
 
+          {hasPermission("archive.manage") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Administrasi</span>
+              <NavLink to="/archive" className={navClass}>Arsip Dokumen</NavLink>
+            </div>
+          )}
+
           {hasPermission("request.read.all") && (
             <div className="nav-group">
               <span className="nav-group-title">Laporan</span>

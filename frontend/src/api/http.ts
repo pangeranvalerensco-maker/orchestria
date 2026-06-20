@@ -1,6 +1,6 @@
 import type { ApiResponse } from "../types/auth";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 interface BackendError {
@@ -33,7 +33,7 @@ export async function apiRequest<T>(
 
   headers.set("Accept", "application/json");
 
-  if (options.body) {
+  if (options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
