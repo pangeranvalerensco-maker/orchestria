@@ -116,8 +116,8 @@ export function DashboardPage() {
       </section>
 
       {dashboardWarning && (
-        <div style={{ padding: "0 32px", marginTop: "24px" }}>
-          <div className="public-alert-error" style={{ padding: "12px 16px" }}>
+        <div className="dashboard-warning-wrapper">
+          <div className="dashboard-warning" role="status">
             ⚠️ {dashboardWarning}
           </div>
         </div>
