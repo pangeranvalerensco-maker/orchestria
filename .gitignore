@@ -2,3 +2,6 @@ target/
 application-local.properties
 *.env
 .env
+
+# Archive file storage — jangan commit file upload
+storage/
