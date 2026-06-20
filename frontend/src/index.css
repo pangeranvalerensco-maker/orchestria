@@ -183,6 +183,11 @@ button {
   background: #fee2e2;
 }
 
+.alert-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
 .login-footer {
   margin: 22px 0 0;
   text-align: center;
@@ -257,15 +262,42 @@ button {
 }
 
 .sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nav-group {
   display: grid;
-  gap: 7px;
+  gap: 4px;
+}
+
+.nav-group-title {
+  display: block;
+  padding: 0 13px 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
 }
 
 .nav-item {
+  display: block;
   padding: 11px 13px;
   color: #cbd5e1;
   border-radius: 10px;
   text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.nav-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .nav-item.active {
@@ -274,8 +306,7 @@ button {
 }
 
 .nav-item.disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+  display: none;
 }
 
 .sidebar-user {
@@ -913,11 +944,6 @@ button {
   background: white;
 }
 
-.alert-success {
-  color: #166534;
-  background: #dcfce7;
-}
-
 .approval-list {
   display: grid;
   gap: 20px;
@@ -1051,4 +1077,96 @@ button {
   .approval-actions {
     flex-direction: column-reverse;
   }
+}
+
+/* Reports Page Styles */
+.report-header {
+  margin-bottom: 32px;
+}
+
+.report-header .eyebrow {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.report-header h1 {
+  margin: 0 0 8px 0;
+  font-size: 2rem;
+}
+
+.report-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 1.1rem;
+  max-width: 600px;
+}
+
+.report-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.report-card {
+  padding: 28px;
+  border: 1px solid #e4e9f1;
+  border-radius: 16px;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.report-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.report-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-badge {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.report-card h2 {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
+}
+
+.report-card p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.report-meta {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.report-card button {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }

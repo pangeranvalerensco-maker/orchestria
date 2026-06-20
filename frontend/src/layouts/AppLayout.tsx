@@ -30,11 +30,25 @@ export function AppLayout() {
         </div>
 
         <nav className="sidebar-nav">
-          <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>
-          <NavLink to="/requests" className={navClass}>Pengajuan Dana</NavLink>
-          {canApprove ? <NavLink to="/approvals" className={navClass}>Approval</NavLink> : <span className="nav-item disabled">Approval</span>}
-          {canDisburse ? <NavLink to="/finance/disbursements" className={navClass}>Pencairan</NavLink> : <span className="nav-item disabled">Pencairan</span>}
-          {canVerifySettlement ? <NavLink to="/finance/settlements" className={navClass}>Verifikasi Laporan</NavLink> : <span className="nav-item disabled">Verifikasi Laporan</span>}
+          <div className="nav-group">
+            <span className="nav-group-title">Dashboard</span>
+            <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>
+          </div>
+
+          <div className="nav-group">
+            <span className="nav-group-title">Keuangan</span>
+            <NavLink to="/requests" className={navClass}>Pengajuan Dana</NavLink>
+            {canApprove && <NavLink to="/approvals" className={navClass}>Approval</NavLink>}
+            {canDisburse && <NavLink to="/finance/disbursements" className={navClass}>Pencairan</NavLink>}
+            {canVerifySettlement && <NavLink to="/finance/settlements" className={navClass}>Verifikasi Laporan</NavLink>}
+          </div>
+
+          {hasPermission("request.read.all") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Laporan</span>
+              <NavLink to="/reports" className={navClass}>Laporan Pengajuan</NavLink>
+            </div>
+          )}
         </nav>
 
         <div className="sidebar-user">
