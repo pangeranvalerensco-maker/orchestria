@@ -3,6 +3,7 @@ package com.pangeranvalerensco.orchestria.organization_service.service.impl;
 import com.pangeranvalerensco.orchestria.organization_service.entity.ArchiveDocument;
 import com.pangeranvalerensco.orchestria.organization_service.entity.enums.DocumentCategory;
 import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveDocumentNotFoundException;
+import com.pangeranvalerensco.orchestria.organization_service.exception.BadRequestException;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ArchiveDocumentResponse;
 import com.pangeranvalerensco.orchestria.organization_service.repository.ArchiveDocumentRepository;
 import com.pangeranvalerensco.orchestria.organization_service.service.ArchiveDocumentService;
@@ -53,7 +54,40 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
             String uploaderEmail,
             String uploaderName
     ) {
+        if (title == null || title.isBlank()) {
+            throw new BadRequestException("Title tidak boleh kosong");
+        }
+        title = title.trim();
+        description = (description != null && description.isBlank()) ? null : description;
+        uploaderName = (uploaderName != null && uploaderName.isBlank()) ? null : uploaderName;
 
+        ArchiveStorageService.StorageResult result = storageService.store(file);
+
+        ArchiveDocument doc = ArchiveDocument.builder()
+                .title(title)
+                .description(description)
+                .category(category)
+                .originalFileName(file.getOriginalFilename())
+                .storedFileName(result.storedFileName())
+                .contentType(file.getContentType())
+                .sizeBytes(file.getSize())
+                .storageReference(result.storageReference())
+                .uploadedByEmail(uploaderEmail)
+                .uploadedByName(uploaderName)
+                .uploadedAt(LocalDateTime.now())
+                .deleted(false)
+                .build();
+
+        try {
+            ArchiveDocument saved = repository.saveAndFlush(doc);
+            log.info("Archive document uploaded: id={}, title={}, by={}, category={}", 
+                    saved.getId(), saved.getTitle(), uploaderEmail, category);
+            return ArchiveDocumentResponse.from(saved);
+        } catch (Exception e) {
+            log.warn("Gagal menyimpan metadata ke database, melakukan cleanup file: {}", result.storageReference());
+            storageService.delete(result.storageReference());
+            throw e;
+        }
     }
 
     @Override

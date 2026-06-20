@@ -1,4 +1,4 @@
-package com.pangeranvalerensco.orchestria.organization_service.archive.entity;
+package com.pangeranvalerensco.orchestria.organization_service.entity.enums;
 
 public enum DocumentCategory {
     SURAT_MASUK,

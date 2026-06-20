@@ -1,4 +1,6 @@
-package com.pangeranvalerensco.orchestria.organization_service.service;
+package com.pangeranvalerensco.orchestria.organization_service.service.impl;
+
+import com.pangeranvalerensco.orchestria.organization_service.service.ArchiveStorageService;
 
 import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveFileTooLargeException;
 import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveInvalidFileException;
@@ -85,6 +87,18 @@ public class LocalArchiveStorageService implements ArchiveStorageService {
             throw new ArchiveUnsupportedMediaTypeException("." + sanitizedExt);
         }
 
+        // 4b. Validasi kecocokan extension dan content type
+        boolean mismatch = false;
+        if (sanitizedExt.equals("pdf") && !contentType.equals("application/pdf")) mismatch = true;
+        if (sanitizedExt.equals("docx") && !contentType.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) mismatch = true;
+        if (sanitizedExt.equals("xlsx") && !contentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) mismatch = true;
+        if (sanitizedExt.equals("png") && !contentType.equals("image/png")) mismatch = true;
+        if ((sanitizedExt.equals("jpg") || sanitizedExt.equals("jpeg")) && !contentType.equals("image/jpeg")) mismatch = true;
+
+        if (mismatch) {
+            throw new ArchiveUnsupportedMediaTypeException("Content type tidak cocok dengan extension file");
+        }
+
         // 5. Stored filename menggunakan UUID — jangan pakai original filename
         String storedFileName = UUID.randomUUID() + "." + sanitizedExt;
 
@@ -123,6 +137,25 @@ public class LocalArchiveStorageService implements ArchiveStorageService {
             throw new ArchiveStorageException("Gagal membaca file dari storage", e);
         }
     }
+
+    @Override
+    public void delete(String storageReference) {
+        if (storageReference == null || storageReference.isBlank()) return;
+
+        Path filePath = rootLocation.resolve(storageReference).normalize();
+        if (!filePath.startsWith(rootLocation)) {
+            log.warn("Mencoba menghapus file di luar storage root: {}", storageReference);
+            return;
+        }
+
+        try {
+            Files.deleteIfExists(filePath);
+            log.info("File arsip dihapus dari storage: {}", storageReference);
+        } catch (IOException e) {
+            log.warn("Gagal menghapus file arsip: {}", storageReference, e);
+        }
+    }
+
 
     private String sanitizeExtension(String filename) {
         int dot = filename.lastIndexOf('.');

@@ -1,4 +1,4 @@
-package com.pangeranvalerensco.orchestria.organization_service.archive;
+package com.pangeranvalerensco.orchestria.organization_service.exception;
 
 import com.pangeranvalerensco.orchestria.organization_service.service.ArchiveDocumentService;
 import io.jsonwebtoken.Jwts;

@@ -21,6 +21,7 @@ public interface ArchiveStorageService {
      * @return InputStream of the file content
      */
     InputStream retrieve(String storageReference);
+    void delete(String storageReference);
 
     record StorageResult(String storedFileName, String storageReference) {}
 }

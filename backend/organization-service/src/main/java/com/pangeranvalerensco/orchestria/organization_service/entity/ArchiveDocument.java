@@ -1,7 +1,9 @@
-package com.pangeranvalerensco.orchestria.organization_service.archive.entity;
+package com.pangeranvalerensco.orchestria.organization_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.DocumentCategory;
 
 import java.time.LocalDateTime;
 

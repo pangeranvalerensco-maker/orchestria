@@ -14,11 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveDocumentNotFoundException;
-import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveFileTooLargeException;
-import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveInvalidFileException;
-import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveStorageException;
-import com.pangeranvalerensco.orchestria.organization_service.exception.ArchiveUnsupportedMediaTypeException;
+
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
