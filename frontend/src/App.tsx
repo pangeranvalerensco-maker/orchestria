@@ -23,13 +23,15 @@ import { AssetDetailPage } from "./pages/AssetDetailPage";
 import { MyBorrowingsPage } from "./pages/MyBorrowingsPage";
 import { AssetOperationsPage } from "./pages/AssetOperationsPage";
 import { AssetBorrowingDetailPage } from "./pages/AssetBorrowingDetailPage";
+import { PicketSchedulesPage } from "./pages/PicketSchedulesPage";
+import { PicketReportPage } from "./pages/PicketReportPage";
+import { EnglishActivityPage } from "./pages/EnglishActivityPage";
+import { EnglishManagementPage } from "./pages/EnglishManagementPage";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { PublicHomePage } from "./pages/public/PublicHomePage";
 import { PublicAboutPage } from "./pages/public/PublicAboutPage";
 import { PublicOrganizationPage } from "./pages/public/PublicOrganizationPage";
 import { PublicActivitiesPage } from "./pages/public/PublicActivitiesPage";
-import { PicketSchedulesPage } from "./pages/PicketSchedulesPage";
-import { PicketReportPage } from "./pages/PicketReportPage";
 import { useAuth } from "./auth/useAuth";
 
 function NotFoundRedirect() {
@@ -122,6 +124,12 @@ function App() {
           </Route>
           <Route element={<PermissionRoute anyOf={["cleanliness.report.read"]} />}>
             <Route path="/picket-reports" element={<PicketReportPage />} />
+          </Route>
+          <Route element={<PermissionRoute anyOf={["english.activity.read", "english.deposit.read.own"]} />}>
+            <Route path="/english-activities" element={<EnglishActivityPage />} />
+          </Route>
+          <Route element={<PermissionRoute anyOf={["english.activity.manage", "english.deposit.read.all", "english.deposit.verify", "english.report.read"]} />}>
+            <Route path="/english-management" element={<EnglishManagementPage />} />
           </Route>
         </Route>
       </Route>

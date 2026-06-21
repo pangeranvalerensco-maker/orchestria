@@ -1,3 +1,4 @@
+@import './english.css';
 :root {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system,
@@ -3029,3 +3030,4 @@ textarea.form-control {
 .division-task-filters input, .division-task-filters select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; }
 .division-task-filters label { display: flex; align-items: center; gap: 6px; }
 .division-task-overdue-text { color: #dc2626; }
+

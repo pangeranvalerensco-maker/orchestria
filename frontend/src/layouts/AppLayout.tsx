@@ -80,6 +80,16 @@ export function AppLayout() {
             </div>
           )}
 
+          {(hasPermission("english.activity.read") || hasPermission("english.deposit.read.own")) && (
+            <div className="nav-group">
+              <span className="nav-group-title">English Activity</span>
+              <NavLink to="/english-activities" className={navClass}>English Portal</NavLink>
+              {(hasPermission("english.activity.manage") || hasPermission("english.deposit.verify") || hasPermission("english.deposit.read.all")) && (
+                <NavLink to="/english-management" className={navClass}>Management</NavLink>
+              )}
+            </div>
+          )}
+
           {hasPermission("archive.manage") && (
             <div className="nav-group">
               <span className="nav-group-title">Administrasi</span>

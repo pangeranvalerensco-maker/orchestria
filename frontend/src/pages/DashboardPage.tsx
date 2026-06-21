@@ -6,6 +6,7 @@ import { getReadyForDisbursement } from "../services/financeService";
 import divisionTaskService from "../services/divisionTaskService";
 import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
 import { getMySchedules, getMyPoints } from "../services/cleanlinessService";
+import { englishService } from "../services/englishService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -22,6 +23,9 @@ export function DashboardPage() {
   const [requestedBorrowingsCount, setRequestedBorrowingsCount] = useState<number | null>(null);
   const [activePicketCount, setActivePicketCount] = useState<number | null>(null);
   const [myCleanlinessPoints, setMyCleanlinessPoints] = useState<number | null>(null);
+  
+  const [activeEnglishActivitiesCount, setActiveEnglishActivitiesCount] = useState<number | null>(null);
+  const [myEnglishScore, setMyEnglishScore] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -40,6 +44,8 @@ export function DashboardPage() {
   const canReadOwnBorrowing = hasPermission("asset.borrow.read.own");
   const canManageBorrowing = hasPermission("asset.borrow.read.all");
   const canReadCleanliness = hasPermission("cleanliness.schedule.read");
+  const canReadEnglish = hasPermission("english.activity.read");
+  const canReadOwnEnglishDeposit = hasPermission("english.deposit.read.own");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -140,6 +146,35 @@ export function DashboardPage() {
         );
       }
 
+      if (canReadEnglish && token) {
+        promises.push(
+          englishService.getAllActivities(token).then((res) => {
+            if (res && res.data) {
+              const active = res.data.filter((a: any) => a.status === "PUBLISHED");
+              setActiveEnglishActivitiesCount(active.length);
+            }
+          }).catch(() => {})
+        );
+      }
+
+      if (canReadOwnEnglishDeposit && token) {
+        promises.push(
+          englishService.getMyDeposits(token).then((res) => {
+            if (res && res.data && res.data.length > 0) {
+              const verified = res.data.filter((d: any) => d.status === "VERIFIED" && d.score != null);
+              if (verified.length > 0) {
+                const total = verified.reduce((sum: number, d: any) => sum + (d.score || 0), 0);
+                setMyEnglishScore(Math.round(total / verified.length));
+              } else {
+                setMyEnglishScore(0);
+              }
+            } else {
+              setMyEnglishScore(0);
+            }
+          }).catch(() => {})
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -150,7 +185,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness, canReadEnglish, canReadOwnEnglishDeposit]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -296,6 +331,22 @@ export function DashboardPage() {
             <Link to="/picket-schedules" className="stat-link">Detail Point &rarr;</Link>
           </div>
         )}
+
+        {canReadEnglish && (
+          <div className="dashboard-card stat-card stat-neutral">
+            <span className="stat-label">Aktivitas English</span>
+            <strong className="stat-value">{renderCount(activeEnglishActivitiesCount)}</strong>
+            <Link to="/english-activities" className="stat-link">Lihat Portal &rarr;</Link>
+          </div>
+        )}
+
+        {canReadOwnEnglishDeposit && (
+          <div className="dashboard-card stat-card stat-success">
+            <span className="stat-label">Skor English Saya</span>
+            <strong className="stat-value">{renderCount(myEnglishScore)}</strong>
+            <Link to="/english-activities" className="stat-link">Lihat Setoran &rarr;</Link>
+          </div>
+        )}
       </section>
 
       <div className="dashboard-main-grid">
@@ -346,9 +397,11 @@ export function DashboardPage() {
               {canManageOrganization && <Link to="/admin/organization" className="quick-action-btn">⚙️ Kelola Organisasi</Link>}
               {canReadReports && <Link to="/reports" className="quick-action-btn">📊 Buka Laporan</Link>}
               {canReadAssets && <Link to="/assets" className="quick-action-btn">📦 Katalog Aset</Link>}
-              {canReadOwnBorrowing && <Link to="/my-borrowings" className="quick-action-btn">🔄 Peminjaman Saya</Link>}
+              {canReadOwnBorrowing && <Link to="/my-borrowings" className="quick-action-btn">📚 Peminjaman Saya</Link>}
               {canManageBorrowing && <Link to="/asset-operations" className="quick-action-btn">🛠️ Operasional Aset</Link>}
               {canReadCleanliness && <Link to="/picket-schedules" className="quick-action-btn">🧹 Jadwal Piket</Link>}
+              {canReadEnglish && <Link to="/english-activities" className="quick-action-btn">🗣️ English Portal</Link>}
+              {hasPermission("english.activity.manage") && <Link to="/english-management" className="quick-action-btn">📋 Kelola English</Link>}
             </div>
           </section>
 
