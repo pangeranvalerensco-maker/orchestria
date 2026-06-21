@@ -82,7 +82,15 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new PermissionSeed("asset.borrow.approve", "Merespons permohonan peminjaman"),
                                 new PermissionSeed("asset.borrow.handover", "Menyerahkan aset"),
                                 new PermissionSeed("asset.return.verify", "Memverifikasi pengembalian aset"),
-                                new PermissionSeed("asset.condition.manage", "Mengelola kondisi aset"));
+                                new PermissionSeed("asset.condition.manage", "Mengelola kondisi aset"),
+
+                                new PermissionSeed("cleanliness.schedule.read", "Melihat jadwal piket kebersihan"),
+                                new PermissionSeed("cleanliness.schedule.manage", "Mengelola jadwal piket kebersihan"),
+                                new PermissionSeed("cleanliness.attendance.create", "Mengisi presensi piket"),
+                                new PermissionSeed("cleanliness.attendance.read", "Melihat presensi piket"),
+                                new PermissionSeed("cleanliness.point.manage", "Mengelola poin reward piket"),
+                                new PermissionSeed("cleanliness.violation.manage", "Mengelola poin pelanggaran piket"),
+                                new PermissionSeed("cleanliness.report.read", "Melihat laporan piket kebersihan"));
 
                 for (PermissionSeed seed : permissions) {
                         permissionRepository.findByName(seed.name())
@@ -105,6 +113,7 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new RoleSeed("BENDAHARA_INTERNAL", "Bendahara internal"),
                                 new RoleSeed("BENDAHARA_EKSTERNAL", "Bendahara eksternal"),
                                 new RoleSeed("CHECKER", "Pemeriksa dan pengelola operasional aset"),
+                                new RoleSeed("KOORDINATOR", "Koordinator piket"),
                                 new RoleSeed("ANGGOTA", "Anggota organisasi"));
 
                 for (RoleSeed seed : roles) {
@@ -147,7 +156,23 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "asset.borrow.approve",
                                 "asset.borrow.handover",
                                 "asset.return.verify",
-                                "asset.condition.manage"));
+                                "asset.condition.manage",
+                                "cleanliness.schedule.read",
+                                "cleanliness.schedule.manage",
+                                "cleanliness.attendance.create",
+                                "cleanliness.attendance.read",
+                                "cleanliness.point.manage",
+                                "cleanliness.violation.manage",
+                                "cleanliness.report.read"));
+
+                assign("KOORDINATOR", List.of(
+                                "cleanliness.schedule.read",
+                                "cleanliness.schedule.manage",
+                                "cleanliness.attendance.create",
+                                "cleanliness.attendance.read",
+                                "cleanliness.point.manage",
+                                "cleanliness.violation.manage",
+                                "cleanliness.report.read"));
 
                 assign("PEMBINA", List.of(
                                 "organization.read",
@@ -157,7 +182,10 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "finance.report.read",
                                 "report.read",
                                 "asset.read",
-                                "asset.borrow.read.all"));
+                                "asset.borrow.read.all",
+                                "cleanliness.schedule.read",
+                                "cleanliness.attendance.read",
+                                "cleanliness.report.read"));
 
                 assign("KETUA_PUB", List.of(
                                 "organization.read",
@@ -176,7 +204,10 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "asset.borrow.approve",
                                 "asset.borrow.handover",
                                 "asset.return.verify",
-                                "asset.condition.manage"));
+                                "asset.condition.manage",
+                                "cleanliness.schedule.read",
+                                "cleanliness.attendance.read",
+                                "cleanliness.report.read"));
 
                 assign("KETUA_DIVISI", List.of(
                                 "organization.read",
@@ -225,7 +256,9 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "request.read.own",
                                 "asset.read",
                                 "asset.borrow.create",
-                                "asset.borrow.read.own"));
+                                "asset.borrow.read.own",
+                                "cleanliness.schedule.read",
+                                "cleanliness.attendance.create"));
         }
 
         private void assign(String roleName, List<String> permissionNames) {

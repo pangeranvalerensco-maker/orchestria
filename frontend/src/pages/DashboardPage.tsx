@@ -5,6 +5,7 @@ import { getMyRequests, getPendingApprovals } from "../services/requestService";
 import { getReadyForDisbursement } from "../services/financeService";
 import divisionTaskService from "../services/divisionTaskService";
 import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
+import { getMySchedules, getMyPoints } from "../services/cleanlinessService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -19,6 +20,8 @@ export function DashboardPage() {
   
   const [activeBorrowingsCount, setActiveBorrowingsCount] = useState<number | null>(null);
   const [requestedBorrowingsCount, setRequestedBorrowingsCount] = useState<number | null>(null);
+  const [activePicketCount, setActivePicketCount] = useState<number | null>(null);
+  const [myCleanlinessPoints, setMyCleanlinessPoints] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -36,6 +39,7 @@ export function DashboardPage() {
   const canReadAssets = hasPermission("asset.read");
   const canReadOwnBorrowing = hasPermission("asset.borrow.read.own");
   const canManageBorrowing = hasPermission("asset.borrow.read.all");
+  const canReadCleanliness = hasPermission("cleanliness.schedule.read");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -116,6 +120,26 @@ export function DashboardPage() {
         );
       }
 
+      if (canReadCleanliness && token) {
+        promises.push(
+          getMySchedules(token).then((res) => {
+            if (res) {
+              const activeSchedules = res.filter(s => s.status === "PUBLISHED");
+              setActivePicketCount(activeSchedules.length);
+            }
+          })
+        );
+        promises.push(
+          getMyPoints(token).then((res) => {
+            if (res) {
+              const totalReward = res.filter(p => p.type === "REWARD").reduce((sum, p) => sum + p.pointValue, 0);
+              const totalViolation = res.filter(p => p.type === "VIOLATION").reduce((sum, p) => sum + p.pointValue, 0);
+              setMyCleanlinessPoints(totalReward - totalViolation);
+            }
+          })
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -126,7 +150,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -256,6 +280,22 @@ export function DashboardPage() {
             <Link to="/assets" className="stat-link">Lihat Aset &rarr;</Link>
           </div>
         )}
+
+        {canReadCleanliness && (
+          <div className="dashboard-card stat-card stat-neutral">
+            <span className="stat-label">Jadwal Piket Aktif</span>
+            <strong className="stat-value">{renderCount(activePicketCount)}</strong>
+            <Link to="/picket-schedules" className="stat-link">Lihat Piket &rarr;</Link>
+          </div>
+        )}
+
+        {canReadCleanliness && (
+          <div className="dashboard-card stat-card stat-success">
+            <span className="stat-label">Poin Kebersihan Saya</span>
+            <strong className="stat-value">{renderCount(myCleanlinessPoints)}</strong>
+            <Link to="/picket-schedules" className="stat-link">Detail Point &rarr;</Link>
+          </div>
+        )}
       </section>
 
       <div className="dashboard-main-grid">
@@ -308,6 +348,7 @@ export function DashboardPage() {
               {canReadAssets && <Link to="/assets" className="quick-action-btn">📦 Katalog Aset</Link>}
               {canReadOwnBorrowing && <Link to="/my-borrowings" className="quick-action-btn">🔄 Peminjaman Saya</Link>}
               {canManageBorrowing && <Link to="/asset-operations" className="quick-action-btn">🛠️ Operasional Aset</Link>}
+              {canReadCleanliness && <Link to="/picket-schedules" className="quick-action-btn">🧹 Jadwal Piket</Link>}
             </div>
           </section>
 

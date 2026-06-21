@@ -24,4 +24,6 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     boolean existsByStudentNumber(String studentNumber);
 
     Optional<Member> findByEmailIgnoreCase(String email);
+
+    List<Member> findByActiveTrue();
 }
