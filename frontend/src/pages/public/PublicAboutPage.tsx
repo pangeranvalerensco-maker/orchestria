@@ -1,6 +1,24 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import { publicContentService } from "../../services/publicContentService";
+import type { PublicContentEntry } from '../../types/publicContent';
+import { PublicContentType } from '../../types/publicContent';
 
 export function PublicAboutPage() {
+  const [profile, setProfile] = useState<PublicContentEntry | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    publicContentService.getPublishedByType(PublicContentType.ORGANIZATION_PROFILE)
+      .then(res => {
+        if (res.length > 0) {
+          setProfile(res[0]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="public-page">
       <div className="public-page-header">
@@ -11,61 +29,75 @@ export function PublicAboutPage() {
       </div>
 
       <div className="public-container public-content-wrapper">
-        <div className="public-alert-info">
-          <strong>Catatan Demo:</strong> Konten profil ini merupakan versi ringkas untuk demo Orchestria dan dapat disesuaikan dengan profil resmi PUB.
-        </div>
+        {!profile && !loading && (
+          <div className="public-alert-info">
+            <strong>Catatan Demo:</strong> Konten profil ini merupakan versi ringkas untuk demo Orchestria dan dapat disesuaikan dengan profil resmi PUB.
+          </div>
+        )}
 
         <section className="public-about-section">
           <h2>Profil PUB</h2>
-          <p>
-            Program Unggulan Bersama (PUB) adalah program beasiswa dan pembinaan yang berada di bawah
-            naungan Universitas Nasional PASIM. Program ini dirancang khusus untuk memfasilitasi mahasiswa
-            berprestasi dan memiliki semangat belajar tinggi agar mampu menjadi talenta profesional di industri.
-          </p>
+          {profile ? (
+            <div>
+              {profile.mediaUrl && <img src={profile.mediaUrl} alt={profile.title} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '8px', marginBottom: '20px' }} />}
+              <h3>{profile.title}</h3>
+              <div style={{ whiteSpace: 'pre-line' }}>{profile.content}</div>
+            </div>
+          ) : (
+            <p>
+              Program Unggulan Bersama (PUB) adalah program beasiswa dan pembinaan yang berada di bawah
+              naungan Universitas Nasional PASIM. Program ini dirancang khusus untuk memfasilitasi mahasiswa
+              berprestasi dan memiliki semangat belajar tinggi agar mampu menjadi talenta profesional di industri.
+            </p>
+          )}
         </section>
 
-        <section className="public-about-section">
-          <h2>Visi & Misi</h2>
-          <div className="public-grid-2">
-            <div className="public-card">
-              <h3>Visi</h3>
-              <p>
-                Menjadi pusat pembinaan generasi muda yang unggul dalam akhlak, intelektual, dan kompetensi 
-                teknologi yang siap bersaing di tingkat global.
-              </p>
-            </div>
-            <div className="public-card">
-              <h3>Misi</h3>
-              <ul className="public-list">
-                <li>Menyelenggarakan pembinaan karakter dan kepemimpinan.</li>
-                <li>Memberikan fasilitas pendidikan dan asrama yang memadai.</li>
-                <li>Menyediakan kurikulum pelatihan teknologi yang relevan dengan industri.</li>
-                <li>Membangun kolaborasi dan kemandirian finansial anggota.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+        {!profile && (
+          <>
+            <section className="public-about-section">
+              <h2>Visi & Misi</h2>
+              <div className="public-grid-2">
+                <div className="public-card">
+                  <h3>Visi</h3>
+                  <p>
+                    Menjadi pusat pembinaan generasi muda yang unggul dalam akhlak, intelektual, dan kompetensi 
+                    teknologi yang siap bersaing di tingkat global.
+                  </p>
+                </div>
+                <div className="public-card">
+                  <h3>Misi</h3>
+                  <ul className="public-list">
+                    <li>Menyelenggarakan pembinaan karakter dan kepemimpinan.</li>
+                    <li>Memberikan fasilitas pendidikan dan asrama yang memadai.</li>
+                    <li>Menyediakan kurikulum pelatihan teknologi yang relevan dengan industri.</li>
+                    <li>Membangun kolaborasi dan kemandirian finansial anggota.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
 
-        <section className="public-about-section">
-          <h2>Nilai Utama</h2>
-          <div className="public-grid-3">
-            <div className="public-value-card">
-              <div className="value-icon">🤝</div>
-              <h4>Kekeluargaan</h4>
-              <p>Membangun ikatan solidaritas yang kuat antar anggota dan alumni.</p>
-            </div>
-            <div className="public-value-card">
-              <div className="value-icon">💡</div>
-              <h4>Inovasi</h4>
-              <p>Mendorong kreativitas dan keberanian menciptakan solusi teknologi baru.</p>
-            </div>
-            <div className="public-value-card">
-              <div className="value-icon">🛡️</div>
-              <h4>Disiplin</h4>
-              <p>Menjunjung tinggi komitmen, etos kerja, dan tanggung jawab organisasi.</p>
-            </div>
-          </div>
-        </section>
+            <section className="public-about-section">
+              <h2>Nilai Utama</h2>
+              <div className="public-grid-3">
+                <div className="public-value-card">
+                  <div className="value-icon">🤝</div>
+                  <h4>Kekeluargaan</h4>
+                  <p>Membangun ikatan solidaritas yang kuat antar anggota dan alumni.</p>
+                </div>
+                <div className="public-value-card">
+                  <div className="value-icon">💡</div>
+                  <h4>Inovasi</h4>
+                  <p>Mendorong kreativitas dan keberanian menciptakan solusi teknologi baru.</p>
+                </div>
+                <div className="public-value-card">
+                  <div className="value-icon">🛡️</div>
+                  <h4>Disiplin</h4>
+                  <p>Menjunjung tinggi komitmen, etos kerja, dan tanggung jawab organisasi.</p>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
         <section className="public-about-section">
           <h2>Sistem Orchestria</h2>

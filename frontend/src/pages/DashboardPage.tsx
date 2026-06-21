@@ -414,6 +414,7 @@ export function DashboardPage() {
               {canReadCleanliness && <Link to="/picket-schedules" className="quick-action-btn">🧹 Jadwal Piket</Link>}
               {canReadEnglish && <Link to="/english-activities" className="quick-action-btn">🗣️ English Portal</Link>}
               {hasPermission("english.activity.manage") && <Link to="/english-management" className="quick-action-btn">📋 Kelola English</Link>}
+              {hasPermission("public.content.manage") && <Link to="/public-content-management" className="quick-action-btn">📢 Kelola Konten Publik</Link>}
             </div>
           </section>
 

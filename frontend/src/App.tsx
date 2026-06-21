@@ -32,6 +32,7 @@ import { PublicHomePage } from "./pages/public/PublicHomePage";
 import { PublicAboutPage } from "./pages/public/PublicAboutPage";
 import { PublicOrganizationPage } from "./pages/public/PublicOrganizationPage";
 import { PublicActivitiesPage } from "./pages/public/PublicActivitiesPage";
+import { PublicContentManagementPage } from "./pages/PublicContentManagementPage";
 import { useAuth } from "./auth/useAuth";
 
 function NotFoundRedirect() {
@@ -96,6 +97,10 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["organization.manage"]} />}>
             <Route path="/admin/organization" element={<OrganizationAdminPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["public.content.manage"]} />}>
+            <Route path="/public-content-management" element={<PublicContentManagementPage />} />
           </Route>
 
           <Route element={<PermissionRoute anyOf={["division.task.read"]} />}>
