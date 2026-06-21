@@ -21,6 +21,7 @@ public class DivisionTaskResponse {
 
     private Long assignedMemberId;
     private String assignedMemberName;
+    private String assignedMemberEmail;
 
     private String title;
     private String description;

@@ -26,4 +26,8 @@ public interface DivisionTaskService {
     ApiResponse<DivisionTaskResponse> updateTaskStatus(Long id, TaskStatus status);
 
     ApiResponse<Void> deleteTask(Long id);
+
+    ApiResponse<List<DivisionTaskResponse>> getMyTasks();
+
+    ApiResponse<DivisionTaskResponse> updateMyTaskStatus(Long id, TaskStatus status);
 }

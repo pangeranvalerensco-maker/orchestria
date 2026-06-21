@@ -3,24 +3,30 @@ package com.pangeranvalerensco.orchestria.organization_service.service.impl;
 import com.pangeranvalerensco.orchestria.organization_service.entity.DivisionTask;
 import com.pangeranvalerensco.orchestria.organization_service.entity.DivisionTaskEvidence;
 import com.pangeranvalerensco.orchestria.organization_service.entity.enums.EvidenceType;
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.TaskStatus;
+import com.pangeranvalerensco.orchestria.organization_service.exception.BadRequestException;
 import com.pangeranvalerensco.orchestria.organization_service.exception.ResourceNotFoundException;
 import com.pangeranvalerensco.orchestria.organization_service.payload.request.DivisionTaskEvidenceRequest;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.DivisionTaskEvidenceResponse;
 import com.pangeranvalerensco.orchestria.organization_service.repository.DivisionTaskEvidenceRepository;
 import com.pangeranvalerensco.orchestria.organization_service.repository.DivisionTaskRepository;
+import com.pangeranvalerensco.orchestria.organization_service.service.DivisionTaskAccessService;
 import com.pangeranvalerensco.orchestria.organization_service.service.DivisionTaskEvidenceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceService {
 
     private final DivisionTaskEvidenceRepository evidenceRepository;
     private final DivisionTaskRepository taskRepository;
+    private final DivisionTaskAccessService accessService;
 
     @Override
     public ApiResponse<List<DivisionTaskEvidenceResponse>> getEvidencesByTask(Long taskId) {
@@ -53,17 +59,11 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     @Override
     public ApiResponse<DivisionTaskEvidenceResponse> createEvidence(DivisionTaskEvidenceRequest request) {
         DivisionTask task = findTaskById(request.getTaskId());
+        accessService.validateManagerAccess(task.getDivision().getId());
 
-        DivisionTaskEvidence evidence = DivisionTaskEvidence.builder()
-                .task(task)
-                .type(defaultIfNull(request.getType(), EvidenceType.NOTE))
-                .title(request.getTitle().trim())
-                .description(trimOrNull(request.getDescription()))
-                .fileUrl(trimOrNull(request.getFileUrl()))
-                .externalLink(trimOrNull(request.getExternalLink()))
-                .active(true)
-                .build();
+        validateEvidenceRequest(request);
 
+        DivisionTaskEvidence evidence = buildEvidenceFromRequest(task, request);
         DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
 
         return ApiResponse.<DivisionTaskEvidenceResponse>builder()
@@ -77,13 +77,12 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     public ApiResponse<DivisionTaskEvidenceResponse> updateEvidence(Long id, DivisionTaskEvidenceRequest request) {
         DivisionTaskEvidence evidence = findEvidenceById(id);
         DivisionTask task = findTaskById(request.getTaskId());
+        
+        accessService.validateManagerAccess(evidence.getTask().getDivision().getId());
+        accessService.validateManagerAccess(task.getDivision().getId());
 
-        evidence.setTask(task);
-        evidence.setType(defaultIfNull(request.getType(), EvidenceType.NOTE));
-        evidence.setTitle(request.getTitle().trim());
-        evidence.setDescription(trimOrNull(request.getDescription()));
-        evidence.setFileUrl(trimOrNull(request.getFileUrl()));
-        evidence.setExternalLink(trimOrNull(request.getExternalLink()));
+        validateEvidenceRequest(request);
+        updateEvidenceFields(evidence, task, request);
 
         DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
 
@@ -97,6 +96,8 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     @Override
     public ApiResponse<Void> deleteEvidence(Long id) {
         DivisionTaskEvidence evidence = findEvidenceById(id);
+        accessService.validateManagerAccess(evidence.getTask().getDivision().getId());
+
         evidence.setActive(false);
         evidenceRepository.save(evidence);
 
@@ -105,6 +106,111 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
                 .message("Bukti tugas divisi berhasil dinonaktifkan")
                 .data(null)
                 .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskEvidenceResponse> createMyEvidence(DivisionTaskEvidenceRequest request) {
+        DivisionTask task = findTaskById(request.getTaskId());
+        accessService.validateTaskAssignment(task);
+        validateTaskIsMutableByMember(task);
+        validateEvidenceRequest(request);
+
+        DivisionTaskEvidence evidence = buildEvidenceFromRequest(task, request);
+        DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
+
+        return ApiResponse.<DivisionTaskEvidenceResponse>builder()
+                .success(true)
+                .message("Bukti tugas milik anggota berhasil dibuat")
+                .data(mapToResponse(savedEvidence))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<DivisionTaskEvidenceResponse> updateMyEvidence(Long id, DivisionTaskEvidenceRequest request) {
+        DivisionTaskEvidence evidence = findEvidenceById(id);
+        accessService.validateTaskAssignment(evidence.getTask());
+        validateTaskIsMutableByMember(evidence.getTask());
+
+        DivisionTask task = findTaskById(request.getTaskId());
+        accessService.validateTaskAssignment(task);
+        validateTaskIsMutableByMember(task);
+
+        validateEvidenceRequest(request);
+        updateEvidenceFields(evidence, task, request);
+
+        DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
+
+        return ApiResponse.<DivisionTaskEvidenceResponse>builder()
+                .success(true)
+                .message("Bukti tugas milik anggota berhasil diperbarui")
+                .data(mapToResponse(savedEvidence))
+                .build();
+    }
+
+    @Override
+    public ApiResponse<Void> deleteMyEvidence(Long id) {
+        DivisionTaskEvidence evidence = findEvidenceById(id);
+        accessService.validateTaskAssignment(evidence.getTask());
+        validateTaskIsMutableByMember(evidence.getTask());
+
+        evidence.setActive(false);
+        evidenceRepository.save(evidence);
+
+        return ApiResponse.<Void>builder()
+                .success(true)
+                .message("Bukti tugas milik anggota berhasil dinonaktifkan")
+                .data(null)
+                .build();
+    }
+
+    private void validateTaskIsMutableByMember(DivisionTask task) {
+        if (!task.getActive()) {
+            throw new BadRequestException("Tugas tidak aktif");
+        }
+        if (task.getStatus() == TaskStatus.DONE || task.getStatus() == TaskStatus.CANCELLED) {
+            throw new BadRequestException("Bukti pada tugas yang sudah selesai atau dibatalkan tidak dapat diubah oleh anggota");
+        }
+    }
+
+    private void validateEvidenceRequest(DivisionTaskEvidenceRequest request) {
+        EvidenceType type = defaultIfNull(request.getType(), EvidenceType.NOTE);
+        
+        if (request.getTitle() == null || request.getTitle().trim().isEmpty()) {
+            throw new BadRequestException("Judul bukti wajib diisi");
+        }
+
+        if (type == EvidenceType.LINK) {
+            if (request.getExternalLink() == null || request.getExternalLink().trim().isEmpty()) {
+                throw new BadRequestException("External link wajib diisi untuk tipe LINK");
+            }
+        }
+
+        if (type == EvidenceType.PHOTO || type == EvidenceType.DOCUMENT) {
+            if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {
+                throw new BadRequestException("File URL wajib diisi untuk tipe PHOTO atau DOCUMENT");
+            }
+        }
+    }
+
+    private DivisionTaskEvidence buildEvidenceFromRequest(DivisionTask task, DivisionTaskEvidenceRequest request) {
+        return DivisionTaskEvidence.builder()
+                .task(task)
+                .type(defaultIfNull(request.getType(), EvidenceType.NOTE))
+                .title(request.getTitle().trim())
+                .description(trimOrNull(request.getDescription()))
+                .fileUrl(trimOrNull(request.getFileUrl()))
+                .externalLink(trimOrNull(request.getExternalLink()))
+                .active(true)
+                .build();
+    }
+
+    private void updateEvidenceFields(DivisionTaskEvidence evidence, DivisionTask task, DivisionTaskEvidenceRequest request) {
+        evidence.setTask(task);
+        evidence.setType(defaultIfNull(request.getType(), EvidenceType.NOTE));
+        evidence.setTitle(request.getTitle().trim());
+        evidence.setDescription(trimOrNull(request.getDescription()));
+        evidence.setFileUrl(trimOrNull(request.getFileUrl()));
+        evidence.setExternalLink(trimOrNull(request.getExternalLink()));
     }
 
     private DivisionTaskEvidence findEvidenceById(Long id) {

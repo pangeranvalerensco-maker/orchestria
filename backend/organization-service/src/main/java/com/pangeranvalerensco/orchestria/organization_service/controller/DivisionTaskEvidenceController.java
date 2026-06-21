@@ -61,4 +61,30 @@ public class DivisionTaskEvidenceController {
     ) {
         return ResponseEntity.ok(evidenceService.deleteEvidence(id));
     }
+
+    @PostMapping("/my")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<DivisionTaskEvidenceResponse>> createMyEvidence(
+            @Valid @RequestBody DivisionTaskEvidenceRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(evidenceService.createMyEvidence(request));
+    }
+
+    @PutMapping("/my/{id}")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<DivisionTaskEvidenceResponse>> updateMyEvidence(
+            @PathVariable Long id,
+            @Valid @RequestBody DivisionTaskEvidenceRequest request
+    ) {
+        return ResponseEntity.ok(evidenceService.updateMyEvidence(id, request));
+    }
+
+    @DeleteMapping("/my/{id}")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<Void>> deleteMyEvidence(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(evidenceService.deleteMyEvidence(id));
+    }
 }

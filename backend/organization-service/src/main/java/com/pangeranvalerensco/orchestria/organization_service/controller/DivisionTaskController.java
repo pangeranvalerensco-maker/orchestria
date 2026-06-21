@@ -85,4 +85,18 @@ public class DivisionTaskController {
             @PathVariable Long id) {
         return ResponseEntity.ok(taskService.deleteTask(id));
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getMyTasks() {
+        return ResponseEntity.ok(taskService.getMyTasks());
+    }
+
+    @PatchMapping("/{id}/my-status/{status}")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<DivisionTaskResponse>> updateMyTaskStatus(
+            @PathVariable Long id,
+            @PathVariable TaskStatus status) {
+        return ResponseEntity.ok(taskService.updateMyTaskStatus(id, status));
+    }
 }
