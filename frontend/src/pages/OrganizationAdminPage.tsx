@@ -8,6 +8,7 @@ import type {
   MemberResponse, DivisionResponse, PositionResponse, OrganizationPeriodResponse, MemberAssignment
 } from "../types/organization";
 import { getErrorMessage } from "../utils/apiErrorHandler";
+import { ApiError } from "../api/http";
 
 import { AdminTabs, ADMIN_TABS } from "../components/organization-admin/AdminTabs";
 import { Modal } from "../components/organization-admin/Modal";
@@ -61,35 +62,80 @@ export function OrganizationAdminPage() {
     try {
       const targetTab = tab || activeTab;
       
-      const promises: Promise<any>[] = [
-        getMembers(token),
-        getDivisions(token),
-        getPositions(token),
-        getPeriods(token)
-      ];
+      const memberPromise = getMembers(token);
+      const divisionPromise = getDivisions(token);
+      const positionPromise = getPositions(token);
+      const periodPromise = getPeriods(token);
 
-      if (targetTab === ADMIN_TABS.ASSIGNMENTS) {
-        promises.push(getMemberAssignments(token));
-      }
+      const basicResults = await Promise.allSettled([
+        memberPromise,
+        divisionPromise,
+        positionPromise,
+        periodPromise
+      ]);
 
-      const results = await Promise.allSettled(promises);
       let hasPartialFailure = false;
 
-      if (results[0].status === "fulfilled") setMembers(results[0].value.data);
+      function extractRejectedError(result: PromiseSettledResult<unknown>): unknown | null {
+        return result.status === "rejected" ? result.reason : null;
+      }
+
+      const allRejections = basicResults.map(extractRejectedError).filter(Boolean);
+      let criticalError: string | null = null;
+      
+      for (const reason of allRejections) {
+        if (reason instanceof ApiError) {
+          if (reason.status === 401) {
+            criticalError = "Sesi tidak valid. Silakan login kembali.";
+            break;
+          } else if (reason.status === 403 && criticalError !== "Sesi tidak valid. Silakan login kembali.") {
+            criticalError = "Anda tidak memiliki izin untuk mengelola organisasi.";
+          }
+        }
+      }
+
+      if (criticalError) {
+        setError(criticalError);
+        setLoading(false);
+        return;
+      }
+
+      if (basicResults[0].status === "fulfilled") setMembers(basicResults[0].value.data);
       else { setMembers([]); hasPartialFailure = true; }
 
-      if (results[1].status === "fulfilled") setDivisions(results[1].value.data);
+      if (basicResults[1].status === "fulfilled") setDivisions(basicResults[1].value.data);
       else { setDivisions([]); hasPartialFailure = true; }
 
-      if (results[2].status === "fulfilled") setPositions(results[2].value.data);
+      if (basicResults[2].status === "fulfilled") setPositions(basicResults[2].value.data);
       else { setPositions([]); hasPartialFailure = true; }
 
-      if (results[3].status === "fulfilled") setPeriods(results[3].value.data);
+      if (basicResults[3].status === "fulfilled") setPeriods(basicResults[3].value.data);
       else { setPeriods([]); hasPartialFailure = true; }
 
       if (targetTab === ADMIN_TABS.ASSIGNMENTS) {
-        if (results[4].status === "fulfilled") setAssignments(results[4].value.data);
-        else { setAssignments([]); hasPartialFailure = true; }
+        const assignmentResult = await Promise.allSettled([
+          getMemberAssignments(token)
+        ]);
+
+        const assignRejected = extractRejectedError(assignmentResult[0]);
+        if (assignRejected instanceof ApiError) {
+          if (assignRejected.status === 401) {
+            setError("Sesi tidak valid. Silakan login kembali.");
+            setLoading(false);
+            return;
+          } else if (assignRejected.status === 403 && !criticalError) {
+            setError("Anda tidak memiliki izin untuk mengelola organisasi.");
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (assignmentResult[0].status === "fulfilled") {
+          setAssignments(assignmentResult[0].value.data ?? []);
+        } else {
+          setAssignments([]);
+          hasPartialFailure = true;
+        }
       }
 
       if (hasPartialFailure) {
