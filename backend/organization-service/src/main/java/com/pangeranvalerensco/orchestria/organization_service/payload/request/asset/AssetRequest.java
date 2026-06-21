@@ -12,6 +12,6 @@ public record AssetRequest(
         @Size(max = 1000) String description,
         @NotNull AssetCondition currentCondition,
         @Size(max = 200) String location,
-        String responsibleMemberId,
+        Long responsibleMemberId,
         @Size(max = 500) String imageUrl
 ) {}

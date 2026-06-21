@@ -14,7 +14,7 @@ public record AssetResponse(
         AssetStatus currentStatus,
         AssetCondition currentCondition,
         String location,
-        String responsibleMemberId,
+        Long responsibleMemberId,
         String imageUrl,
         boolean active,
         boolean available,

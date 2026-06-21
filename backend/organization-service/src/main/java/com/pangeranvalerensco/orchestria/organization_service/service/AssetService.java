@@ -81,7 +81,7 @@ public class AssetService {
                 .currentCondition(request.currentCondition() != null ? request.currentCondition() : AssetCondition.UNKNOWN)
                 .location(request.location())
                 .responsibleMemberId(request.responsibleMemberId())
-                .imageUrl(request.imageUrl())
+                .imageUrl(validateAndCleanUrl(request.imageUrl()))
                 .active(true)
                 .build();
 
@@ -106,7 +106,7 @@ public class AssetService {
         asset.setDescription(request.description());
         asset.setLocation(request.location());
         asset.setResponsibleMemberId(request.responsibleMemberId());
-        asset.setImageUrl(request.imageUrl());
+        asset.setImageUrl(validateAndCleanUrl(request.imageUrl()));
         
         // currentStatus and currentCondition are NOT updated via general metadata update
 
@@ -159,22 +159,31 @@ public class AssetService {
         asset.setCurrentCondition(newCondition);
 
         if (newStatus == AssetStatus.INACTIVE) {
+            boolean hasOpenBorrowing = !assetBorrowingRepository.findByAssetIdAndStatusInAndActiveTrue(
+                    asset.getId(),
+                    List.of(BorrowingStatus.REQUESTED, BorrowingStatus.APPROVED, BorrowingStatus.BORROWED, BorrowingStatus.RETURN_REQUESTED)
+            ).isEmpty();
+
+            if (hasOpenBorrowing) {
+                throw new BadRequestException("Aset sedang digunakan atau status peminjaman mengalami konflik.");
+            }
             asset.setActive(false);
         }
 
         asset = assetRepository.save(asset);
 
-        // create condition history
-        AssetConditionHistory history = AssetConditionHistory.builder()
-                .asset(asset)
-                .oldCondition(oldCondition)
-                .newCondition(newCondition)
-                .checkedByEmail(assetAccessService.getCurrentEmail())
-                .note(request.note())
-                .checkedAt(LocalDateTime.now())
-                .build();
-        
-        assetConditionHistoryRepository.save(history);
+        // create condition history only if condition changed or status changed
+        if (oldCondition != newCondition || request.newStatus() != asset.getCurrentStatus() || request.note() != null) {
+            AssetConditionHistory history = AssetConditionHistory.builder()
+                    .asset(asset)
+                    .oldCondition(oldCondition)
+                    .newCondition(newCondition)
+                    .checkedByEmail(assetAccessService.getCurrentEmail())
+                    .note(request.note())
+                    .checkedAt(LocalDateTime.now())
+                    .build();
+            assetConditionHistoryRepository.save(history);
+        }
 
         return mapToResponse(asset);
     }
@@ -243,5 +252,23 @@ public class AssetService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static String validateAndCleanUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+        String cleanUrl = url.trim();
+        String lowerUrl = cleanUrl.toLowerCase(java.util.Locale.ROOT);
+        
+        if (lowerUrl.startsWith("javascript:") || lowerUrl.startsWith("data:") || lowerUrl.startsWith("vbscript:")) {
+            throw new BadRequestException("Skema URL tidak diizinkan.");
+        }
+        
+        if (!lowerUrl.startsWith("http://") && !lowerUrl.startsWith("https://") && !lowerUrl.startsWith("/")) {
+            throw new BadRequestException("URL harus berupa http/https atau path relatif absolut.");
+        }
+        
+        return cleanUrl;
     }
 }

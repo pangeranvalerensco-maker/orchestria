@@ -9,8 +9,10 @@ import java.time.LocalDateTime;
 public record BorrowingResponse(
         String id,
         AssetResponse asset,
-        String borrowerMemberId,
+        Long borrowerMemberId,
+        Long borrowerAuthUserId,
         String borrowerName,
+        String borrowerEmail,
         String purpose,
         LocalDate borrowDate,
         LocalDate expectedReturnDate,

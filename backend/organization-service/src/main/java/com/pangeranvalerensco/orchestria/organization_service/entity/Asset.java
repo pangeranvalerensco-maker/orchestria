@@ -47,7 +47,7 @@ public class Asset {
     @Column(length = 200)
     private String location;
 
-    private String responsibleMemberId;
+    private Long responsibleMemberId;
 
     @Column(length = 500)
     private String imageUrl;

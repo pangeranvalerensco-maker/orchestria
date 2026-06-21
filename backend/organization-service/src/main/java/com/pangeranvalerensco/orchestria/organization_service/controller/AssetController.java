@@ -6,6 +6,7 @@ import com.pangeranvalerensco.orchestria.organization_service.payload.request.as
 import com.pangeranvalerensco.orchestria.organization_service.payload.request.asset.AssetRequest;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.asset.AssetResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.asset.ConditionHistoryResponse;
+import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.organization_service.service.AssetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class AssetController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('asset.read')")
-    public ResponseEntity<Page<AssetResponse>> getAllAssets(
+    public ResponseEntity<ApiResponse<Page<AssetResponse>>> getAllAssets(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) AssetStatus status,
             @RequestParam(required = false) AssetCondition condition,
@@ -36,43 +37,70 @@ public class AssetController {
             @RequestParam(defaultValue = "10") int size
     ) {
         Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(assetService.getAllAssets(search, status, condition, pageable));
+        return ResponseEntity.ok(ApiResponse.<Page<AssetResponse>>builder()
+                .success(true)
+                .message("Berhasil mengambil data aset")
+                .data(assetService.getAllAssets(search, status, condition, pageable))
+                .build());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('asset.read')")
-    public ResponseEntity<AssetResponse> getAssetById(@PathVariable String id) {
-        return ResponseEntity.ok(assetService.getAssetById(id));
+    public ResponseEntity<ApiResponse<AssetResponse>> getAssetById(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<AssetResponse>builder()
+                .success(true)
+                .message("Berhasil mengambil detail aset")
+                .data(assetService.getAssetById(id))
+                .build());
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('asset.manage')")
-    public ResponseEntity<AssetResponse> createAsset(@Valid @RequestBody AssetRequest request) {
-        return new ResponseEntity<>(assetService.createAsset(request), HttpStatus.CREATED);
+    public ResponseEntity<ApiResponse<AssetResponse>> createAsset(@Valid @RequestBody AssetRequest request) {
+        return new ResponseEntity<>(ApiResponse.<AssetResponse>builder()
+                .success(true)
+                .message("Berhasil membuat aset baru")
+                .data(assetService.createAsset(request))
+                .build(), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('asset.manage')")
-    public ResponseEntity<AssetResponse> updateAsset(@PathVariable String id, @Valid @RequestBody AssetRequest request) {
-        return ResponseEntity.ok(assetService.updateAsset(id, request));
+    public ResponseEntity<ApiResponse<AssetResponse>> updateAsset(@PathVariable String id, @Valid @RequestBody AssetRequest request) {
+        return ResponseEntity.ok(ApiResponse.<AssetResponse>builder()
+                .success(true)
+                .message("Berhasil memperbarui aset")
+                .data(assetService.updateAsset(id, request))
+                .build());
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('asset.manage')")
-    public ResponseEntity<Void> deleteAsset(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteAsset(@PathVariable String id) {
         assetService.deleteAsset(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Berhasil menghapus aset")
+                .build());
     }
 
     @PatchMapping("/{id}/condition")
     @PreAuthorize("hasAuthority('asset.condition.manage')")
-    public ResponseEntity<AssetResponse> updateCondition(@PathVariable String id, @Valid @RequestBody AssetConditionUpdateRequest request) {
-        return ResponseEntity.ok(assetService.updateCondition(id, request));
+    public ResponseEntity<ApiResponse<AssetResponse>> updateCondition(@PathVariable String id, @Valid @RequestBody AssetConditionUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.<AssetResponse>builder()
+                .success(true)
+                .message("Berhasil memperbarui kondisi aset")
+                .data(assetService.updateCondition(id, request))
+                .build());
     }
 
     @GetMapping("/{id}/condition-histories")
     @PreAuthorize("hasAuthority('asset.read')")
-    public ResponseEntity<List<ConditionHistoryResponse>> getConditionHistories(@PathVariable String id) {
-        return ResponseEntity.ok(assetService.getConditionHistories(id));
+    public ResponseEntity<ApiResponse<List<ConditionHistoryResponse>>> getConditionHistories(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<List<ConditionHistoryResponse>>builder()
+                .success(true)
+                .message("Berhasil mengambil histori kondisi")
+                .data(assetService.getConditionHistories(id))
+                .build());
     }
 }

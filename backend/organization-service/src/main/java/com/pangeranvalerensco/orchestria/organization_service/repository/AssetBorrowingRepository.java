@@ -19,7 +19,7 @@ public interface AssetBorrowingRepository extends JpaRepository<AssetBorrowing, 
             "AND (:status IS NULL OR b.status = :status) " +
             "ORDER BY b.createdAt DESC")
     Page<AssetBorrowing> findByBorrowerMemberIdAndActiveTrueOrderByCreatedAtDesc(
-            @Param("memberId") String memberId,
+            @Param("memberId") Long memberId,
             @Param("status") BorrowingStatus status,
             Pageable pageable);
 

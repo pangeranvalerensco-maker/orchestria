@@ -38,6 +38,10 @@ public class AssetBorrowingService {
     public BorrowingResponse createBorrowing(BorrowingCreateRequest request) {
         Member member = assetAccessService.getCurrentMember();
 
+        if (!member.getActive() || member.getStatus() != com.pangeranvalerensco.orchestria.organization_service.entity.enums.MemberStatus.ACTIVE) {
+            throw new BadRequestException("Anggota tidak aktif.");
+        }
+
         Asset asset = assetRepository.findByIdAndActiveTrueWithLock(request.assetId())
                 .orElseThrow(() -> new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan."));
 
@@ -59,7 +63,7 @@ public class AssetBorrowingService {
         );
 
         boolean userHasActiveRequestForThisAsset = existingBorrowings.stream()
-                .anyMatch(b -> b.getBorrowerMemberId().equals(member.getId().toString()));
+                .anyMatch(b -> b.getBorrowerMemberId().equals(member.getId()));
 
         if (userHasActiveRequestForThisAsset) {
             throw new BadRequestException("Anda sudah memiliki request aktif untuk aset ini.");
@@ -67,7 +71,8 @@ public class AssetBorrowingService {
 
         AssetBorrowing borrowing = AssetBorrowing.builder()
                 .asset(asset)
-                .borrowerMemberId(member.getId().toString())
+                .borrowerMemberId(member.getId())
+                .borrowerAuthUserId(member.getAuthUserId())
                 .borrowerName(member.getFullName())
                 .borrowerEmail(member.getEmail())
                 .purpose(request.purpose())
@@ -83,7 +88,7 @@ public class AssetBorrowingService {
 
     public Page<BorrowingResponse> getMyBorrowings(BorrowingStatus status, Pageable pageable) {
         Member member = assetAccessService.getCurrentMember();
-        return assetBorrowingRepository.findByBorrowerMemberIdAndActiveTrueOrderByCreatedAtDesc(member.getId().toString(), status, pageable)
+        return assetBorrowingRepository.findByBorrowerMemberIdAndActiveTrueOrderByCreatedAtDesc(member.getId(), status, pageable)
                 .map(this::mapToResponse);
     }
 
@@ -188,9 +193,7 @@ public class AssetBorrowingService {
             throw new BadRequestException("Aset sedang digunakan atau status peminjaman mengalami konflik.");
         }
 
-        if (isUnsafeUrl(request.handoverProofUrl())) {
-            throw new BadRequestException("URL tidak valid.");
-        }
+        String cleanedUrl = AssetService.validateAndCleanUrl(request.handoverProofUrl());
 
         AssetCondition oldCondition = asset.getCurrentCondition();
         AssetCondition newCondition = request.conditionBefore();
@@ -199,7 +202,7 @@ public class AssetBorrowingService {
         borrowing.setHandedOverByEmail(assetAccessService.getCurrentEmail());
         borrowing.setHandedOverAt(LocalDateTime.now());
         borrowing.setConditionBefore(newCondition);
-        borrowing.setHandoverProofUrl(request.handoverProofUrl());
+        borrowing.setHandoverProofUrl(cleanedUrl);
         borrowing.setNote(request.note());
 
         asset.setCurrentStatus(AssetStatus.BORROWED);
@@ -232,13 +235,11 @@ public class AssetBorrowingService {
             throw new BadRequestException("Aset sedang digunakan atau status peminjaman mengalami konflik.");
         }
 
-        if (isUnsafeUrl(request.returnProofUrl())) {
-            throw new BadRequestException("URL tidak valid.");
-        }
+        String cleanedUrl = AssetService.validateAndCleanUrl(request.returnProofUrl());
 
         borrowing.setStatus(BorrowingStatus.RETURN_REQUESTED);
         borrowing.setReturnRequestedAt(LocalDateTime.now());
-        borrowing.setReturnProofUrl(request.returnProofUrl());
+        borrowing.setReturnProofUrl(cleanedUrl);
         
         if (request.note() != null) {
             borrowing.setNote(borrowing.getNote() == null ? request.note() : borrowing.getNote() + "\n" + request.note());
@@ -304,12 +305,6 @@ public class AssetBorrowingService {
                 .orElseThrow(() -> new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan."));
     }
 
-    private boolean isUnsafeUrl(String url) {
-        if (url == null || url.isBlank()) return false;
-        String lowerUrl = url.trim().toLowerCase();
-        return lowerUrl.startsWith("javascript:") || lowerUrl.startsWith("data:");
-    }
-
     private BorrowingResponse mapToResponse(AssetBorrowing borrowing) {
         boolean overdue = false;
         if (borrowing.getStatus() == BorrowingStatus.BORROWED || borrowing.getStatus() == BorrowingStatus.RETURN_REQUESTED) {
@@ -326,7 +321,9 @@ public class AssetBorrowingService {
                 borrowing.getId(),
                 assetService.mapToResponse(borrowing.getAsset()),
                 borrowing.getBorrowerMemberId(),
+                borrowing.getBorrowerAuthUserId(),
                 borrowing.getBorrowerName(),
+                borrowing.getBorrowerEmail(),
                 borrowing.getPurpose(),
                 borrowing.getBorrowDate(),
                 borrowing.getExpectedReturnDate(),

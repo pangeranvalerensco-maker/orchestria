@@ -28,9 +28,9 @@ public class AssetBorrowing {
     private Asset asset;
 
     @Column(nullable = false)
-    private String borrowerMemberId;
+    private Long borrowerMemberId;
 
-    private String borrowerAuthUserId;
+    private Long borrowerAuthUserId;
 
     @Column(nullable = false)
     private String borrowerName;
