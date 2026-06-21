@@ -39,7 +39,7 @@ export const AssetConditionForm: React.FC<AssetConditionFormProps> = ({
       <div className="asset-modal-overlay">
         <div className="asset-modal-content">
           <h2>Perbarui Kondisi Aset</h2>
-          <div className="asset-alert asset-alert-warning" style={{ marginBottom: "1rem" }}>
+          <div className="asset-alert asset-alert-warning">
             Status hanya dapat berubah melalui alur peminjaman.
           </div>
           <div className="asset-modal-actions">

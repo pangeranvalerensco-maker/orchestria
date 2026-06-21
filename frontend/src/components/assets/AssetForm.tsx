@@ -98,16 +98,13 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
 
   return (
     <div className="asset-modal-overlay">
-      <div className="asset-modal-content" style={{ maxWidth: "800px" }}>
+      <div className="asset-modal-content-wide">
         <div className="asset-modal-header">
           <h2>
             {initialData ? "Edit Aset" : "Tambah Aset Baru"}
           </h2>
-          <button onClick={onClose} className="asset-btn-danger" style={{ background: "none", border: "none" }}>
-            <span className="sr-only">Tutup</span>
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button onClick={onClose} className="asset-modal-close" type="button">
+            &times;
           </button>
         </div>
         

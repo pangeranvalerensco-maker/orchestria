@@ -92,9 +92,15 @@ export function DashboardPage() {
 
       if (canReadOwnBorrowing && token) {
         promises.push(
-          getMyBorrowings(token, "BORROWED", 0, 1).then((res) => {
-            if (res) {
-              setActiveBorrowingsCount(res.totalElements);
+          getMyBorrowings(token, undefined, 0, 1000).then((res) => {
+            if (res && res.content) {
+              const active = res.content.filter(b => 
+                b.status === "REQUESTED" || 
+                b.status === "APPROVED" || 
+                b.status === "BORROWED" || 
+                b.status === "RETURN_REQUESTED"
+              );
+              setActiveBorrowingsCount(active.length);
             }
           })
         );
@@ -205,7 +211,7 @@ export function DashboardPage() {
 
         {canReadOwnBorrowing && (
           <div className="dashboard-card stat-card stat-info">
-            <span className="stat-label">Peminjaman Aktif</span>
+            <span className="stat-label">Peminjaman Aktif Saya</span>
             <strong className="stat-value">{renderCount(activeBorrowingsCount)}</strong>
             <Link to="/my-borrowings" className="stat-link">Lihat Detail &rarr;</Link>
           </div>

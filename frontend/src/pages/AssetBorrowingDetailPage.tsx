@@ -14,7 +14,7 @@ export const AssetBorrowingDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const canManageOperations = hasPermission("asset.borrow.handover") || hasPermission("asset.borrow.verify_return");
+  const canManageOperations = hasPermission("asset.borrow.handover") || hasPermission("asset.return.verify");
 
   useEffect(() => {
     const fetchBorrowing = async () => {
@@ -22,7 +22,7 @@ export const AssetBorrowingDetailPage: React.FC = () => {
         if (!token || !id) return;
         const res = await getBorrowingById(token, id);
         setBorrowing(res);
-      } catch (err) {
+      } catch (err: unknown) {
         if (err instanceof ApiError) {
           setError(err.message);
         } else {
@@ -35,65 +35,114 @@ export const AssetBorrowingDetailPage: React.FC = () => {
     fetchBorrowing();
   }, [id, token, canManageOperations]);
 
-  if (loading) return <div>Memuat detail peminjaman...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
-  if (!borrowing) return <div>Data peminjaman tidak ditemukan.</div>;
+  if (loading) return <div className="asset-loading">Memuat detail peminjaman...</div>;
+  if (error) return <div className="asset-alert asset-alert-error">{error}</div>;
+  if (!borrowing) return <div className="asset-empty">Data peminjaman tidak ditemukan.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="asset-page">
+      <div className="asset-page-header">
         <div>
-          <button className="text-blue-600 hover:text-blue-800 mb-2" onClick={() => navigate(-1)}>
+          <button className="asset-back-button" onClick={() => navigate(-1)}>
             &larr; Kembali
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Detail Peminjaman: {borrowing.asset.assetName}</h1>
+          <h2>Detail Peminjaman: {borrowing.asset.assetName}</h2>
         </div>
       </div>
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg dark:bg-gray-800 p-6">
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Peminjam</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{borrowing.borrowerName}</dd>
+      
+      <div className="asset-detail-card">
+        <div className="asset-detail-grid">
+          <div>
+            <strong>Peminjam</strong>
+            <div>{borrowing.borrowerName} ({borrowing.borrowerEmail})</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Status Peminjaman</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+          <div>
+            <strong>Status Peminjaman</strong>
+            <div>
+              <span className={`asset-status-badge ${borrowing.status}`}>
                 {borrowing.status}
               </span>
-            </dd>
+              {borrowing.overdue && <span style={{ marginLeft: "0.5rem", color: "#dc2626", fontWeight: "bold" }}>(Overdue)</span>}
+            </div>
           </div>
-          <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-gray-500">Tujuan Peminjaman</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{borrowing.purpose}</dd>
+          <div>
+            <strong>Tujuan Peminjaman</strong>
+            <div>{borrowing.purpose}</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Tanggal Mulai</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-              {new Date(borrowing.borrowDate).toLocaleDateString()}
-            </dd>
+          <div>
+            <strong>Catatan (Note)</strong>
+            <div>{borrowing.note || "-"}</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Ekspektasi Pengembalian</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-              {new Date(borrowing.expectedReturnDate).toLocaleDateString()}
-            </dd>
+          
+          <div>
+            <strong>Tanggal Mengajukan</strong>
+            <div>{borrowing.createdAt ? new Date(borrowing.createdAt).toLocaleString() : "-"}</div>
           </div>
-          {borrowing.actualReturnDate && (
-            <div className="sm:col-span-1">
-              <dt className="text-sm font-medium text-gray-500">Tanggal Kembali Aktual</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                {new Date(borrowing.actualReturnDate).toLocaleDateString()}
-              </dd>
+          <div>
+            <strong>Tanggal Mulai Pinjam</strong>
+            <div>{new Date(borrowing.borrowDate).toLocaleDateString()}</div>
+          </div>
+          <div>
+            <strong>Ekspektasi Pengembalian</strong>
+            <div>{new Date(borrowing.expectedReturnDate).toLocaleDateString()}</div>
+          </div>
+          <div>
+            <strong>Tanggal Kembali Aktual</strong>
+            <div>{borrowing.actualReturnDate ? new Date(borrowing.actualReturnDate).toLocaleDateString() : "-"}</div>
+          </div>
+
+          {borrowing.approvedByEmail && (
+            <div>
+              <strong>Disetujui Oleh</strong>
+              <div>{borrowing.approvedByEmail} pada {borrowing.approvedAt ? new Date(borrowing.approvedAt).toLocaleString() : "-"}</div>
             </div>
           )}
-          {borrowing.rejectionReason && (
-            <div className="sm:col-span-2">
-              <dt className="text-sm font-medium text-gray-500 text-red-600">Alasan Penolakan / Pembatalan</dt>
-              <dd className="mt-1 text-sm text-gray-900 dark:text-white">{borrowing.rejectionReason}</dd>
+
+          {borrowing.handedOverByEmail && (
+            <div>
+              <strong>Diserahkan Oleh</strong>
+              <div>{borrowing.handedOverByEmail} pada {borrowing.handedOverAt ? new Date(borrowing.handedOverAt).toLocaleString() : "-"}</div>
             </div>
           )}
-        </dl>
+
+          {borrowing.returnVerifiedByEmail && (
+            <div>
+              <strong>Verifikasi Pengembalian Oleh</strong>
+              <div>{borrowing.returnVerifiedByEmail} pada {borrowing.returnVerifiedAt ? new Date(borrowing.returnVerifiedAt).toLocaleString() : "-"}</div>
+            </div>
+          )}
+
+          {(borrowing.conditionBefore || borrowing.conditionAfter) && (
+            <div>
+              <strong>Perubahan Kondisi Aset</strong>
+              <div>
+                Sebelum: {borrowing.conditionBefore || "-"} <br/>
+                Sesudah: {borrowing.conditionAfter || "-"}
+              </div>
+            </div>
+          )}
+
+          {borrowing.handoverProofUrl && (
+            <div>
+              <strong>Bukti Penyerahan</strong>
+              <div><a href={borrowing.handoverProofUrl} target="_blank" rel="noreferrer" style={{ color: "#3b82f6" }}>Lihat Bukti</a></div>
+            </div>
+          )}
+
+          {borrowing.returnProofUrl && (
+            <div>
+              <strong>Bukti Pengembalian</strong>
+              <div><a href={borrowing.returnProofUrl} target="_blank" rel="noreferrer" style={{ color: "#3b82f6" }}>Lihat Bukti</a></div>
+            </div>
+          )}
+
+          {(borrowing.rejectionReason || borrowing.cancellationReason) && (
+            <div>
+              <strong style={{ color: "#dc2626" }}>Alasan Penolakan / Pembatalan</strong>
+              <div>{borrowing.rejectionReason || borrowing.cancellationReason}</div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

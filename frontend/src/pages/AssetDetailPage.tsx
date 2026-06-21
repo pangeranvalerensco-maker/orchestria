@@ -20,7 +20,7 @@ export const AssetDetailPage: React.FC = () => {
         if (!token || !id) return;
         const res = await getAssetById(token, id);
         setAsset(res);
-      } catch (err) {
+      } catch (err: unknown) {
         if (err instanceof ApiError) {
           setError(err.message);
         } else {
@@ -33,49 +33,60 @@ export const AssetDetailPage: React.FC = () => {
     fetchAsset();
   }, [id, token]);
 
-  if (loading) return <div>Memuat detail aset...</div>;
-  if (error) return <div className="alert alert-error">{error}</div>;
-  if (!asset) return <div>Aset tidak ditemukan.</div>;
+  if (loading) return <div className="asset-loading">Memuat detail aset...</div>;
+  if (error) return <div className="asset-alert asset-alert-error">{error}</div>;
+  if (!asset) return <div className="asset-empty">Aset tidak ditemukan.</div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="asset-page">
+      <div className="asset-page-header">
         <div>
-          <button className="text-blue-600 hover:text-blue-800 mb-2" onClick={() => navigate(-1)}>
+          <button className="asset-back-button" onClick={() => navigate(-1)}>
             &larr; Kembali
           </button>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Detail Aset: {asset.assetName}</h1>
+          <h2>Detail Aset: {asset.assetName}</h2>
         </div>
       </div>
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg dark:bg-gray-800 p-6">
-        <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Kode Aset</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{asset.assetCode}</dd>
+      
+      <div className="asset-detail-card">
+        <div className="asset-detail-grid">
+          <div>
+            <strong>Kode Aset</strong>
+            <div>{asset.assetCode}</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Kategori</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{asset.category}</dd>
+          <div>
+            <strong>Kategori</strong>
+            <div>{asset.category}</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Status</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-              <span className={`asset-status ${asset.currentStatus}`}>{asset.currentStatus}</span>
-            </dd>
+          <div>
+            <strong>Status</strong>
+            <div>
+              <span className={`asset-status-badge ${asset.currentStatus}`}>
+                {asset.currentStatus}
+              </span>
+            </div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Kondisi</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{asset.currentCondition}</dd>
+          <div>
+            <strong>Kondisi</strong>
+            <div>{asset.currentCondition}</div>
           </div>
-          <div className="sm:col-span-1">
-            <dt className="text-sm font-medium text-gray-500">Lokasi</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{asset.location}</dd>
+          <div>
+            <strong>Lokasi</strong>
+            <div>{asset.location}</div>
           </div>
-          <div className="sm:col-span-2">
-            <dt className="text-sm font-medium text-gray-500">Deskripsi</dt>
-            <dd className="mt-1 text-sm text-gray-900 dark:text-white">{asset.description || "-"}</dd>
+          <div>
+            <strong>Deskripsi</strong>
+            <div>{asset.description || "-"}</div>
           </div>
-        </dl>
+          {asset.imageUrl && (
+            <div>
+              <strong>Gambar</strong>
+              <div>
+                <img src={asset.imageUrl} alt={asset.assetName} className="asset-image" />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

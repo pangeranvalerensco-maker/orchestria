@@ -90,22 +90,19 @@ export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, on
           <h2>
             Pengajuan Peminjaman
           </h2>
-          <button onClick={onClose} className="asset-btn-danger" style={{ background: "none", border: "none" }}>
-            <span className="sr-only">Tutup</span>
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+          <button onClick={onClose} className="asset-modal-close" type="button">
+            &times;
           </button>
         </div>
         
         <div className="asset-modal-body">
           {error && <div className="asset-alert asset-alert-error">{error}</div>}
           
-          <div className="asset-alert" style={{ backgroundColor: "#eff6ff", color: "#1e3a8a", border: "1px solid #bfdbfe" }}>
+          <div className="asset-alert asset-alert-info">
             Anda akan meminjam: <strong>{asset.assetName}</strong> ({asset.assetCode})
           </div>
 
-          <form id="borrowing-form" onSubmit={handleSubmit} style={{ marginTop: "1rem" }}>
+          <form id="borrowing-form" onSubmit={handleSubmit} className="asset-form-group">
             <div className="asset-form-group">
               <label>Tanggal Mulai Pinjam *</label>
               <input

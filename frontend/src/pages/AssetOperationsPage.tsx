@@ -19,7 +19,7 @@ export const AssetOperationsPage: React.FC = () => {
   const navigate = useNavigate();
   
   const canApprove = hasPermission("asset.borrow.approve");
-  const canManageOperations = hasPermission("asset.borrow.handover") || hasPermission("asset.borrow.verify_return");
+  const canManageOperations = hasPermission("asset.borrow.handover") || hasPermission("asset.return.verify");
 
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
