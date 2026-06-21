@@ -18,6 +18,11 @@ import { OrganizationAdminPage } from "./pages/OrganizationAdminPage";
 import { DivisionTasksPage } from "./pages/DivisionTasksPage";
 import { DivisionTaskDetailPage } from "./pages/DivisionTaskDetailPage";
 import { ArchivePage } from "./pages/ArchivePage";
+import { AssetDirectoryPage } from "./pages/AssetDirectoryPage";
+import { AssetDetailPage } from "./pages/AssetDetailPage";
+import { MyBorrowingsPage } from "./pages/MyBorrowingsPage";
+import { AssetOperationsPage } from "./pages/AssetOperationsPage";
+import { AssetBorrowingDetailPage } from "./pages/AssetBorrowingDetailPage";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { PublicHomePage } from "./pages/public/PublicHomePage";
 import { PublicAboutPage } from "./pages/public/PublicAboutPage";
@@ -92,6 +97,23 @@ function App() {
           <Route element={<PermissionRoute anyOf={["division.task.read"]} />}>
             <Route path="/division-tasks" element={<DivisionTasksPage />} />
             <Route path="/division-tasks/:id" element={<DivisionTaskDetailPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["asset.read"]} />}>
+            <Route path="/assets" element={<AssetDirectoryPage />} />
+            <Route path="/assets/:id" element={<AssetDetailPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["asset.borrow.read.own"]} />}>
+            <Route path="/my-borrowings" element={<MyBorrowingsPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["asset.borrow.read.all"]} />}>
+            <Route path="/asset-operations" element={<AssetOperationsPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["asset.borrow.read.own", "asset.borrow.read.all"]} />}>
+            <Route path="/asset-borrowings/:id" element={<AssetBorrowingDetailPage />} />
           </Route>
         </Route>
       </Route>

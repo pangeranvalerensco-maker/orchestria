@@ -57,6 +57,19 @@ export function AppLayout() {
             </div>
           )}
 
+          {hasPermission("asset.read") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Aset Organisasi</span>
+              <NavLink to="/assets" className={navClass}>Katalog Aset</NavLink>
+              {hasPermission("asset.borrow.read.own") && (
+                <NavLink to="/my-borrowings" className={navClass}>Peminjaman Saya</NavLink>
+              )}
+              {hasPermission("asset.borrow.read.all") && (
+                <NavLink to="/asset-operations" className={navClass}>Operasional Aset</NavLink>
+              )}
+            </div>
+          )}
+
           {hasPermission("archive.manage") && (
             <div className="nav-group">
               <span className="nav-group-title">Administrasi</span>

@@ -4,6 +4,7 @@ import { useAuth } from "../auth/useAuth";
 import { getMyRequests, getPendingApprovals } from "../services/requestService";
 import { getReadyForDisbursement } from "../services/financeService";
 import divisionTaskService from "../services/divisionTaskService";
+import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -15,6 +16,9 @@ export function DashboardPage() {
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | null>(null);
   const [readyDisburseCount, setReadyDisburseCount] = useState<number | null>(null);
   const [activeTasksCount, setActiveTasksCount] = useState<number | null>(null);
+  
+  const [activeBorrowingsCount, setActiveBorrowingsCount] = useState<number | null>(null);
+  const [requestedBorrowingsCount, setRequestedBorrowingsCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -29,6 +33,9 @@ export function DashboardPage() {
   const canReadReports = hasPermission("request.read.all");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
   const canReadTasks = hasPermission("division.task.read") || hasPermission("division.task.manage");
+  const canReadAssets = hasPermission("asset.read");
+  const canReadOwnBorrowing = hasPermission("asset.borrow.read.own");
+  const canManageBorrowing = hasPermission("asset.borrow.read.all");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -83,6 +90,32 @@ export function DashboardPage() {
         );
       }
 
+      if (canReadOwnBorrowing && token) {
+        promises.push(
+          getMyBorrowings(token, undefined, 0, 1000).then((res) => {
+            if (res && res.content) {
+              const active = res.content.filter(b => 
+                b.status === "REQUESTED" || 
+                b.status === "APPROVED" || 
+                b.status === "BORROWED" || 
+                b.status === "RETURN_REQUESTED"
+              );
+              setActiveBorrowingsCount(active.length);
+            }
+          })
+        );
+      }
+
+      if (canManageBorrowing && token) {
+        promises.push(
+          getAllBorrowings(token, "REQUESTED", undefined, undefined, 0, 1).then((res) => {
+            if (res) {
+              setRequestedBorrowingsCount(res.totalElements);
+            }
+          })
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -93,7 +126,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -176,6 +209,22 @@ export function DashboardPage() {
           </div>
         )}
 
+        {canReadOwnBorrowing && (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Peminjaman Aktif Saya</span>
+            <strong className="stat-value">{renderCount(activeBorrowingsCount)}</strong>
+            <Link to="/my-borrowings" className="stat-link">Lihat Detail &rarr;</Link>
+          </div>
+        )}
+
+        {canManageBorrowing && (
+          <div className="dashboard-card stat-card stat-warning">
+            <span className="stat-label">Request Aset Baru</span>
+            <strong className="stat-value">{renderCount(requestedBorrowingsCount)}</strong>
+            <Link to="/asset-operations" className="stat-link">Proses Request &rarr;</Link>
+          </div>
+        )}
+
         {canManageArchive && (
           <div className="dashboard-card stat-card stat-neutral">
             <span className="stat-label">Arsip Dokumen</span>
@@ -197,6 +246,14 @@ export function DashboardPage() {
             <span className="stat-label">Laporan Global</span>
             <strong className="stat-value">📊</strong>
             <Link to="/reports" className="stat-link">Buka Laporan &rarr;</Link>
+          </div>
+        )}
+
+        {canReadAssets && (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Katalog Aset</span>
+            <strong className="stat-value">📦</strong>
+            <Link to="/assets" className="stat-link">Lihat Aset &rarr;</Link>
           </div>
         )}
       </section>
@@ -248,6 +305,9 @@ export function DashboardPage() {
               {canReadOrganization && <Link to="/organization" className="quick-action-btn">👥 Direktori Organisasi</Link>}
               {canManageOrganization && <Link to="/admin/organization" className="quick-action-btn">⚙️ Kelola Organisasi</Link>}
               {canReadReports && <Link to="/reports" className="quick-action-btn">📊 Buka Laporan</Link>}
+              {canReadAssets && <Link to="/assets" className="quick-action-btn">📦 Katalog Aset</Link>}
+              {canReadOwnBorrowing && <Link to="/my-borrowings" className="quick-action-btn">🔄 Peminjaman Saya</Link>}
+              {canManageBorrowing && <Link to="/asset-operations" className="quick-action-btn">🛠️ Operasional Aset</Link>}
             </div>
           </section>
 
