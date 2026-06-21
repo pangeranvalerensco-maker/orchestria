@@ -70,6 +70,16 @@ export function AppLayout() {
             </div>
           )}
 
+          {hasPermission("cleanliness.schedule.read") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Kebersihan</span>
+              <NavLink to="/picket-schedules" className={navClass}>Jadwal Piket</NavLink>
+              {hasPermission("cleanliness.report.read") && (
+                <NavLink to="/picket-reports" className={navClass}>Laporan Piket</NavLink>
+              )}
+            </div>
+          )}
+
           {hasPermission("archive.manage") && (
             <div className="nav-group">
               <span className="nav-group-title">Administrasi</span>
@@ -109,3 +119,4 @@ export function AppLayout() {
     </div>
   );
 }
+

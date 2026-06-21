@@ -28,6 +28,8 @@ import { PublicHomePage } from "./pages/public/PublicHomePage";
 import { PublicAboutPage } from "./pages/public/PublicAboutPage";
 import { PublicOrganizationPage } from "./pages/public/PublicOrganizationPage";
 import { PublicActivitiesPage } from "./pages/public/PublicActivitiesPage";
+import { PicketSchedulesPage } from "./pages/PicketSchedulesPage";
+import { PicketReportPage } from "./pages/PicketReportPage";
 import { useAuth } from "./auth/useAuth";
 
 function NotFoundRedirect() {
@@ -114,6 +116,12 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["asset.borrow.read.own", "asset.borrow.read.all"]} />}>
             <Route path="/asset-borrowings/:id" element={<AssetBorrowingDetailPage />} />
+          </Route>
+          <Route element={<PermissionRoute anyOf={["cleanliness.schedule.read"]} />}>
+            <Route path="/picket-schedules" element={<PicketSchedulesPage />} />
+          </Route>
+          <Route element={<PermissionRoute anyOf={["cleanliness.report.read"]} />}>
+            <Route path="/picket-reports" element={<PicketReportPage />} />
           </Route>
         </Route>
       </Route>
