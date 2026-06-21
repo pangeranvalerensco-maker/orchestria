@@ -29,6 +29,9 @@ export function DashboardPage() {
   const canReadReports = hasPermission("request.read.all");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
   const canReadTasks = hasPermission("division.task.read") || hasPermission("division.task.manage");
+  const canReadAssets = hasPermission("asset.read");
+  const canReadOwnBorrowing = hasPermission("asset.borrow.read.own");
+  const canManageBorrowing = hasPermission("asset.borrow.read.all");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -199,6 +202,14 @@ export function DashboardPage() {
             <Link to="/reports" className="stat-link">Buka Laporan &rarr;</Link>
           </div>
         )}
+
+        {canReadAssets && (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Katalog Aset</span>
+            <strong className="stat-value">📦</strong>
+            <Link to="/assets" className="stat-link">Lihat Aset &rarr;</Link>
+          </div>
+        )}
       </section>
 
       <div className="dashboard-main-grid">
@@ -248,6 +259,9 @@ export function DashboardPage() {
               {canReadOrganization && <Link to="/organization" className="quick-action-btn">👥 Direktori Organisasi</Link>}
               {canManageOrganization && <Link to="/admin/organization" className="quick-action-btn">⚙️ Kelola Organisasi</Link>}
               {canReadReports && <Link to="/reports" className="quick-action-btn">📊 Buka Laporan</Link>}
+              {canReadAssets && <Link to="/assets" className="quick-action-btn">📦 Katalog Aset</Link>}
+              {canReadOwnBorrowing && <Link to="/my-borrowings" className="quick-action-btn">🔄 Peminjaman Saya</Link>}
+              {canManageBorrowing && <Link to="/asset-operations" className="quick-action-btn">🛠️ Operasional Aset</Link>}
             </div>
           </section>
 

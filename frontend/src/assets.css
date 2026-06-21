@@ -1,0 +1,123 @@
+.asset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.asset-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 4px solid #e2e8f0;
+}
+
+.asset-card.AVAILABLE { border-top-color: #10b981; }
+.asset-card.RESERVED { border-top-color: #f59e0b; }
+.asset-card.BORROWED { border-top-color: #3b82f6; }
+.asset-card.MAINTENANCE { border-top-color: #8b5cf6; }
+.asset-card.LOST { border-top-color: #ef4444; }
+.asset-card.INACTIVE { border-top-color: #64748b; }
+
+.asset-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.asset-card-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.asset-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.asset-status.AVAILABLE { background: #d1fae5; color: #065f46; }
+.asset-status.RESERVED { background: #fef3c7; color: #92400e; }
+.asset-status.BORROWED { background: #dbeafe; color: #1e40af; }
+.asset-status.MAINTENANCE { background: #ede9fe; color: #5b21b6; }
+.asset-status.LOST { background: #fee2e2; color: #991b1b; }
+.asset-status.INACTIVE { background: #f1f5f9; color: #475569; }
+
+.asset-meta {
+  font-size: 0.875rem;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.asset-description {
+  font-size: 0.875rem;
+  color: #475569;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.asset-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 6px;
+  background-color: #f1f5f9;
+  margin-bottom: 0.5rem;
+}
+
+.asset-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.asset-btn-primary {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.asset-btn-primary:hover {
+  background: #2563eb;
+}
+
+.asset-btn-secondary {
+  background: white;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.asset-btn-secondary:hover {
+  background: #f8fafc;
+}
+
+.asset-btn-danger {
+  color: #ef4444;
+}
+
+.asset-btn-danger:hover {
+  background: #fef2f2;
+}
