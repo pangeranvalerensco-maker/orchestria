@@ -22,6 +22,7 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
     Page<Asset> findByActiveTrue(Pageable pageable);
 
     @Query("SELECT a FROM Asset a WHERE a.active = true " +
+            "AND a.currentStatus != com.pangeranvalerensco.orchestria.organization_service.entity.enums.AssetStatus.LOST " +
             "AND (:search IS NULL OR LOWER(a.assetCode) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.assetName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.category) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR a.currentStatus = :status) " +
             "AND (:condition IS NULL OR a.currentCondition = :condition)")
@@ -30,8 +31,8 @@ public interface AssetRepository extends JpaRepository<Asset, String> {
                                    @Param("condition") AssetCondition condition,
                                    Pageable pageable);
 
-    @Query("SELECT a FROM Asset a WHERE " +
-            "(:search IS NULL OR LOWER(a.assetCode) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.assetName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.category) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+    @Query("SELECT a FROM Asset a WHERE a.active = true " +
+            "AND (:search IS NULL OR LOWER(a.assetCode) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.assetName) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(a.category) LIKE LOWER(CONCAT('%', :search, '%'))) " +
             "AND (:status IS NULL OR a.currentStatus = :status) " +
             "AND (:condition IS NULL OR a.currentCondition = :condition)")
     Page<Asset> searchAllAssets(@Param("search") String search,

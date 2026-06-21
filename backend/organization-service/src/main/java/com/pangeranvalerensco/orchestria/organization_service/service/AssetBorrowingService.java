@@ -210,10 +210,12 @@ public class AssetBorrowingService {
 
         assetRepository.save(asset);
         
-        if (oldCondition != newCondition) {
+        if (oldCondition != newCondition || AssetStatus.RESERVED != AssetStatus.BORROWED) {
             AssetConditionHistory history = AssetConditionHistory.builder()
                     .asset(asset)
                     .borrowing(borrowing)
+                    .oldStatus(AssetStatus.RESERVED)
+                    .newStatus(AssetStatus.BORROWED)
                     .oldCondition(oldCondition)
                     .newCondition(newCondition)
                     .checkedByEmail(assetAccessService.getCurrentEmail())
@@ -284,6 +286,8 @@ public class AssetBorrowingService {
         AssetConditionHistory history = AssetConditionHistory.builder()
                 .asset(asset)
                 .borrowing(borrowing)
+                .oldStatus(AssetStatus.BORROWED)
+                .newStatus(asset.getCurrentStatus())
                 .oldCondition(oldCondition)
                 .newCondition(newCondition)
                 .checkedByEmail(assetAccessService.getCurrentEmail())

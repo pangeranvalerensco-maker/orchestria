@@ -1,6 +1,7 @@
 package com.pangeranvalerensco.orchestria.organization_service.entity;
 
 import com.pangeranvalerensco.orchestria.organization_service.entity.enums.AssetCondition;
+import com.pangeranvalerensco.orchestria.organization_service.entity.enums.AssetStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -27,6 +28,13 @@ public class AssetConditionHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "borrowing_id")
     private AssetBorrowing borrowing;
+
+    @Enumerated(EnumType.STRING)
+    private AssetStatus oldStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AssetStatus newStatus;
 
     @Enumerated(EnumType.STRING)
     private AssetCondition oldCondition;

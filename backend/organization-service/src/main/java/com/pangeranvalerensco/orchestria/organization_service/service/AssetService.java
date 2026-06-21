@@ -54,10 +54,10 @@ public class AssetService {
     }
 
     public AssetResponse getAssetById(String id) {
-        Asset asset = assetRepository.findById(id)
+        Asset asset = assetRepository.findByIdAndActiveTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan."));
 
-        if (!asset.isActive() && !hasManagePermission()) {
+        if (asset.getCurrentStatus() == AssetStatus.LOST && !hasManagePermission()) {
             throw new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan.");
         }
 
@@ -153,6 +153,7 @@ public class AssetService {
             throw new BadRequestException("Perubahan ke MAINTENANCE/LOST harus menyertakan catatan (note).");
         }
 
+        AssetStatus oldStatus = asset.getCurrentStatus();
         AssetCondition oldCondition = asset.getCurrentCondition();
 
         asset.setCurrentStatus(newStatus);
@@ -173,9 +174,11 @@ public class AssetService {
         asset = assetRepository.save(asset);
 
         // create condition history only if condition changed or status changed
-        if (oldCondition != newCondition || request.newStatus() != asset.getCurrentStatus() || request.note() != null) {
+        if (oldCondition != newCondition || request.newStatus() != oldStatus || request.note() != null) {
             AssetConditionHistory history = AssetConditionHistory.builder()
                     .asset(asset)
+                    .oldStatus(oldStatus)
+                    .newStatus(request.newStatus())
                     .oldCondition(oldCondition)
                     .newCondition(newCondition)
                     .checkedByEmail(assetAccessService.getCurrentEmail())
@@ -189,9 +192,8 @@ public class AssetService {
     }
 
     public List<ConditionHistoryResponse> getConditionHistories(String id) {
-        if (!assetRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan.");
-        }
+        Asset asset = assetRepository.findByIdAndActiveTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Aset atau peminjaman tidak ditemukan."));
 
         return assetConditionHistoryRepository.findByAssetIdOrderByCreatedAtDesc(id).stream()
                 .map(this::mapHistoryToResponse)
@@ -236,6 +238,8 @@ public class AssetService {
                 history.getId(),
                 history.getAsset().getId(),
                 history.getBorrowing() != null ? history.getBorrowing().getId() : null,
+                history.getOldStatus(),
+                history.getNewStatus(),
                 history.getOldCondition(),
                 history.getNewCondition(),
                 history.getCheckedByEmail(),
