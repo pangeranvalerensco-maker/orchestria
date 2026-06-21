@@ -33,8 +33,12 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
 
-  const isGlobalManager = user?.roles.includes("ROLE_SUPER_ADMIN") || user?.roles.includes("ROLE_KETUA_PUB");
-  const isKetuaDivisi = user?.roles.includes("ROLE_KETUA_DIVISI");
+  const isGlobalManager =
+    user?.roles.includes("SUPER_ADMIN") ||
+    user?.roles.includes("KETUA_PUB");
+
+  const isKetuaDivisi =
+    user?.roles.includes("KETUA_DIVISI");
 
   useEffect(() => {
     async function initForm() {
@@ -42,30 +46,31 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
       try {
         setLoadingContext(true);
 
-        const promises: Promise<any>[] = [
+        const [divsRes, periodRes] = await Promise.all([
           getDivisions(token),
-          getCurrentPeriod(token)
-        ];
+          getCurrentPeriod(token),
+        ]);
+
+        let allowedDivisions = divsRes.data ?? [];
 
         if (isKetuaDivisi && !isGlobalManager) {
-          promises.push(getCurrentMemberContext(token));
+          const contextRes = await getCurrentMemberContext(token);
+
+          const managedDivisionIds =
+            contextRes.data?.activeAssignments
+              .filter(
+                (assignment) =>
+                  assignment.status === "ACTIVE" &&
+                  assignment.periodId === periodRes.data?.id &&
+                  assignment.positionCode === "KETUA_DIVISI"
+              )
+              .map((assignment) => assignment.divisionId) ?? [];
+
+          allowedDivisions = allowedDivisions.filter(
+            (division) => managedDivisionIds.includes(division.id)
+          );
         }
 
-        const results = await Promise.all(promises);
-        const divsRes = results[0];
-        const periodRes = results[1];
-
-        let allowedDivisions = divsRes.data || [];
-        
-        if (!isGlobalManager && isKetuaDivisi) {
-           const contextRes = results[2];
-           const myAssignments = contextRes.data?.activeAssignments || [];
-           const managedDivIds = myAssignments
-             .filter((a: MemberAssignment) => a.status === "ACTIVE" && a.periodId === periodRes.data?.id && a.positionCode === "KETUA_DIVISI")
-             .map((a: MemberAssignment) => a.divisionId);
-           allowedDivisions = allowedDivisions.filter((d: DivisionResponse) => managedDivIds.includes(d.id));
-        }
-        
         setDivisions(allowedDivisions);
 
         if (initialData) {
@@ -105,7 +110,7 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
           setMembers(mRes.data?.filter(m => m.status === "ACTIVE") || []);
         }
       } catch (err: unknown) {
-        // fail silently or handle
+        setError("Daftar anggota divisi belum dapat dimuat.");
       }
     }
     loadMembers();

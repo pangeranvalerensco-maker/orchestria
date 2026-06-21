@@ -72,7 +72,11 @@ export function DashboardPage() {
         promises.push(
           divisionTaskService.getMyTasks(token).then((res) => {
             if (res.data) {
-              const activeTasks = res.data.filter((t: any) => t.status !== "DONE" && t.status !== "CANCELLED");
+              const activeTasks = res.data.filter(
+                (task) =>
+                  task.status !== "DONE" &&
+                  task.status !== "CANCELLED"
+              );
               setActiveTasksCount(activeTasks.length);
             }
           })
