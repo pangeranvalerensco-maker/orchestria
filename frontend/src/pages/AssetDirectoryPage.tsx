@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import { getAssets, deleteAsset } from "../services/assetService";
+import { useNavigate } from "react-router";
 import type { Asset, AssetStatus, AssetCondition } from "../types/asset";
 import { ApiError } from "../api/http";
 import "../assets.css";
@@ -9,6 +10,7 @@ import { BorrowingForm } from "../components/assets/BorrowingForm";
 
 export const AssetDirectoryPage: React.FC = () => {
   const { token, hasPermission } = useAuth();
+  const navigate = useNavigate();
   const isManager = hasPermission("asset.manage");
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -122,7 +124,7 @@ export const AssetDirectoryPage: React.FC = () => {
               <p className="asset-description">{asset.description}</p>
               
               <div className="asset-actions">
-                <button className="asset-btn-secondary" onClick={() => alert("Detail TODO")}>Detail</button>
+                <button className="asset-btn-secondary" onClick={() => navigate(`/assets/${asset.id}`)}>Detail</button>
                 {asset.currentStatus === "AVAILABLE" && hasPermission("asset.borrow.create") && (
                   <button className="asset-btn-primary" onClick={() => { setBorrowingAsset(asset); setIsBorrowFormOpen(true); }}>Pinjam</button>
                 )}

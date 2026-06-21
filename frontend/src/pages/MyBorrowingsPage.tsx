@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
-import { getMyBorrowings, cancelBorrowing, requestReturnAsset } from "../services/assetService";
+import { getMyBorrowings, requestReturnAsset } from "../services/assetService";
 import type { Borrowing, BorrowingStatus } from "../types/asset";
 import { ApiError } from "../api/http";
+import { AssetReturnForm } from "../components/assets/modals/AssetReturnForm";
+import { BorrowingCancelForm } from "../components/assets/modals/BorrowingCancelForm";
+import { useNavigate } from "react-router";
 
 export const MyBorrowingsPage: React.FC = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
   
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<BorrowingStatus | "">("");
+
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
+  const [returningId, setReturningId] = useState<string | null>(null);
 
   const fetchMyBorrowings = async () => {
     setIsLoading(true);
@@ -34,28 +41,19 @@ export const MyBorrowingsPage: React.FC = () => {
     fetchMyBorrowings();
   }, [filterStatus]);
 
-  const handleCancel = async (id: string) => {
-    const reason = prompt("Alasan pembatalan:");
-    if (!reason) return;
-    try {
-      if (!token) return;
-      await cancelBorrowing(token, id, { reason });
-      fetchMyBorrowings();
-    } catch (err) {
-      alert("Gagal membatalkan peminjaman.");
-    }
+  const handleCancelSuccess = () => {
+    setCancelingId(null);
+    fetchMyBorrowings();
   };
 
-  const handleReturn = async (id: string) => {
-    const note = prompt("Catatan pengembalian (opsional):");
-    if (note === null) return;
+  const handleReturnSuccess = async (data: any) => {
+    if (!returningId || !token) return;
     try {
-      if (!token) return;
-      // using empty returnProofUrl for simplicity in this frontend iteration
-      await requestReturnAsset(token, id, { returnProofUrl: "", note });
+      await requestReturnAsset(token, returningId, data);
+      setReturningId(null);
       fetchMyBorrowings();
     } catch (err) {
-      alert("Gagal mengajukan pengembalian.");
+      alert("Gagal mengajukan pengembalian");
     }
   };
 
@@ -115,11 +113,12 @@ export const MyBorrowingsPage: React.FC = () => {
                     </div>
                     <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 gap-2">
                       {borrowing.status === "REQUESTED" && (
-                        <button className="text-red-600 hover:text-red-900" onClick={() => handleCancel(borrowing.id)}>Batalkan</button>
+                        <button className="text-red-600 hover:text-red-900" onClick={() => setCancelingId(borrowing.id)}>Batalkan</button>
                       )}
                       {borrowing.status === "BORROWED" && (
-                        <button className="text-blue-600 hover:text-blue-900" onClick={() => handleReturn(borrowing.id)}>Ajukan Pengembalian</button>
+                        <button className="text-blue-600 hover:text-blue-900" onClick={() => setReturningId(borrowing.id)}>Ajukan Pengembalian</button>
                       )}
+                      <button className="text-blue-600 hover:text-blue-900" onClick={() => navigate(`/my-borrowings/${borrowing.id}`)}>Detail</button>
                     </div>
                   </div>
                   {borrowing.rejectionReason && (
@@ -135,6 +134,21 @@ export const MyBorrowingsPage: React.FC = () => {
             )}
           </ul>
         </div>
+      )}
+
+      {cancelingId && (
+        <BorrowingCancelForm
+          borrowingId={cancelingId}
+          onSuccess={handleCancelSuccess}
+          onClose={() => setCancelingId(null)}
+        />
+      )}
+
+      {returningId && (
+        <AssetReturnForm
+          onConfirm={handleReturnSuccess}
+          onCancel={() => setReturningId(null)}
+        />
       )}
     </div>
   );

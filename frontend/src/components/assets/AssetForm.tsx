@@ -22,7 +22,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
     description: "",
     currentCondition: "GOOD" as AssetCondition,
     location: "",
-    responsibleMemberId: "",
+    responsibleMemberId: undefined,
     imageUrl: ""
   });
   
@@ -37,8 +37,8 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
         category: initialData.category,
         description: initialData.description,
         currentCondition: initialData.currentCondition,
-        location: initialData.location,
-        responsibleMemberId: initialData.responsibleMemberId || "",
+        location: initialData.location || "",
+        responsibleMemberId: initialData.responsibleMemberId,
         imageUrl: initialData.imageUrl || ""
       });
     }
@@ -61,7 +61,11 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    let finalValue: any = value;
+    if (name === "responsibleMemberId") {
+      finalValue = value ? parseInt(value) : undefined;
+    }
+    setFormData(prev => ({ ...prev, [name]: finalValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +186,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Penanggung Jawab (Opsional)</label>
                 <select
                   name="responsibleMemberId"
-                  value={formData.responsibleMemberId}
+                  value={formData.responsibleMemberId || ""}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >

@@ -9,9 +9,14 @@ import {
 } from "../services/assetService";
 import type { Borrowing, BorrowingStatus, AssetCondition } from "../types/asset";
 import { ApiError } from "../api/http";
+import { BorrowingDecisionForm } from "../components/assets/modals/BorrowingDecisionForm";
+import { AssetHandoverForm } from "../components/assets/modals/AssetHandoverForm";
+import { ReturnVerificationForm } from "../components/assets/modals/ReturnVerificationForm";
+import { useNavigate } from "react-router";
 
 export const AssetOperationsPage: React.FC = () => {
   const { token, hasPermission } = useAuth();
+  const navigate = useNavigate();
   
   const canApprove = hasPermission("asset.borrow.approve");
   const canManageOperations = hasPermission("asset.borrow.handover") || hasPermission("asset.borrow.verify_return");
@@ -22,6 +27,10 @@ export const AssetOperationsPage: React.FC = () => {
   
   const [filterStatus, setFilterStatus] = useState<BorrowingStatus | "">("REQUESTED");
   const [search, setSearch] = useState("");
+
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [handoverData, setHandoverData] = useState<{id: string, condition: AssetCondition} | null>(null);
+  const [verifyReturnData, setVerifyReturnData] = useState<{id: string, condition: AssetCondition} | null>(null);
 
   const fetchBorrowings = async () => {
     setIsLoading(true);
@@ -59,43 +68,36 @@ export const AssetOperationsPage: React.FC = () => {
     }
   };
 
-  const handleReject = async (id: string) => {
-    const reason = prompt("Alasan penolakan:");
-    if (!reason) return;
+  const handleReject = async (reason: string) => {
+    if (!rejectingId) return;
     try {
       if (!token) return;
-      await rejectBorrowing(token, id, { reason });
+      await rejectBorrowing(token, rejectingId, { reason });
+      setRejectingId(null);
       fetchBorrowings();
     } catch (err) {
       alert("Gagal menolak peminjaman.");
     }
   };
 
-  const handleHandover = async (id: string, condition: AssetCondition) => {
-    if (!window.confirm("Konfirmasi serah terima aset ke peminjam?")) return;
+  const handleHandover = async (data: any) => {
+    if (!handoverData) return;
     try {
       if (!token) return;
-      // In a real flow, a modal should ask for conditionBefore and handoverProofUrl.
-      // For this implementation, we assume condition remains the same and proof is omitted for simplicity.
-      await handoverAsset(token, id, { conditionBefore: condition, handoverProofUrl: "", note: "Diserahkan." });
+      await handoverAsset(token, handoverData.id, data);
+      setHandoverData(null);
       fetchBorrowings();
     } catch (err) {
       alert("Gagal mencatat serah terima.");
     }
   };
 
-  const handleVerifyReturn = async (id: string, condition: AssetCondition) => {
-    const newConditionStr = prompt(`Kondisi saat kembali (GOOD, MINOR_DAMAGE, DAMAGED, UNKNOWN)\nKondisi sebelum: ${condition}`, condition);
-    if (!newConditionStr) return;
-    
-    if (!["GOOD", "MINOR_DAMAGE", "DAMAGED", "UNKNOWN"].includes(newConditionStr)) {
-      alert("Input kondisi tidak valid.");
-      return;
-    }
-
+  const handleVerifyReturn = async (data: any) => {
+    if (!verifyReturnData) return;
     try {
       if (!token) return;
-      await verifyReturnAsset(token, id, { conditionAfter: newConditionStr as AssetCondition, note: "Pengembalian diverifikasi." });
+      await verifyReturnAsset(token, verifyReturnData.id, data);
+      setVerifyReturnData(null);
       fetchBorrowings();
     } catch (err) {
       alert("Gagal memverifikasi pengembalian.");
@@ -158,15 +160,16 @@ export const AssetOperationsPage: React.FC = () => {
                         {borrowing.status === "REQUESTED" && canApprove && (
                           <>
                             <button className="text-sm text-blue-600 hover:text-blue-900 font-semibold" onClick={() => handleApprove(borrowing.id)}>Setujui</button>
-                            <button className="text-sm text-red-600 hover:text-red-900 font-semibold" onClick={() => handleReject(borrowing.id)}>Tolak</button>
+                            <button className="text-sm text-red-600 hover:text-red-900 font-semibold" onClick={() => setRejectingId(borrowing.id)}>Tolak</button>
                           </>
                         )}
                         {borrowing.status === "APPROVED" && canManageOperations && (
-                          <button className="text-sm text-purple-600 hover:text-purple-900 font-semibold bg-purple-50 px-2 py-1 rounded border border-purple-200" onClick={() => handleHandover(borrowing.id, borrowing.asset.currentCondition)}>Serahkan Aset</button>
+                          <button className="text-sm text-purple-600 hover:text-purple-900 font-semibold bg-purple-50 px-2 py-1 rounded border border-purple-200" onClick={() => setHandoverData({ id: borrowing.id, condition: borrowing.asset.currentCondition })}>Serahkan Aset</button>
                         )}
                         {borrowing.status === "RETURN_REQUESTED" && canManageOperations && (
-                          <button className="text-sm text-green-600 hover:text-green-900 font-semibold bg-green-50 px-2 py-1 rounded border border-green-200" onClick={() => handleVerifyReturn(borrowing.id, borrowing.asset.currentCondition)}>Verifikasi Pengembalian</button>
+                          <button className="text-sm text-green-600 hover:text-green-900 font-semibold bg-green-50 px-2 py-1 rounded border border-green-200" onClick={() => setVerifyReturnData({ id: borrowing.id, condition: borrowing.asset.currentCondition })}>Verifikasi Pengembalian</button>
                         )}
+                        <button className="text-sm text-blue-600 hover:text-blue-900 font-semibold" onClick={() => navigate(`/asset-operations/${borrowing.id}`)}>Detail</button>
                       </div>
                     </div>
                   </div>
@@ -178,6 +181,30 @@ export const AssetOperationsPage: React.FC = () => {
             )}
           </ul>
         </div>
+      )}
+
+      {rejectingId && (
+        <BorrowingDecisionForm
+          actionLabel="Tolak Permohonan"
+          onConfirm={handleReject}
+          onCancel={() => setRejectingId(null)}
+        />
+      )}
+
+      {handoverData && (
+        <AssetHandoverForm
+          initialCondition={handoverData.condition}
+          onConfirm={handleHandover}
+          onCancel={() => setHandoverData(null)}
+        />
+      )}
+
+      {verifyReturnData && (
+        <ReturnVerificationForm
+          initialCondition={verifyReturnData.condition}
+          onConfirm={handleVerifyReturn}
+          onCancel={() => setVerifyReturnData(null)}
+        />
       )}
     </div>
   );
