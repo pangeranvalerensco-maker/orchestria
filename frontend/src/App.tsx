@@ -15,6 +15,8 @@ import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { OrganizationDirectoryPage } from "./pages/OrganizationDirectoryPage";
 import { OrganizationAdminPage } from "./pages/OrganizationAdminPage";
+import { DivisionTasksPage } from "./pages/DivisionTasksPage";
+import { DivisionTaskDetailPage } from "./pages/DivisionTaskDetailPage";
 import { ArchivePage } from "./pages/ArchivePage";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { PublicHomePage } from "./pages/public/PublicHomePage";
@@ -85,6 +87,11 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["organization.manage"]} />}>
             <Route path="/admin/organization" element={<OrganizationAdminPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["division.task.manage", "division.task.read"]} />}>
+            <Route path="/division/tasks" element={<DivisionTasksPage />} />
+            <Route path="/division/tasks/:id" element={<DivisionTaskDetailPage />} />
           </Route>
         </Route>
       </Route>

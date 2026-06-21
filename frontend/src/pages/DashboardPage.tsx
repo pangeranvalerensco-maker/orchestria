@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useAuth } from "../auth/useAuth";
 import { getMyRequests, getPendingApprovals } from "../services/requestService";
 import { getReadyForDisbursement } from "../services/financeService";
+import divisionTaskService from "../services/divisionTaskService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -13,6 +14,7 @@ export function DashboardPage() {
   
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | null>(null);
   const [readyDisburseCount, setReadyDisburseCount] = useState<number | null>(null);
+  const [activeTasksCount, setActiveTasksCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -26,6 +28,7 @@ export function DashboardPage() {
   const canManageOrganization = hasPermission("organization.manage");
   const canReadReports = hasPermission("request.read.all");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
+  const canReadTasks = hasPermission("division.task.read") || hasPermission("division.task.manage");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -65,6 +68,17 @@ export function DashboardPage() {
         );
       }
 
+      if (canReadTasks && token) {
+        promises.push(
+          divisionTaskService.getMyTasks(token).then((res) => {
+            if (res.data) {
+              const activeTasks = res.data.filter((t: any) => t.status !== "DONE" && t.status !== "CANCELLED");
+              setActiveTasksCount(activeTasks.length);
+            }
+          })
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -75,7 +89,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -147,6 +161,14 @@ export function DashboardPage() {
             <span className="stat-label">Siap Cair</span>
             <strong className="stat-value">{renderCount(readyDisburseCount)}</strong>
             <Link to="/finance/disbursements" className="stat-link">Menu Pencairan &rarr;</Link>
+          </div>
+        )}
+
+        {canReadTasks && (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Tugas Aktif Saya</span>
+            <strong className="stat-value">{renderCount(activeTasksCount)}</strong>
+            <Link to="/division/tasks" className="stat-link">Lihat Tugas &rarr;</Link>
           </div>
         )}
 
