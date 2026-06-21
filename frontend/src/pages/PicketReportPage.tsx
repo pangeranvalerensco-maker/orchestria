@@ -7,16 +7,18 @@ export function PicketReportPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<ReportSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     async function loadData() {
       if (!token) return;
       try {
         setIsLoading(true);
+        setErrorMessage("");
         const data = await getReportSummary(token);
         setSummary(data);
-      } catch (err) {
-        console.error(err);
+      } catch (err: unknown) {
+        setErrorMessage("Gagal memuat laporan.");
       } finally {
         setIsLoading(false);
       }
@@ -32,10 +34,10 @@ export function PicketReportPage() {
     );
   }
 
-  if (!summary) {
+  if (errorMessage || !summary) {
     return (
       <div className="picket-page">
-        <div className="picket-card"><p>Gagal memuat laporan.</p></div>
+        <div className="picket-card"><p className="picket-text-error">{errorMessage || "Gagal memuat laporan."}</p></div>
       </div>
     );
   }
@@ -55,19 +57,19 @@ export function PicketReportPage() {
           <span className="picket-stat-value">{summary.completedSchedules} / {summary.totalSchedules}</span>
         </div>
         <div className="picket-stat-card">
-          <span className="picket-stat-title">Kehadiran (Hadir / Total)</span>
-          <span className="picket-stat-value">{summary.presentCount} / {summary.totalAttendances}</span>
+          <span className="picket-stat-title">Kehadiran (Hadir / Alpa / Izin)</span>
+          <span className="picket-stat-value">{summary.presentCount} / {summary.absentCount} / {summary.excusedCount}</span>
         </div>
         <div className="picket-stat-card">
           <span className="picket-stat-title">Total Poin Keseluruhan</span>
-          <span className="picket-stat-value" style={{ color: summary.netPoints >= 0 ? "#059669" : "#DC2626" }}>
+          <span className={`picket-stat-value ${summary.netPoints >= 0 ? "picket-text-success" : "picket-text-error"}`}>
             {summary.netPoints > 0 ? "+" : ""}{summary.netPoints}
           </span>
         </div>
       </div>
 
-      <div className="picket-card" style={{ marginTop: "1rem" }}>
-        <h3 style={{ marginBottom: "1rem" }}>Leaderboard Poin</h3>
+      <div className="picket-card picket-mt-4">
+        <h3 className="picket-card-title picket-mb-4">Leaderboard Poin</h3>
         <div className="picket-table-wrapper">
           <table className="picket-table">
             <thead>
@@ -82,7 +84,7 @@ export function PicketReportPage() {
             <tbody>
               {summary.memberLeaderboard.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="picket-empty" style={{ textAlign: "center", padding: "2rem" }}>
+                  <td colSpan={5} className="picket-empty picket-text-center picket-p-8">
                     Belum ada data poin
                   </td>
                 </tr>
@@ -95,9 +97,9 @@ export function PicketReportPage() {
                       {index === 2 && "🥉 "}
                       {index > 2 && `${index + 1}`}
                     </td>
-                    <td style={{ fontWeight: 500 }}>{m.memberName}</td>
-                    <td style={{ color: "#059669" }}>+{m.totalRewardPoints}</td>
-                    <td style={{ color: "#DC2626" }}>-{m.totalViolationPoints}</td>
+                    <td className="picket-font-medium">{m.memberName}</td>
+                    <td className="picket-text-success">+{m.totalRewardPoints}</td>
+                    <td className="picket-text-error">-{m.totalViolationPoints}</td>
                     <td>
                       <span className={`picket-badge ${m.netPoints > 0 ? "picket-badge-green" : m.netPoints < 0 ? "picket-badge-red" : "picket-badge-gray"}`}>
                         {m.netPoints > 0 ? "+" : ""}{m.netPoints}

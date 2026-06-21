@@ -24,6 +24,9 @@ export function PicketSchedulesPage() {
   const [members, setMembers] = useState<MemberResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   // Permissions
   const canManageSchedule = hasPermission("cleanliness.schedule.manage");
   const canCreateAttendance = hasPermission("cleanliness.attendance.create");
@@ -47,6 +50,7 @@ export function PicketSchedulesPage() {
   // Attendance & Points State
   const [attendanceFormOpen, setAttendanceFormOpen] = useState<{assignmentId: string, scheduleId: string} | null>(null);
   const [attendanceNote, setAttendanceNote] = useState("");
+  const [attendanceEvidenceUrl, setAttendanceEvidenceUrl] = useState("");
   const [attendanceStatus, setAttendanceStatus] = useState<"PRESENT" | "ABSENT" | "EXCUSED">("PRESENT");
 
   const [pointFormOpen, setPointFormOpen] = useState<{memberId: number, scheduleId: string} | null>(null);
@@ -65,6 +69,7 @@ export function PicketSchedulesPage() {
     if (!token) return;
     try {
       setIsLoading(true);
+      setErrorMessage("");
       if (canManageSchedule) {
         const data = await getSchedules(token);
         setSchedules(data);
@@ -72,8 +77,8 @@ export function PicketSchedulesPage() {
         const data = await getMySchedules(token);
         setSchedules(data);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      setErrorMessage("Gagal memuat jadwal piket.");
     } finally {
       setIsLoading(false);
     }
@@ -84,12 +89,14 @@ export function PicketSchedulesPage() {
     try {
       const res = await getMembers(token);
       setMembers(res.data);
-    } catch (err) {
-      console.error(err);
+    } catch (err: unknown) {
+      setErrorMessage("Gagal memuat daftar anggota.");
     }
   }
 
   const handleOpenForm = (schedule?: CleanlinessSchedule) => {
+    setErrorMessage("");
+    setSuccessMessage("");
     if (schedule) {
       setFormData({
         title: schedule.title,
@@ -126,6 +133,8 @@ export function PicketSchedulesPage() {
   const handleSubmitSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    setErrorMessage("");
+    setSuccessMessage("");
     try {
       const request: ScheduleRequest = {
         title: formData.title || "",
@@ -140,35 +149,43 @@ export function PicketSchedulesPage() {
 
       if (selectedSchedule) {
         await updateSchedule(selectedSchedule.id, request, token);
+        setSuccessMessage("Jadwal berhasil diperbarui.");
       } else {
         await createSchedule(request, token);
+        setSuccessMessage("Jadwal berhasil dibuat.");
       }
       handleCloseForm();
       loadData();
-    } catch (err) {
-      console.error("Gagal menyimpan jadwal", err);
+    } catch (err: unknown) {
+      setErrorMessage("Gagal menyimpan jadwal.");
     }
   };
 
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !attendanceFormOpen) return;
+    setErrorMessage("");
+    setSuccessMessage("");
     try {
       const req: AttendanceRequest = {
         status: attendanceStatus,
-        notes: attendanceNote,
+        note: attendanceNote,
+        evidenceUrl: attendanceEvidenceUrl,
       };
       await recordAttendance(attendanceFormOpen.assignmentId, req, token);
       setAttendanceFormOpen(null);
+      setSuccessMessage("Presensi berhasil dicatat.");
       loadData();
-    } catch (err) {
-      console.error("Gagal presensi", err);
+    } catch (err: unknown) {
+      setErrorMessage("Gagal menyimpan presensi.");
     }
   };
 
   const handleSubmitPoint = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !pointFormOpen) return;
+    setErrorMessage("");
+    setSuccessMessage("");
     try {
       const req: PointRequest = {
         memberId: pointFormOpen.memberId,
@@ -179,10 +196,10 @@ export function PicketSchedulesPage() {
       };
       await createPointRecord(req, token);
       setPointFormOpen(null);
+      setSuccessMessage("Poin berhasil ditambahkan.");
       loadData();
-      alert("Poin berhasil ditambahkan!");
-    } catch (err) {
-      console.error("Gagal tambah poin", err);
+    } catch (err: unknown) {
+      setErrorMessage("Gagal menambahkan poin.");
     }
   };
 
@@ -214,6 +231,18 @@ export function PicketSchedulesPage() {
         )}
       </div>
 
+      {errorMessage && (
+        <div className="picket-alert picket-alert-error">
+          {errorMessage}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="picket-alert picket-alert-success">
+          {successMessage}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="picket-card"><p>Memuat jadwal...</p></div>
       ) : schedules.length === 0 ? (
@@ -222,44 +251,42 @@ export function PicketSchedulesPage() {
         <div className="picket-grid">
           {schedules.map(schedule => (
             <div key={schedule.id} className="picket-card">
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-                <h3 style={{ margin: 0, fontSize: "1.125rem", color: "#111827" }}>{schedule.title}</h3>
+              <div className="picket-card-header">
+                <h3 className="picket-card-title">{schedule.title}</h3>
                 {getStatusBadge(schedule.status)}
               </div>
-              <p style={{ fontSize: "0.875rem", color: "#4B5563", marginBottom: "0.5rem" }}>
+              <p className="picket-card-meta">
                 <strong>📅 Tanggal:</strong> {schedule.dutyDate} <br/>
                 <strong>🕒 Waktu:</strong> {schedule.startTime} - {schedule.endTime} <br/>
                 <strong>📍 Lokasi:</strong> {schedule.location}
               </p>
               {schedule.description && (
-                <p style={{ fontSize: "0.875rem", color: "#6B7280", fontStyle: "italic", marginBottom: "1rem" }}>
+                <p className="picket-card-description">
                   "{schedule.description}"
                 </p>
               )}
 
-              <div style={{ marginTop: "1rem" }}>
-                <h4 style={{ fontSize: "0.875rem", fontWeight: 600, color: "#111827", marginBottom: "0.5rem" }}>Petugas ({schedule.assignments.length}):</h4>
-                <ul style={{ listStyleType: "none", padding: 0, margin: 0 }}>
+              <div className="picket-assignment-section">
+                <h4>Petugas ({schedule.assignments.length}):</h4>
+                <ul className="picket-assignment-list">
                   {schedule.assignments.map(assign => {
                     const isMyAssignment = user?.email === assign.memberEmail;
                     return (
-                      <li key={assign.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0", borderBottom: "1px solid #E5E7EB" }}>
-                        <span style={{ fontSize: "0.875rem" }}>
+                      <li key={assign.id} className="picket-assignment-item">
+                        <span>
                           {assign.memberName} {isMyAssignment && "(Saya)"}
                         </span>
-                        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                        <div className="picket-assignment-actions">
                           {getStatusBadge(assign.attendanceStatus)}
                           
-                          {/* Presensi Action */}
                           {canCreateAttendance && isMyAssignment && assign.attendanceStatus === "PENDING" && schedule.status === "PUBLISHED" && (
-                            <button className="picket-btn picket-btn-primary" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setAttendanceFormOpen({assignmentId: assign.id, scheduleId: schedule.id})}>
+                            <button className="picket-btn picket-btn-primary picket-small-button" onClick={() => setAttendanceFormOpen({assignmentId: assign.id, scheduleId: schedule.id})}>
                               Isi Presensi
                             </button>
                           )}
 
-                          {/* Beri Poin Action */}
                           {canManagePoints && schedule.status === "COMPLETED" && (
-                            <button className="picket-btn picket-btn-secondary" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => setPointFormOpen({memberId: assign.memberId, scheduleId: schedule.id})}>
+                            <button className="picket-btn picket-btn-secondary picket-small-button" onClick={() => setPointFormOpen({memberId: assign.memberId, scheduleId: schedule.id})}>
                               Beri Poin
                             </button>
                           )}
@@ -271,7 +298,7 @@ export function PicketSchedulesPage() {
               </div>
 
               {canManageSchedule && (
-                <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                <div className="picket-inline-actions">
                   <button className="picket-btn picket-btn-secondary" onClick={() => handleOpenForm(schedule)}>
                     Edit Jadwal
                   </button>
@@ -296,7 +323,7 @@ export function PicketSchedulesPage() {
                   <label>Judul Piket</label>
                   <input type="text" className="picket-form-input" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="picket-form-grid">
                   <div className="picket-form-group">
                     <label>Tanggal</label>
                     <input type="date" className="picket-form-input" required value={formData.dutyDate} onChange={e => setFormData({...formData, dutyDate: e.target.value})} />
@@ -306,7 +333,7 @@ export function PicketSchedulesPage() {
                     <input type="text" className="picket-form-input" required value={formData.location} onChange={e => setFormData({...formData, location: e.target.value})} />
                   </div>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="picket-form-grid">
                   <div className="picket-form-group">
                     <label>Jam Mulai (HH:mm:ss)</label>
                     <input type="time" step="1" className="picket-form-input" required value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
@@ -327,7 +354,7 @@ export function PicketSchedulesPage() {
                 </div>
                 <div className="picket-form-group">
                   <label>Anggota Bertugas</label>
-                  <select multiple className="picket-form-input" style={{ height: "150px" }} value={formData.memberIds?.map(String)} onChange={e => {
+                  <select multiple className="picket-form-input picket-member-select" value={formData.memberIds?.map(String)} onChange={e => {
                     const ids = Array.from(e.target.selectedOptions, option => parseInt(option.value));
                     setFormData({...formData, memberIds: ids});
                   }}>
@@ -335,7 +362,7 @@ export function PicketSchedulesPage() {
                       <option key={m.id} value={m.id}>{m.fullName}</option>
                     ))}
                   </select>
-                  <small style={{ color: "#6B7280" }}>Tekan Ctrl (Windows) / Cmd (Mac) untuk memilih lebih dari satu.</small>
+                  <small className="picket-help-text">Tekan Ctrl (Windows) / Cmd (Mac) untuk memilih lebih dari satu.</small>
                 </div>
                 <div className="picket-form-group">
                   <label>Deskripsi / Instruksi</label>
@@ -354,7 +381,7 @@ export function PicketSchedulesPage() {
       {/* ATTENDANCE MODAL */}
       {attendanceFormOpen && (
         <div className="picket-modal-overlay">
-          <div className="picket-modal-content" style={{ maxWidth: "400px" }}>
+          <div className="picket-modal-content picket-modal-small">
             <div className="picket-modal-header">
               <h3>Isi Presensi</h3>
               <button className="picket-modal-close" onClick={() => setAttendanceFormOpen(null)}>✕</button>
@@ -363,7 +390,7 @@ export function PicketSchedulesPage() {
               <form id="attendance-form" onSubmit={handleSubmitAttendance}>
                 <div className="picket-form-group">
                   <label>Status Kehadiran</label>
-                  <select className="picket-form-input" value={attendanceStatus} onChange={e => setAttendanceStatus(e.target.value as any)}>
+                  <select className="picket-form-input" value={attendanceStatus} onChange={e => setAttendanceStatus(e.target.value as "PRESENT" | "ABSENT" | "EXCUSED")}>
                     <option value="PRESENT">Hadir</option>
                     <option value="EXCUSED">Izin</option>
                     <option value="ABSENT">Alpa</option>
@@ -371,7 +398,11 @@ export function PicketSchedulesPage() {
                 </div>
                 <div className="picket-form-group">
                   <label>Catatan (opsional)</label>
-                  <textarea className="picket-form-input" rows={3} value={attendanceNote} onChange={e => setAttendanceNote(e.target.value)}></textarea>
+                  <textarea className="picket-form-input" rows={2} value={attendanceNote} onChange={e => setAttendanceNote(e.target.value)}></textarea>
+                </div>
+                <div className="picket-form-group">
+                  <label>Bukti / Foto (URL)</label>
+                  <input type="text" className="picket-form-input" value={attendanceEvidenceUrl} onChange={e => setAttendanceEvidenceUrl(e.target.value)} />
                 </div>
               </form>
             </div>
@@ -386,7 +417,7 @@ export function PicketSchedulesPage() {
       {/* POINT MODAL */}
       {pointFormOpen && (
         <div className="picket-modal-overlay">
-          <div className="picket-modal-content" style={{ maxWidth: "400px" }}>
+          <div className="picket-modal-content picket-modal-small">
             <div className="picket-modal-header">
               <h3>Beri Poin / Pelanggaran</h3>
               <button className="picket-modal-close" onClick={() => setPointFormOpen(null)}>✕</button>
@@ -395,7 +426,7 @@ export function PicketSchedulesPage() {
               <form id="point-form" onSubmit={handleSubmitPoint}>
                 <div className="picket-form-group">
                   <label>Jenis</label>
-                  <select className="picket-form-input" value={pointType} onChange={e => setPointType(e.target.value as any)}>
+                  <select className="picket-form-input" value={pointType} onChange={e => setPointType(e.target.value as "REWARD" | "VIOLATION")}>
                     <option value="REWARD">Reward (Poin Positif)</option>
                     <option value="VIOLATION">Violation (Pelanggaran)</option>
                   </select>

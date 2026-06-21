@@ -10,9 +10,10 @@ export interface CleanlinessAssignment {
   memberName: string;
   memberEmail: string;
   attendanceStatus: AttendanceStatus;
-  notes?: string;
-  proofImageUrl?: string;
-  recordedAt?: string;
+  attendanceNote?: string;
+  evidenceUrl?: string;
+  attendedAt?: string;
+  recordedByEmail?: string;
 }
 
 export interface CleanlinessSchedule {
@@ -51,8 +52,9 @@ export interface MemberPointLeaderboard {
 
 export interface ReportSummary {
   totalSchedules: number;
+  publishedSchedules: number;
   completedSchedules: number;
-  totalAttendances: number;
+  pendingAttendances: number;
   presentCount: number;
   absentCount: number;
   excusedCount: number;
@@ -75,8 +77,8 @@ export interface ScheduleRequest {
 
 export interface AttendanceRequest {
   status: AttendanceStatus;
-  notes?: string;
-  proofImageUrl?: string;
+  note?: string;
+  evidenceUrl?: string;
 }
 
 export interface PointRequest {
