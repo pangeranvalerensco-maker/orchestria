@@ -11,8 +11,7 @@ export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 export const TaskPriority = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',
-  HIGH: 'HIGH',
-  CRITICAL: 'CRITICAL'
+  HIGH: 'HIGH'
 } as const;
 
 export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
@@ -36,7 +35,7 @@ export interface DivisionTask {
   assignedMemberEmail: string | null;
   title: string;
   description: string | null;
-  dueDate: string; // ISO Date
+  dueDate: string | null; // ISO Date
   status: TaskStatus;
   priority: TaskPriority;
   active: boolean;
@@ -46,12 +45,12 @@ export interface DivisionTask {
 
 export interface DivisionTaskRequest {
   divisionId: number;
-  assignedMemberId?: number;
+  assignedMemberId: number | null;
   title: string;
-  description?: string;
-  dueDate: string; // ISO Date YYYY-MM-DD
-  status?: TaskStatus;
-  priority?: TaskPriority;
+  description: string | null;
+  dueDate: string | null; // ISO Date YYYY-MM-DD
+  status: TaskStatus;
+  priority: TaskPriority;
 }
 
 export interface DivisionTaskEvidence {
@@ -66,17 +65,14 @@ export interface DivisionTaskEvidence {
   active: boolean;
   createdAt: string;
   updatedAt: string;
-  // Based on detail page usage:
-  content?: string;
+  submittedByMemberId: number | null;
 }
 
 export interface DivisionTaskEvidenceRequest {
   taskId: number;
-  type?: EvidenceType;
+  type: EvidenceType;
   title: string;
-  description?: string;
-  fileUrl?: string;
-  externalLink?: string;
-  // Based on detail page usage:
-  content?: string;
+  description: string | null;
+  fileUrl: string | null;
+  externalLink: string | null;
 }

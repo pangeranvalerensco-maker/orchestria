@@ -50,10 +50,10 @@ export function AppLayout() {
             </div>
           )}
 
-          {(hasPermission("division.task.manage") || hasPermission("division.task.read")) && (
+          {hasPermission("division.task.read") && (
             <div className="nav-group">
               <span className="nav-group-title">Aktivitas Divisi</span>
-              <NavLink to="/division/tasks" className={navClass}>Tugas Divisi</NavLink>
+              <NavLink to="/division-tasks" className={navClass}>Tugas Divisi</NavLink>
             </div>
           )}
 

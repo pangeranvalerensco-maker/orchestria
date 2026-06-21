@@ -20,6 +20,7 @@ public class DivisionTaskEvidenceResponse {
     private String description;
     private String fileUrl;
     private String externalLink;
+    private Long submittedByMemberId;
 
     private Boolean active;
 

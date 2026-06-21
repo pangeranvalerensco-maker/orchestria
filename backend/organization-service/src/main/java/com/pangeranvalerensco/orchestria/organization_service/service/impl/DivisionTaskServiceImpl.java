@@ -38,9 +38,18 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
 
     @Override
     public ApiResponse<List<DivisionTaskResponse>> getAllTasks() {
-        List<DivisionTaskResponse> tasks = taskRepository.findAll()
-                .stream()
+        if (!accessService.isGlobalManager() && !accessService.isKetuaDivisi()) {
+            throw new org.springframework.security.access.AccessDeniedException("Anda tidak memiliki akses manager.");
+        }
+
+        List<DivisionTask> allTasks = taskRepository.findAll();
+        List<DivisionTaskResponse> tasks = allTasks.stream()
                 .filter(DivisionTask::getActive)
+                .filter(task -> {
+                    if (accessService.isGlobalManager()) return true;
+                    List<Long> managed = accessService.getManagedDivisionIds();
+                    return managed != null && managed.contains(task.getDivision().getId());
+                })
                 .map(this::mapToResponse)
                 .toList();
 
@@ -53,6 +62,7 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
 
     @Override
     public ApiResponse<List<DivisionTaskResponse>> getTasksByDivision(Long divisionId) {
+        accessService.validateManagerAccess(divisionId);
         Division division = findDivisionById(divisionId);
 
         List<DivisionTaskResponse> tasks = taskRepository
@@ -75,6 +85,11 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         List<DivisionTaskResponse> tasks = taskRepository
                 .findByAssignedMemberAndActiveTrueOrderByDueDateAscCreatedAtDesc(member)
                 .stream()
+                .filter(task -> {
+                    if (accessService.isGlobalManager()) return true;
+                    List<Long> managed = accessService.getManagedDivisionIds();
+                    return managed != null && managed.contains(task.getDivision().getId());
+                })
                 .map(this::mapToResponse)
                 .toList();
 
@@ -90,6 +105,11 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         List<DivisionTaskResponse> tasks = taskRepository
                 .findByStatusAndActiveTrueOrderByDueDateAscCreatedAtDesc(status)
                 .stream()
+                .filter(task -> {
+                    if (accessService.isGlobalManager()) return true;
+                    List<Long> managed = accessService.getManagedDivisionIds();
+                    return managed != null && managed.contains(task.getDivision().getId());
+                })
                 .map(this::mapToResponse)
                 .toList();
 
@@ -103,6 +123,7 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
     @Override
     public ApiResponse<DivisionTaskResponse> getTaskById(Long id) {
         DivisionTask task = findTaskById(id);
+        accessService.validateTaskReadAccess(task);
 
         return ApiResponse.<DivisionTaskResponse>builder()
                 .success(true)
@@ -149,6 +170,10 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         accessService.validateManagerAccess(task.getDivision().getId());
         accessService.validateManagerAccess(request.getDivisionId());
 
+        if (task.getStatus() == TaskStatus.DONE || task.getStatus() == TaskStatus.CANCELLED) {
+            throw new BadRequestException("Tugas yang sudah DONE atau CANCELLED tidak dapat diubah");
+        }
+
         Division division = findDivisionById(request.getDivisionId());
         Member assignedMember = null;
 
@@ -179,6 +204,24 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         DivisionTask task = findTaskById(id);
         accessService.validateManagerAccess(task.getDivision().getId());
         
+        TaskStatus currentStatus = task.getStatus();
+        if (currentStatus == TaskStatus.DONE || currentStatus == TaskStatus.CANCELLED) {
+            throw new BadRequestException("Tugas yang sudah DONE atau CANCELLED tidak dapat diubah statusnya");
+        }
+        
+        boolean validTransition = false;
+        if (currentStatus == TaskStatus.TODO) {
+            validTransition = (status == TaskStatus.IN_PROGRESS || status == TaskStatus.CANCELLED);
+        } else if (currentStatus == TaskStatus.IN_PROGRESS) {
+            validTransition = (status == TaskStatus.SUBMITTED || status == TaskStatus.DONE || status == TaskStatus.CANCELLED);
+        } else if (currentStatus == TaskStatus.SUBMITTED) {
+            validTransition = (status == TaskStatus.IN_PROGRESS || status == TaskStatus.DONE || status == TaskStatus.CANCELLED);
+        }
+        
+        if (!validTransition && currentStatus != status) {
+            throw new BadRequestException("Transisi status tidak valid");
+        }
+
         task.setStatus(status);
 
         DivisionTask savedTask = taskRepository.save(task);

@@ -1,64 +1,183 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import React, { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "../auth/useAuth";
 import divisionTaskService from "../services/divisionTaskService";
+import { getDivisions } from "../services/organizationService";
 import type { DivisionTask } from "../types/divisionTask";
+import type { DivisionResponse } from "../types/organization";
+import { ApiError } from "../api/http";
+import { DivisionTaskForm } from "../components/division-tasks/DivisionTaskForm";
 
 export const DivisionTasksPage: React.FC = () => {
-  const { user, token } = useAuth();
-  const navigate = useNavigate();
+  const { token, hasPermission } = useAuth();
 
-  const isManager =
-    user?.permissions.includes("division.task.manage") ||
-    user?.roles.includes("ROLE_SUPER_ADMIN") ||
-    user?.roles.includes("ROLE_KETUA_PUB");
+  const isManager = hasPermission("division.task.manage");
 
-  const [activeTab, setActiveTab] = useState<"me" | "all">("me");
+  const [activeTab, setActiveTab] = useState<"me" | "manage">(isManager ? "manage" : "me");
   const [tasks, setTasks] = useState<DivisionTask[]>([]);
+  const [divisions, setDivisions] = useState<DivisionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<DivisionTask | null>(null);
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [filterDivision, setFilterDivision] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterPriority, setFilterPriority] = useState("");
+  const [filterOverdue, setFilterOverdue] = useState(false);
 
   const fetchTasks = async () => {
     setIsLoading(true);
     setError("");
     try {
       if (!token) return;
-      if (activeTab === "me") {
+      if (activeTab === "me" || !isManager) {
         const res = await divisionTaskService.getMyTasks(token);
         if (res.data) setTasks(res.data);
       } else {
-        if (user?.roles.includes("ROLE_SUPER_ADMIN") || user?.roles.includes("ROLE_KETUA_PUB")) {
-          const res = await divisionTaskService.getAllTasks(token);
-          if (res.data) setTasks(res.data);
-        } else {
-          // Manager (Ketua Divisi)
-          // We need divisionId. Wait, getTasksByDivision requires divisionId.
-          // But getTasksByDivision endpoint takes divisionId... what if we just use getAllTasks() but backend throws?
-          // Wait! Did I implement getTasksByDivision or getAllTasks based on access?
-          // Actually, in backend DivisionTaskController, GET / has permission division.task.manage.
-          // Let's check what GET / does in backend.
-        }
+        const res = await divisionTaskService.getAllTasks(token);
+        if (res.data) setTasks(res.data);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Gagal mengambil data tugas.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) {
+           setError("Sesi tidak valid. Silakan login kembali.");
+        } else if (err.status === 403) {
+           setError("Anda tidak memiliki akses terhadap tugas ini.");
+        } else if (err.status === 404) {
+           setError("Tugas atau bukti aktivitas tidak ditemukan.");
+        } else if (err.status === 500) {
+           setError("Layanan aktivitas divisi sedang bermasalah.");
+        } else {
+           setError(err.message);
+        }
+      } else {
+        setError("Gagal mengambil data tugas.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const fetchDivisions = async () => {
+    try {
+      if (!token) return;
+      const res = await getDivisions(token);
+      if (res.data) setDivisions(res.data);
+    } catch (err: unknown) {
+      //
+    }
+  };
+
   useEffect(() => {
     fetchTasks();
-  }, [activeTab]);
+    if (isManager) fetchDivisions();
+  }, [activeTab, isManager]);
+
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!token) return;
+    if (window.confirm("Apakah Anda yakin ingin menghapus tugas ini?")) {
+      try {
+        await divisionTaskService.deleteTask(token, id);
+        fetchTasks();
+      } catch (err: unknown) {
+        if (err instanceof ApiError) {
+          alert(err.message);
+        } else {
+          alert("Gagal menghapus tugas.");
+        }
+      }
+    }
+  };
+
+  const filteredTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let filtered = tasks.filter(task => task.status !== "DONE" && task.status !== "CANCELLED");
+
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = filtered.filter(
+        t => t.title.toLowerCase().includes(s) || (t.assignedMemberName && t.assignedMemberName.toLowerCase().includes(s))
+      );
+    }
+    if (filterDivision) {
+      filtered = filtered.filter(t => t.divisionId.toString() === filterDivision);
+    }
+    if (filterStatus) {
+      filtered = filtered.filter(t => t.status === filterStatus);
+    }
+    if (filterPriority) {
+      filtered = filtered.filter(t => t.priority === filterPriority);
+    }
+    if (filterOverdue) {
+      filtered = filtered.filter(t => {
+        if (!t.dueDate) return false;
+        const dDate = new Date(t.dueDate);
+        return dDate < today;
+      });
+    }
+
+    filtered.sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+
+    return filtered;
+  }, [tasks, search, filterDivision, filterStatus, filterPriority, filterOverdue]);
+
+  const summary = useMemo(() => {
+    const total = tasks.length;
+    const todo = tasks.filter(t => t.status === "TODO").length;
+    const inProgress = tasks.filter(t => t.status === "IN_PROGRESS").length;
+    const submitted = tasks.filter(t => t.status === "SUBMITTED").length;
+    const done = tasks.filter(t => t.status === "DONE").length;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const overdue = tasks.filter(t => {
+      if (!t.dueDate || t.status === "DONE" || t.status === "CANCELLED") return false;
+      return new Date(t.dueDate) < today;
+    }).length;
+
+    return { total, todo, inProgress, submitted, done, overdue };
+  }, [tasks]);
+
+  const isOverdue = (dueDate: string | null) => {
+    if (!dueDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(dueDate) < today;
+  };
 
   return (
     <div className="division-task-page">
       <div className="division-task-header">
-        <h1>Tugas Divisi</h1>
+        <div>
+          <p className="eyebrow">DIVISION ACTIVITY</p>
+          <h1>Tugas dan Aktivitas Divisi</h1>
+          <p>Pantau tugas dan bukti aktivitas secara terpusat dan transparan.</p>
+        </div>
         {isManager && (
-          <button className="division-task-btn-primary" onClick={() => {/* TODO: Create Task */}}>
-            + Buat Tugas
+          <button className="division-task-btn-primary" onClick={() => { setEditingTask(null); setIsFormOpen(true); }}>
+            + Tambah Tugas
           </button>
         )}
+      </div>
+
+      <div className="summary-grid">
+        <div className="summary-card"><span>Total Tugas</span><strong>{summary.total}</strong></div>
+        <div className="summary-card"><span>Belum Dimulai</span><strong>{summary.todo}</strong></div>
+        <div className="summary-card"><span>Sedang Berjalan</span><strong>{summary.inProgress}</strong></div>
+        <div className="summary-card"><span>Menunggu Review</span><strong>{summary.submitted}</strong></div>
+        <div className="summary-card"><span>Selesai</span><strong>{summary.done}</strong></div>
+        <div className="summary-card"><span className="overdue-text">Terlambat</span><strong className="overdue-text">{summary.overdue}</strong></div>
       </div>
 
       {isManager && (
@@ -70,41 +189,87 @@ export const DivisionTasksPage: React.FC = () => {
             Tugas Saya
           </button>
           <button
-            className={`division-task-tab ${activeTab === "all" ? "active" : ""}`}
-            onClick={() => setActiveTab("all")}
+            className={`division-task-tab ${activeTab === "manage" ? "active" : ""}`}
+            onClick={() => setActiveTab("manage")}
           >
             Kelola Tugas
           </button>
         </div>
       )}
 
-      {error && <div className="division-task-error">{error}</div>}
+      <div className="division-task-filters">
+        <input type="text" placeholder="Cari judul atau anggota..." value={search} onChange={e => setSearch(e.target.value)} />
+        {isManager && activeTab === "manage" && (
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)}>
+            <option value="">Semua Divisi</option>
+            {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+        )}
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="">Semua Status Aktif</option>
+          <option value="TODO">TODO</option>
+          <option value="IN_PROGRESS">IN_PROGRESS</option>
+          <option value="SUBMITTED">SUBMITTED</option>
+        </select>
+        <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+          <option value="">Semua Prioritas</option>
+          <option value="LOW">LOW</option>
+          <option value="MEDIUM">MEDIUM</option>
+          <option value="HIGH">HIGH</option>
+        </select>
+        <label>
+          <input type="checkbox" checked={filterOverdue} onChange={e => setFilterOverdue(e.target.checked)} />
+          Hanya Terlambat
+        </label>
+      </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
 
       {isLoading ? (
         <div className="division-task-loading">Memuat...</div>
       ) : (
         <div className="division-task-grid">
-          {tasks.map((task) => (
-            <div key={task.id} className="division-task-card" onClick={() => navigate(`/division/tasks/${task.id}`)}>
+          {filteredTasks.map((task) => (
+            <div key={task.id} className="division-task-card">
               <div className="division-task-card-header">
                 <h3>{task.title}</h3>
                 <span className={`division-task-status status-${task.status.toLowerCase()}`}>
                   {task.status}
                 </span>
               </div>
-              <p className="division-task-desc">{task.description}</p>
+              <div className="division-task-meta">
+                {task.divisionName} &bull; {task.assignedMemberName || "Belum ditugaskan"}
+              </div>
               <div className="division-task-card-footer">
                 <span className={`division-task-priority priority-${task.priority.toLowerCase()}`}>
                   {task.priority}
                 </span>
-                <span className="division-task-due">
-                  Tenggat: {new Date(task.dueDate).toLocaleDateString("id-ID")}
+                <span className={`division-task-due ${isOverdue(task.dueDate) ? "overdue" : ""}`}>
+                  {task.dueDate ? new Date(task.dueDate).toLocaleDateString("id-ID") : "Tanpa tenggat"}
                 </span>
+              </div>
+              
+              <div className="division-task-actions-row">
+                <Link to={`/division-tasks/${task.id}`} className="secondary-link-button">Detail</Link>
+                {isManager && activeTab === "manage" && (
+                  <>
+                    <button type="button" className="secondary-link-button" onClick={() => { setEditingTask(task); setIsFormOpen(true); }}>Edit</button>
+                    <button type="button" className="secondary-link-button danger" onClick={(e) => handleDelete(e, task.id)}>Hapus</button>
+                  </>
+                )}
               </div>
             </div>
           ))}
-          {tasks.length === 0 && <div className="division-task-empty">Belum ada tugas.</div>}
+          {filteredTasks.length === 0 && <div className="division-task-empty">Tidak ada tugas yang sesuai.</div>}
         </div>
+      )}
+
+      {isFormOpen && (
+        <DivisionTaskForm
+          initialData={editingTask}
+          onClose={() => setIsFormOpen(false)}
+          onSuccess={() => { setIsFormOpen(false); fetchTasks(); }}
+        />
       )}
     </div>
   );

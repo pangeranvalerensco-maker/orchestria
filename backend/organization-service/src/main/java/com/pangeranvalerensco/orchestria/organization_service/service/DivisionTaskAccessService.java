@@ -88,6 +88,28 @@ public class DivisionTaskAccessService {
         }
     }
 
+    public boolean isDivisionManagerFor(Long divisionId) {
+        if (isGlobalManager()) return true;
+        List<Long> managed = getManagedDivisionIds();
+        return managed != null && managed.contains(divisionId);
+    }
+
+    public void validateTaskReadAccess(DivisionTask task) {
+        if (isGlobalManager()) return;
+
+        Member currentMember = getCurrentMember();
+
+        if (task.getAssignedMember() != null && task.getAssignedMember().getId().equals(currentMember.getId())) {
+            return;
+        }
+
+        if (isDivisionManagerFor(task.getDivision().getId())) {
+            return;
+        }
+
+        throw new AccessDeniedException("Anda tidak memiliki akses terhadap tugas ini.");
+    }
+
     public void validateTaskAssignment(DivisionTask task) {
         Member currentMember = getCurrentMember();
         if (task.getAssignedMember() == null || !task.getAssignedMember().getId().equals(currentMember.getId())) {

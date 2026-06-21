@@ -168,7 +168,7 @@ export function DashboardPage() {
           <div className="dashboard-card stat-card stat-info">
             <span className="stat-label">Tugas Aktif Saya</span>
             <strong className="stat-value">{renderCount(activeTasksCount)}</strong>
-            <Link to="/division/tasks" className="stat-link">Lihat Tugas &rarr;</Link>
+            <Link to="/division-tasks" className="stat-link">Lihat Tugas &rarr;</Link>
           </div>
         )}
 

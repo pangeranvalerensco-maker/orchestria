@@ -31,6 +31,7 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     @Override
     public ApiResponse<List<DivisionTaskEvidenceResponse>> getEvidencesByTask(Long taskId) {
         DivisionTask task = findTaskById(taskId);
+        accessService.validateTaskReadAccess(task);
 
         List<DivisionTaskEvidenceResponse> evidences = evidenceRepository
                 .findByTaskAndActiveTrueOrderByCreatedAtDesc(task)
@@ -48,6 +49,7 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     @Override
     public ApiResponse<DivisionTaskEvidenceResponse> getEvidenceById(Long id) {
         DivisionTaskEvidence evidence = findEvidenceById(id);
+        accessService.validateTaskReadAccess(evidence.getTask());
 
         return ApiResponse.<DivisionTaskEvidenceResponse>builder()
                 .success(true)
@@ -64,6 +66,7 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
         validateEvidenceRequest(request);
 
         DivisionTaskEvidence evidence = buildEvidenceFromRequest(task, request);
+        evidence.setSubmittedByMemberId(null);
         DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
 
         return ApiResponse.<DivisionTaskEvidenceResponse>builder()
@@ -116,6 +119,7 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
         validateEvidenceRequest(request);
 
         DivisionTaskEvidence evidence = buildEvidenceFromRequest(task, request);
+        evidence.setSubmittedByMemberId(accessService.getCurrentMember().getId());
         DivisionTaskEvidence savedEvidence = evidenceRepository.save(evidence);
 
         return ApiResponse.<DivisionTaskEvidenceResponse>builder()
@@ -134,6 +138,11 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
         DivisionTask task = findTaskById(request.getTaskId());
         accessService.validateTaskAssignment(task);
         validateTaskIsMutableByMember(task);
+        
+        Long currentMemberId = accessService.getCurrentMember().getId();
+        if (evidence.getSubmittedByMemberId() == null || !evidence.getSubmittedByMemberId().equals(currentMemberId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Anggota tidak dapat mengubah bukti milik manager atau anggota lain");
+        }
 
         validateEvidenceRequest(request);
         updateEvidenceFields(evidence, task, request);
@@ -152,6 +161,11 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
         DivisionTaskEvidence evidence = findEvidenceById(id);
         accessService.validateTaskAssignment(evidence.getTask());
         validateTaskIsMutableByMember(evidence.getTask());
+        
+        Long currentMemberId = accessService.getCurrentMember().getId();
+        if (evidence.getSubmittedByMemberId() == null || !evidence.getSubmittedByMemberId().equals(currentMemberId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Anggota tidak dapat menghapus bukti milik manager atau anggota lain");
+        }
 
         evidence.setActive(false);
         evidenceRepository.save(evidence);
@@ -189,6 +203,14 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
             if (request.getFileUrl() == null || request.getFileUrl().trim().isEmpty()) {
                 throw new BadRequestException("File URL wajib diisi untuk tipe PHOTO atau DOCUMENT");
             }
+        }
+        
+        if (request.getFileUrl() != null && request.getFileUrl().trim().startsWith("javascript:")) {
+            throw new BadRequestException("Format URL tidak valid");
+        }
+        
+        if (request.getExternalLink() != null && request.getExternalLink().trim().startsWith("javascript:")) {
+            throw new BadRequestException("Format URL tidak valid");
         }
     }
 
@@ -233,6 +255,7 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
                 .description(evidence.getDescription())
                 .fileUrl(evidence.getFileUrl())
                 .externalLink(evidence.getExternalLink())
+                .submittedByMemberId(evidence.getSubmittedByMemberId())
                 .active(evidence.getActive())
                 .createdAt(evidence.getCreatedAt())
                 .updatedAt(evidence.getUpdatedAt())

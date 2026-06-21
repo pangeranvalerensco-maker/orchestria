@@ -89,9 +89,9 @@ function App() {
             <Route path="/admin/organization" element={<OrganizationAdminPage />} />
           </Route>
 
-          <Route element={<PermissionRoute anyOf={["division.task.manage", "division.task.read"]} />}>
-            <Route path="/division/tasks" element={<DivisionTasksPage />} />
-            <Route path="/division/tasks/:id" element={<DivisionTaskDetailPage />} />
+          <Route element={<PermissionRoute anyOf={["division.task.read"]} />}>
+            <Route path="/division-tasks" element={<DivisionTasksPage />} />
+            <Route path="/division-tasks/:id" element={<DivisionTaskDetailPage />} />
           </Route>
         </Route>
       </Route>

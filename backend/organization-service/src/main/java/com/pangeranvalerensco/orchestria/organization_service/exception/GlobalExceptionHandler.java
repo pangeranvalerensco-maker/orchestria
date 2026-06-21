@@ -87,7 +87,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse<Object>> handleGeneralError(
             Exception ex,
             HttpServletRequest request) {
-        ex.printStackTrace();
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Terjadi Kesalahan Pada server",
