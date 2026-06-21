@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../auth/useAuth";
 import { getMyBorrowings, requestReturnAsset } from "../services/assetService";
-import type { Borrowing, BorrowingStatus } from "../types/asset";
+import type { Borrowing, BorrowingStatus, AssetReturnRequest } from "../types/asset";
 import { ApiError } from "../api/http";
 import { AssetReturnForm } from "../components/assets/modals/AssetReturnForm";
 import { BorrowingCancelForm } from "../components/assets/modals/BorrowingCancelForm";
@@ -46,28 +46,28 @@ export const MyBorrowingsPage: React.FC = () => {
     fetchMyBorrowings();
   };
 
-  const handleReturnSuccess = async (data: any) => {
+  const handleReturnSuccess = async (data: unknown) => {
     if (!returningId || !token) return;
     try {
-      await requestReturnAsset(token, returningId, data);
+      await requestReturnAsset(token, returningId, data as AssetReturnRequest);
       setReturningId(null);
       fetchMyBorrowings();
-    } catch (err) {
-      alert("Gagal mengajukan pengembalian");
+    } catch (err: unknown) {
+      setError("Gagal mengajukan pengembalian");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="asset-directory-page">
+      <div className="asset-header-row">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Peminjaman Saya</h1>
-          <p className="text-gray-500 dark:text-gray-400">Daftar peminjaman aset yang Anda ajukan</p>
+          <h2>Peminjaman Saya</h2>
+          <p>Daftar peminjaman aset yang Anda ajukan</p>
         </div>
       </div>
 
       <div className="division-task-filters">
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as BorrowingStatus)}>
           <option value="">Semua Status</option>
           <option value="REQUESTED">Menunggu Persetujuan</option>
           <option value="APPROVED">Disetujui (Menunggu Penyerahan)</option>
@@ -79,7 +79,7 @@ export const MyBorrowingsPage: React.FC = () => {
         </select>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="asset-alert asset-alert-error">{error}</div>}
 
       {isLoading ? (
         <div>Memuat...</div>
@@ -118,7 +118,7 @@ export const MyBorrowingsPage: React.FC = () => {
                       {borrowing.status === "BORROWED" && (
                         <button className="text-blue-600 hover:text-blue-900" onClick={() => setReturningId(borrowing.id)}>Ajukan Pengembalian</button>
                       )}
-                      <button className="text-blue-600 hover:text-blue-900" onClick={() => navigate(`/my-borrowings/${borrowing.id}`)}>Detail</button>
+                      <button className="text-blue-600 hover:text-blue-900" onClick={() => navigate(`/asset-borrowings/${borrowing.id}`)}>Detail</button>
                     </div>
                   </div>
                   {borrowing.rejectionReason && (

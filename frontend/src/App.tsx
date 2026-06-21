@@ -106,12 +106,14 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["asset.borrow.read.own"]} />}>
             <Route path="/my-borrowings" element={<MyBorrowingsPage />} />
-            <Route path="/my-borrowings/:id" element={<AssetBorrowingDetailPage />} />
           </Route>
 
           <Route element={<PermissionRoute anyOf={["asset.borrow.read.all"]} />}>
             <Route path="/asset-operations" element={<AssetOperationsPage />} />
-            <Route path="/asset-operations/:id" element={<AssetBorrowingDetailPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["asset.borrow.read.own", "asset.borrow.read.all"]} />}>
+            <Route path="/asset-borrowings/:id" element={<AssetBorrowingDetailPage />} />
           </Route>
         </Route>
       </Route>

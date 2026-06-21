@@ -7,7 +7,7 @@ import {
   handoverAsset, 
   verifyReturnAsset 
 } from "../services/assetService";
-import type { Borrowing, BorrowingStatus, AssetCondition } from "../types/asset";
+import type { Borrowing, BorrowingStatus, AssetCondition, AssetHandoverRequest, AssetReturnVerificationRequest } from "../types/asset";
 import { ApiError } from "../api/http";
 import { BorrowingDecisionForm } from "../components/assets/modals/BorrowingDecisionForm";
 import { AssetHandoverForm } from "../components/assets/modals/AssetHandoverForm";
@@ -63,8 +63,8 @@ export const AssetOperationsPage: React.FC = () => {
       if (!token) return;
       await approveBorrowing(token, id);
       fetchBorrowings();
-    } catch (err) {
-      alert("Gagal menyetujui peminjaman.");
+    } catch (err: unknown) {
+      setError("Gagal menyetujui peminjaman.");
     }
   };
 
@@ -75,41 +75,41 @@ export const AssetOperationsPage: React.FC = () => {
       await rejectBorrowing(token, rejectingId, { reason });
       setRejectingId(null);
       fetchBorrowings();
-    } catch (err) {
-      alert("Gagal menolak peminjaman.");
+    } catch (err: unknown) {
+      setError("Gagal menolak peminjaman.");
     }
   };
 
-  const handleHandover = async (data: any) => {
+  const handleHandover = async (data: unknown) => {
     if (!handoverData) return;
     try {
       if (!token) return;
-      await handoverAsset(token, handoverData.id, data);
+      await handoverAsset(token, handoverData.id, data as AssetHandoverRequest);
       setHandoverData(null);
       fetchBorrowings();
-    } catch (err) {
-      alert("Gagal mencatat serah terima.");
+    } catch (err: unknown) {
+      setError("Gagal mencatat serah terima.");
     }
   };
 
-  const handleVerifyReturn = async (data: any) => {
+  const handleVerifyReturn = async (data: unknown) => {
     if (!verifyReturnData) return;
     try {
       if (!token) return;
-      await verifyReturnAsset(token, verifyReturnData.id, data);
+      await verifyReturnAsset(token, verifyReturnData.id, data as AssetReturnVerificationRequest);
       setVerifyReturnData(null);
       fetchBorrowings();
-    } catch (err) {
-      alert("Gagal memverifikasi pengembalian.");
+    } catch (err: unknown) {
+      setError("Gagal memverifikasi pengembalian.");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="asset-directory-page">
+      <div className="asset-header-row">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Operasional Aset</h1>
-          <p className="text-gray-500 dark:text-gray-400">Kelola persetujuan, serah terima, dan pengembalian aset</p>
+          <h2>Operasional Aset</h2>
+          <p>Kelola persetujuan, serah terima, dan pengembalian aset</p>
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export const AssetOperationsPage: React.FC = () => {
           value={search} 
           onChange={e => setSearch(e.target.value)} 
         />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as BorrowingStatus)}>
           <option value="">Semua Status</option>
           <option value="REQUESTED">Menunggu Persetujuan</option>
           <option value="APPROVED">Disetujui (Menunggu Penyerahan)</option>
@@ -130,7 +130,7 @@ export const AssetOperationsPage: React.FC = () => {
         </select>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="asset-alert asset-alert-error">{error}</div>}
 
       {isLoading ? (
         <div>Memuat...</div>
@@ -169,7 +169,7 @@ export const AssetOperationsPage: React.FC = () => {
                         {borrowing.status === "RETURN_REQUESTED" && canManageOperations && (
                           <button className="text-sm text-green-600 hover:text-green-900 font-semibold bg-green-50 px-2 py-1 rounded border border-green-200" onClick={() => setVerifyReturnData({ id: borrowing.id, condition: borrowing.asset.currentCondition })}>Verifikasi Pengembalian</button>
                         )}
-                        <button className="text-sm text-blue-600 hover:text-blue-900 font-semibold" onClick={() => navigate(`/asset-operations/${borrowing.id}`)}>Detail</button>
+                        <button className="text-sm text-blue-600 hover:text-blue-900 font-semibold" onClick={() => navigate(`/asset-borrowings/${borrowing.id}`)}>Detail</button>
                       </div>
                     </div>
                   </div>

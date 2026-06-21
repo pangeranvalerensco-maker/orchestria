@@ -4,6 +4,7 @@ import { useAuth } from "../auth/useAuth";
 import { getMyRequests, getPendingApprovals } from "../services/requestService";
 import { getReadyForDisbursement } from "../services/financeService";
 import divisionTaskService from "../services/divisionTaskService";
+import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -15,6 +16,9 @@ export function DashboardPage() {
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number | null>(null);
   const [readyDisburseCount, setReadyDisburseCount] = useState<number | null>(null);
   const [activeTasksCount, setActiveTasksCount] = useState<number | null>(null);
+  
+  const [activeBorrowingsCount, setActiveBorrowingsCount] = useState<number | null>(null);
+  const [requestedBorrowingsCount, setRequestedBorrowingsCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -86,6 +90,26 @@ export function DashboardPage() {
         );
       }
 
+      if (canReadOwnBorrowing && token) {
+        promises.push(
+          getMyBorrowings(token, "BORROWED", 0, 1).then((res) => {
+            if (res) {
+              setActiveBorrowingsCount(res.totalElements);
+            }
+          })
+        );
+      }
+
+      if (canManageBorrowing && token) {
+        promises.push(
+          getAllBorrowings(token, "REQUESTED", undefined, undefined, 0, 1).then((res) => {
+            if (res) {
+              setRequestedBorrowingsCount(res.totalElements);
+            }
+          })
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -96,7 +120,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -176,6 +200,22 @@ export function DashboardPage() {
             <span className="stat-label">Tugas Aktif Saya</span>
             <strong className="stat-value">{renderCount(activeTasksCount)}</strong>
             <Link to="/division-tasks" className="stat-link">Lihat Tugas &rarr;</Link>
+          </div>
+        )}
+
+        {canReadOwnBorrowing && (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Peminjaman Aktif</span>
+            <strong className="stat-value">{renderCount(activeBorrowingsCount)}</strong>
+            <Link to="/my-borrowings" className="stat-link">Lihat Detail &rarr;</Link>
+          </div>
+        )}
+
+        {canManageBorrowing && (
+          <div className="dashboard-card stat-card stat-warning">
+            <span className="stat-label">Request Aset Baru</span>
+            <strong className="stat-value">{renderCount(requestedBorrowingsCount)}</strong>
+            <Link to="/asset-operations" className="stat-link">Proses Request &rarr;</Link>
           </div>
         )}
 

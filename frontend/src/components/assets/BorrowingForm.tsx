@@ -13,11 +13,15 @@ interface BorrowingFormProps {
 export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, onSuccess }) => {
   const { token } = useAuth();
   
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const formatDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
   const [formData, setFormData] = useState<BorrowingCreateRequest>({
     assetId: asset.id,
     purpose: "",
-    borrowDate: new Date().toISOString().split('T')[0],
-    expectedReturnDate: new Date(Date.now() + 86400000).toISOString().split('T')[0] // default tomorrow
+    borrowDate: formatDate(today),
+    expectedReturnDate: formatDate(tomorrow)
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,17 +37,40 @@ export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, on
     setError("");
     setIsSubmitting(true);
     
-    // Convert dates to ISO strings with time if backend expects LocalDateTime.
-    // Assuming backend receives 'yyyy-MM-dd' or we should format as start/end of day.
+    const trimmedPurpose = formData.purpose.trim();
+    if (!trimmedPurpose) {
+      setError("Tujuan peminjaman tidak boleh kosong.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const borrowDateObj = new Date(formData.borrowDate);
+    const expectedReturnDateObj = new Date(formData.expectedReturnDate);
+    
+    borrowDateObj.setHours(0, 0, 0, 0);
+    const todayObj = new Date();
+    todayObj.setHours(0, 0, 0, 0);
+
+    if (borrowDateObj < todayObj) {
+      setError("Tanggal peminjaman tidak boleh di masa lalu.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (expectedReturnDateObj < borrowDateObj) {
+      setError("Tanggal pengembalian tidak valid.");
+      setIsSubmitting(false);
+      return;
+    }
+
     const requestData = {
       ...formData,
-      borrowDate: new Date(formData.borrowDate).toISOString(),
-      expectedReturnDate: new Date(formData.expectedReturnDate).toISOString()
+      purpose: trimmedPurpose
     };
     
     try {
       if (!token) return;
-      await createBorrowing(token, requestData as any); // using any for simplicity, as we overwrite dates
+      await createBorrowing(token, requestData);
       onSuccess();
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -57,13 +84,13 @@ export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+    <div className="asset-modal-overlay">
+      <div className="asset-modal-content">
+        <div className="asset-modal-header">
+          <h2>
             Pengajuan Peminjaman
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button onClick={onClose} className="asset-btn-danger" style={{ background: "none", border: "none" }}>
             <span className="sr-only">Tutup</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -71,58 +98,58 @@ export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, on
           </button>
         </div>
         
-        <div className="p-4 overflow-y-auto">
-          {error && <div className="mb-4 alert alert-error">{error}</div>}
+        <div className="asset-modal-body">
+          {error && <div className="asset-alert asset-alert-error">{error}</div>}
           
-          <div className="mb-4 p-3 bg-blue-50 text-blue-900 rounded-md">
+          <div className="asset-alert" style={{ backgroundColor: "#eff6ff", color: "#1e3a8a", border: "1px solid #bfdbfe" }}>
             Anda akan meminjam: <strong>{asset.assetName}</strong> ({asset.assetCode})
           </div>
 
-          <form id="borrowing-form" onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tanggal Mulai Pinjam *</label>
+          <form id="borrowing-form" onSubmit={handleSubmit} style={{ marginTop: "1rem" }}>
+            <div className="asset-form-group">
+              <label>Tanggal Mulai Pinjam *</label>
               <input
                 type="date"
                 name="borrowDate"
                 required
                 value={formData.borrowDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="asset-form-input"
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ekspektasi Tanggal Kembali *</label>
+            <div className="asset-form-group">
+              <label>Ekspektasi Tanggal Kembali *</label>
               <input
                 type="date"
                 name="expectedReturnDate"
                 required
                 value={formData.expectedReturnDate}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="asset-form-input"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tujuan Peminjaman *</label>
+            <div className="asset-form-group">
+              <label>Tujuan Peminjaman *</label>
               <textarea
                 name="purpose"
                 required
                 rows={3}
                 value={formData.purpose}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="asset-form-input"
                 placeholder="Jelaskan untuk kegiatan apa aset ini digunakan"
               ></textarea>
             </div>
           </form>
         </div>
         
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
+        <div className="asset-modal-footer">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+            className="asset-btn asset-btn-secondary"
             disabled={isSubmitting}
           >
             Batal
@@ -130,7 +157,7 @@ export const BorrowingForm: React.FC<BorrowingFormProps> = ({ asset, onClose, on
           <button
             type="submit"
             form="borrowing-form"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="asset-btn asset-btn-primary"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Mengajukan..." : "Ajukan"}

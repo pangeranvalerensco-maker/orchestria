@@ -34,6 +34,28 @@ export const AssetConditionForm: React.FC<AssetConditionFormProps> = ({
     }
   };
 
+  if (initialStatus === "RESERVED" || initialStatus === "BORROWED") {
+    return (
+      <div className="asset-modal-overlay">
+        <div className="asset-modal-content">
+          <h2>Perbarui Kondisi Aset</h2>
+          <div className="asset-alert asset-alert-warning" style={{ marginBottom: "1rem" }}>
+            Status hanya dapat berubah melalui alur peminjaman.
+          </div>
+          <div className="asset-modal-actions">
+            <button
+              type="button"
+              className="asset-btn asset-btn-secondary"
+              onClick={onCancel}
+            >
+              Kembali
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="asset-modal-overlay">
       <div className="asset-modal-content">
@@ -62,8 +84,6 @@ export const AssetConditionForm: React.FC<AssetConditionFormProps> = ({
               className="asset-form-input"
             >
               <option value="AVAILABLE">AVAILABLE</option>
-              <option value="RESERVED">RESERVED</option>
-              <option value="BORROWED">BORROWED</option>
               <option value="MAINTENANCE">MAINTENANCE</option>
               <option value="LOST">LOST</option>
               <option value="INACTIVE">INACTIVE</option>

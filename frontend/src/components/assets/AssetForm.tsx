@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../../auth/useAuth";
 import { getMembers } from "../../services/organizationService";
 import { createAsset, updateAsset } from "../../services/assetService";
-import type { Asset, AssetRequest, AssetCondition } from "../../types/asset";
+import type { Asset, AssetRequest } from "../../types/asset";
 import { ApiError } from "../../api/http";
 
 interface AssetFormProps {
@@ -20,7 +20,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
     assetName: "",
     category: "",
     description: "",
-    currentCondition: "GOOD" as AssetCondition,
+    currentCondition: "GOOD",
     location: "",
     responsibleMemberId: undefined,
     imageUrl: ""
@@ -28,6 +28,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [memberError, setMemberError] = useState("");
 
   useEffect(() => {
     if (initialData) {
@@ -52,8 +53,8 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
         if (res.data) {
           setMembers(res.data.map(m => ({ id: m.id.toString(), fullName: m.fullName })));
         }
-      } catch (err) {
-        console.error("Gagal memuat anggota:", err);
+      } catch (err: unknown) {
+        setMemberError("Gagal memuat anggota.");
       }
     };
     fetchMembers();
@@ -61,11 +62,15 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    let finalValue: any = value;
-    if (name === "responsibleMemberId") {
-      finalValue = value ? parseInt(value) : undefined;
-    }
-    setFormData(prev => ({ ...prev, [name]: finalValue }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleResponsibleMemberChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setFormData(current => ({
+      ...current,
+      responsibleMemberId: value ? Number(value) : undefined,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,13 +97,13 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
-        <div className="flex justify-between items-center p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+    <div className="asset-modal-overlay">
+      <div className="asset-modal-content" style={{ maxWidth: "800px" }}>
+        <div className="asset-modal-header">
+          <h2>
             {initialData ? "Edit Aset" : "Tambah Aset Baru"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button onClick={onClose} className="asset-btn-danger" style={{ background: "none", border: "none" }}>
             <span className="sr-only">Tutup</span>
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -106,74 +111,75 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
           </button>
         </div>
         
-        <div className="p-4 md:p-6 overflow-y-auto">
-          {error && <div className="mb-4 alert alert-error">{error}</div>}
+        <div className="asset-modal-body">
+          {error && <div className="asset-alert asset-alert-error">{error}</div>}
+          {memberError && <div className="asset-alert asset-alert-warning">{memberError}</div>}
           
-          <form id="asset-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kode Aset *</label>
+          <form id="asset-form" onSubmit={handleSubmit}>
+            <div className="asset-grid-2">
+              <div className="asset-form-group">
+                <label>Kode Aset *</label>
                 <input
                   type="text"
                   name="assetCode"
                   required
                   value={formData.assetCode}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="asset-form-input"
                   placeholder="Mis. PUB-LT-001"
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama Aset *</label>
+              <div className="asset-form-group">
+                <label>Nama Aset *</label>
                 <input
                   type="text"
                   name="assetName"
                   required
                   value={formData.assetName}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="asset-form-input"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kategori *</label>
+            <div className="asset-grid-2">
+              <div className="asset-form-group">
+                <label>Kategori *</label>
                 <input
                   type="text"
                   name="category"
                   required
                   value={formData.category}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="asset-form-input"
                   placeholder="Mis. Elektronik, Perabotan"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lokasi *</label>
+              <div className="asset-form-group">
+                <label>Lokasi *</label>
                 <input
                   type="text"
                   name="location"
                   required
                   value={formData.location}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="asset-form-input"
                   placeholder="Mis. Sekretariat PUB"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kondisi Saat Ini *</label>
+            <div className="asset-grid-2">
+              <div className="asset-form-group">
+                <label>Kondisi Saat Ini *</label>
                 <select
                   name="currentCondition"
                   required
                   value={formData.currentCondition}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="asset-form-input"
                 >
                   <option value="GOOD">Baik</option>
                   <option value="MINOR_DAMAGE">Rusak Ringan</option>
@@ -182,13 +188,13 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Penanggung Jawab (Opsional)</label>
+              <div className="asset-form-group">
+                <label>Penanggung Jawab (Opsional)</label>
                 <select
                   name="responsibleMemberId"
                   value={formData.responsibleMemberId || ""}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  onChange={handleResponsibleMemberChange}
+                  className="asset-form-input"
                 >
                   <option value="">-- Pilih Anggota --</option>
                   {members.map(m => (
@@ -198,36 +204,36 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Deskripsi *</label>
+            <div className="asset-form-group">
+              <label>Deskripsi *</label>
               <textarea
                 name="description"
                 required
                 rows={3}
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="asset-form-input"
               ></textarea>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL Gambar (Opsional)</label>
+            <div className="asset-form-group">
+              <label>URL Gambar (Opsional)</label>
               <input
                 type="url"
                 name="imageUrl"
                 value={formData.imageUrl}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="asset-form-input"
               />
             </div>
           </form>
         </div>
         
-        <div className="p-4 md:p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
+        <div className="asset-modal-footer">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600"
+            className="asset-btn asset-btn-secondary"
             disabled={isSubmitting}
           >
             Batal
@@ -235,7 +241,7 @@ export const AssetForm: React.FC<AssetFormProps> = ({ initialData, onClose, onSu
           <button
             type="submit"
             form="asset-form"
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="asset-btn asset-btn-primary"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Menyimpan..." : "Simpan"}

@@ -19,6 +19,8 @@ export const AssetDirectoryPage: React.FC = () => {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  
+  const [successMessage, setSuccessMessage] = useState("");
 
   const [isBorrowFormOpen, setIsBorrowFormOpen] = useState(false);
   const [borrowingAsset, setBorrowingAsset] = useState<Asset | null>(null);
@@ -60,19 +62,19 @@ export const AssetDirectoryPage: React.FC = () => {
       await deleteAsset(token, id);
       fetchAllAssets();
     } catch (err: unknown) {
-      alert("Gagal menghapus aset.");
+      setError("Gagal menghapus aset.");
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="asset-directory-page">
+      <div className="asset-header-row">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Katalog Aset PUB</h1>
-          <p className="text-gray-500 dark:text-gray-400">Lihat dan pinjam aset inventaris PUB</p>
+          <h2>Katalog Aset PUB</h2>
+          <p>Lihat dan pinjam aset inventaris PUB</p>
         </div>
         {isManager && (
-          <button className="asset-btn-primary" onClick={() => { setEditingAsset(null); setIsFormOpen(true); }}>
+          <button className="asset-btn asset-btn-primary" onClick={() => { setEditingAsset(null); setIsFormOpen(true); }}>
             + Tambah Aset
           </button>
         )}
@@ -85,7 +87,7 @@ export const AssetDirectoryPage: React.FC = () => {
           value={search} 
           onChange={e => setSearch(e.target.value)} 
         />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as AssetStatus)}>
           <option value="">Semua Status</option>
           <option value="AVAILABLE">Tersedia</option>
           <option value="RESERVED">Dipesan</option>
@@ -94,7 +96,7 @@ export const AssetDirectoryPage: React.FC = () => {
           <option value="LOST">Hilang</option>
           <option value="INACTIVE">Tidak Aktif</option>
         </select>
-        <select value={filterCondition} onChange={e => setFilterCondition(e.target.value as any)}>
+        <select value={filterCondition} onChange={e => setFilterCondition(e.target.value as AssetCondition)}>
           <option value="">Semua Kondisi</option>
           <option value="GOOD">Baik</option>
           <option value="MINOR_DAMAGE">Rusak Ringan</option>
@@ -103,7 +105,8 @@ export const AssetDirectoryPage: React.FC = () => {
         </select>
       </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
+      {error && <div className="asset-alert asset-alert-error">{error}</div>}
+      {successMessage && <div className="asset-alert" style={{ backgroundColor: "#ecfdf5", color: "#065f46" }}>{successMessage}</div>}
 
       {isLoading ? (
         <div>Memuat...</div>
@@ -124,21 +127,21 @@ export const AssetDirectoryPage: React.FC = () => {
               <p className="asset-description">{asset.description}</p>
               
               <div className="asset-actions">
-                <button className="asset-btn-secondary" onClick={() => navigate(`/assets/${asset.id}`)}>Detail</button>
+                <button className="asset-btn asset-btn-secondary" onClick={() => navigate(`/assets/${asset.id}`)}>Detail</button>
                 {asset.currentStatus === "AVAILABLE" && hasPermission("asset.borrow.create") && (
-                  <button className="asset-btn-primary" onClick={() => { setBorrowingAsset(asset); setIsBorrowFormOpen(true); }}>Pinjam</button>
+                  <button className="asset-btn asset-btn-primary" onClick={() => { setBorrowingAsset(asset); setIsBorrowFormOpen(true); }}>Pinjam</button>
                 )}
                 {isManager && (
                   <>
-                    <button className="asset-btn-secondary" onClick={() => { setEditingAsset(asset); setIsFormOpen(true); }}>Edit</button>
-                    <button className="asset-btn-secondary asset-btn-danger" onClick={() => handleDelete(asset.id)}>Hapus</button>
+                    <button className="asset-btn asset-btn-secondary" onClick={() => { setEditingAsset(asset); setIsFormOpen(true); }}>Edit</button>
+                    <button className="asset-btn asset-btn-secondary asset-btn-danger" onClick={() => handleDelete(asset.id)}>Hapus</button>
                   </>
                 )}
               </div>
             </div>
           ))}
           {assets.length === 0 && !isLoading && (
-            <div className="text-gray-500">Tidak ada aset ditemukan.</div>
+            <div style={{ color: "#64748b" }}>Tidak ada aset ditemukan.</div>
           )}
         </div>
       )}
@@ -155,7 +158,12 @@ export const AssetDirectoryPage: React.FC = () => {
         <BorrowingForm
           asset={borrowingAsset}
           onClose={() => setIsBorrowFormOpen(false)}
-          onSuccess={() => { setIsBorrowFormOpen(false); fetchAllAssets(); alert("Peminjaman berhasil diajukan!"); }}
+          onSuccess={() => { 
+            setIsBorrowFormOpen(false); 
+            fetchAllAssets(); 
+            setSuccessMessage("Peminjaman berhasil diajukan!"); 
+            setTimeout(() => setSuccessMessage(""), 5000);
+          }}
         />
       )}
     </div>
