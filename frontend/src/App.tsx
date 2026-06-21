@@ -14,6 +14,7 @@ import { FinanceDisbursementsPage } from "./pages/FinanceDisbursementsPage";
 import { SettlementVerificationPage } from "./pages/SettlementVerificationPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { OrganizationDirectoryPage } from "./pages/OrganizationDirectoryPage";
+import { OrganizationAdminPage } from "./pages/OrganizationAdminPage";
 import { ArchivePage } from "./pages/ArchivePage";
 import { PublicLayout } from "./layouts/PublicLayout";
 import { PublicHomePage } from "./pages/public/PublicHomePage";
@@ -80,6 +81,10 @@ function App() {
 
           <Route element={<PermissionRoute anyOf={["archive.manage"]} />}>
             <Route path="/archive" element={<ArchivePage />} />
+          </Route>
+
+          <Route element={<PermissionRoute anyOf={["organization.manage"]} />}>
+            <Route path="/admin/organization" element={<OrganizationAdminPage />} />
           </Route>
         </Route>
       </Route>
