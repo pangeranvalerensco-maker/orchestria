@@ -90,7 +90,15 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new PermissionSeed("cleanliness.attendance.read", "Melihat presensi piket"),
                                 new PermissionSeed("cleanliness.point.manage", "Mengelola poin reward piket"),
                                 new PermissionSeed("cleanliness.violation.manage", "Mengelola poin pelanggaran piket"),
-                                new PermissionSeed("cleanliness.report.read", "Melihat laporan piket kebersihan"));
+                                new PermissionSeed("cleanliness.report.read", "Melihat laporan piket kebersihan"),
+
+                                new PermissionSeed("english.activity.read", "Melihat jadwal aktivitas bahasa Inggris"),
+                                new PermissionSeed("english.activity.manage", "Mengelola aktivitas bahasa Inggris"),
+                                new PermissionSeed("english.deposit.create", "Membuat setoran bahasa Inggris"),
+                                new PermissionSeed("english.deposit.read.own", "Melihat setoran bahasa Inggris sendiri"),
+                                new PermissionSeed("english.deposit.read.all", "Melihat seluruh setoran bahasa Inggris"),
+                                new PermissionSeed("english.deposit.verify", "Memverifikasi setoran bahasa Inggris"),
+                                new PermissionSeed("english.report.read", "Melihat laporan aktivitas bahasa Inggris"));
 
                 for (PermissionSeed seed : permissions) {
                         permissionRepository.findByName(seed.name())
@@ -163,7 +171,14 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "cleanliness.attendance.read",
                                 "cleanliness.point.manage",
                                 "cleanliness.violation.manage",
-                                "cleanliness.report.read"));
+                                "cleanliness.report.read",
+                                "english.activity.read",
+                                "english.activity.manage",
+                                "english.deposit.create",
+                                "english.deposit.read.own",
+                                "english.deposit.read.all",
+                                "english.deposit.verify",
+                                "english.report.read"));
 
                 assign("KOORDINATOR", List.of(
                                 "cleanliness.schedule.read",
@@ -172,7 +187,14 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "cleanliness.attendance.read",
                                 "cleanliness.point.manage",
                                 "cleanliness.violation.manage",
-                                "cleanliness.report.read"));
+                                "cleanliness.report.read",
+                                "english.activity.read",
+                                "english.activity.manage",
+                                "english.deposit.create",
+                                "english.deposit.read.own",
+                                "english.deposit.read.all",
+                                "english.deposit.verify",
+                                "english.report.read"));
 
                 assign("PEMBINA", List.of(
                                 "organization.read",
@@ -185,7 +207,10 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "asset.borrow.read.all",
                                 "cleanliness.schedule.read",
                                 "cleanliness.attendance.read",
-                                "cleanliness.report.read"));
+                                "cleanliness.report.read",
+                                "english.activity.read",
+                                "english.deposit.read.all",
+                                "english.report.read"));
 
                 assign("KETUA_PUB", List.of(
                                 "organization.read",
@@ -207,7 +232,10 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "asset.condition.manage",
                                 "cleanliness.schedule.read",
                                 "cleanliness.attendance.read",
-                                "cleanliness.report.read"));
+                                "cleanliness.report.read",
+                                "english.activity.read",
+                                "english.deposit.read.all",
+                                "english.report.read"));
 
                 assign("KETUA_DIVISI", List.of(
                                 "organization.read",
@@ -258,7 +286,10 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "asset.borrow.create",
                                 "asset.borrow.read.own",
                                 "cleanliness.schedule.read",
-                                "cleanliness.attendance.create"));
+                                "cleanliness.attendance.create",
+                                "english.activity.read",
+                                "english.deposit.create",
+                                "english.deposit.read.own"));
         }
 
         private void assign(String roleName, List<String> permissionNames) {
