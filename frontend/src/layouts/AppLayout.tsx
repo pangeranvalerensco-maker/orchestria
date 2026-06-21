@@ -57,6 +57,13 @@ export function AppLayout() {
             </div>
           )}
 
+          {hasPermission("organization.manage") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Manajemen</span>
+              <NavLink to="/admin/organization" className={navClass}>Kelola Organisasi</NavLink>
+            </div>
+          )}
+
           {hasPermission("request.read.all") && (
             <div className="nav-group">
               <span className="nav-group-title">Laporan</span>

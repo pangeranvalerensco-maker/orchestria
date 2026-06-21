@@ -23,6 +23,7 @@ export function DashboardPage() {
   const canDisburse = hasPermission("finance.disburse");
   const canManageArchive = hasPermission("archive.manage");
   const canReadOrganization = hasPermission("organization.read");
+  const canManageOrganization = hasPermission("organization.manage");
   const canReadReports = hasPermission("request.read.all");
   const canVerifySettlement = hasPermission("finance.settlement.verify");
 
@@ -219,6 +220,7 @@ export function DashboardPage() {
               {canVerifySettlement && <Link to="/finance/settlements" className="quick-action-btn">🧾 Verifikasi Settlement</Link>}
               {canManageArchive && <Link to="/archive" className="quick-action-btn">🗂️ Kelola Arsip</Link>}
               {canReadOrganization && <Link to="/organization" className="quick-action-btn">👥 Direktori Organisasi</Link>}
+              {canManageOrganization && <Link to="/admin/organization" className="quick-action-btn">⚙️ Kelola Organisasi</Link>}
               {canReadReports && <Link to="/reports" className="quick-action-btn">📊 Buka Laporan</Link>}
             </div>
           </section>
