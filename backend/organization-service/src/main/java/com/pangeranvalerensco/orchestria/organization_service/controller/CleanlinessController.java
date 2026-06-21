@@ -36,7 +36,7 @@ public class CleanlinessController {
     }
 
     @GetMapping("/schedules")
-    @PreAuthorize("hasAuthority('cleanliness.schedule.read')")
+    @PreAuthorize("hasAuthority('cleanliness.schedule.read') or hasAuthority('cleanliness.schedule.manage') or hasAuthority('cleanliness.attendance.read') or hasAuthority('cleanliness.report.read') or hasAuthority('ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<List<ScheduleResponse>>> getAllSchedules() {
         return ResponseEntity.ok(ApiResponse.<List<ScheduleResponse>>builder().success(true).data(cleanlinessService.getAllSchedules()).build());
     }
@@ -48,7 +48,7 @@ public class CleanlinessController {
     }
 
     @GetMapping("/schedules/{id}")
-    @PreAuthorize("hasAuthority('cleanliness.schedule.read')")
+    @PreAuthorize("hasAuthority('cleanliness.schedule.read') or hasAuthority('cleanliness.schedule.manage') or hasAuthority('cleanliness.attendance.read') or hasAuthority('cleanliness.report.read') or hasAuthority('ROLE_SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<ScheduleResponse>> getSchedule(@PathVariable String id) {
         return ResponseEntity.ok(ApiResponse.<ScheduleResponse>builder().success(true).data(cleanlinessService.getSchedule(id)).build());
     }

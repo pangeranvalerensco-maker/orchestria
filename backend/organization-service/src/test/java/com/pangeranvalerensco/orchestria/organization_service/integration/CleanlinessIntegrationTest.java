@@ -207,7 +207,7 @@ public class CleanlinessIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Tidak dapat mengubah presensi pada jadwal yang sudah selesai atau dibatalkan"));
+                .andExpect(jsonPath("$.message").value("Presensi hanya dapat dicatat pada jadwal yang sudah dipublikasikan."));
     }
 
     // 8. REWARD dengan nilai negatif ditolak
@@ -251,6 +251,60 @@ public class CleanlinessIntegrationTest {
                 .andExpect(jsonPath("$.data.totalViolationPoints").value(3))
                 .andExpect(jsonPath("$.data.netPoints").value(7))
                 .andExpect(jsonPath("$.data.memberLeaderboard[0].netPoints").value(7));
+    }
+
+    // 11. schedule dengan startTime sama dengan endTime ditolak
+    @Test
+    @WithMockUser(username = "manager@example.com", authorities = {"cleanliness.schedule.manage"})
+    void createScheduleSameStartAndEndTimeRejected() throws Exception {
+        String jsonRequest = String.format(
+                "{\"title\":\"Piket Pagi\",\"dutyDate\":\"%s\",\"startTime\":\"08:00:00\",\"endTime\":\"08:00:00\",\"location\":\"Sekretariat\",\"description\":\"Membersihkan sekre\",\"status\":\"PUBLISHED\",\"memberIds\":[%d]}",
+                LocalDate.now().toString(), testMember1.getId()
+        );
+
+        mockMvc.perform(post("/api/organization/cleanliness/schedules")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Waktu selesai harus setelah waktu mulai."));
+    }
+
+    // 12. attendance pada schedule DRAFT ditolak
+    @Test
+    @WithMockUser(username = "member1@example.com", authorities = {"cleanliness.attendance.create"})
+    void draftScheduleRejectsAttendance() throws Exception {
+        CleanlinessSchedule s1 = scheduleRepository.save(CleanlinessSchedule.builder()
+                .title("My Schedule").dutyDate(LocalDate.now()).startTime(LocalTime.of(8, 0)).endTime(LocalTime.of(10, 0))
+                .location("Sekre").status(ScheduleStatus.DRAFT).createdByEmail("manager@test.com").active(true).build());
+
+        CleanlinessAssignment a1 = assignmentRepository.save(CleanlinessAssignment.builder()
+                .schedule(s1).memberId(testMember1.getId()).memberName("Member Satu").memberEmail("member1@example.com")
+                .attendanceStatus(AttendanceStatus.PENDING).active(true).build());
+
+        AttendanceRequest request = new AttendanceRequest(AttendanceStatus.PRESENT, "Hadir", "http://bukti.com");
+
+        mockMvc.perform(post("/api/organization/cleanliness/assignments/" + a1.getId() + "/attendance")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Presensi hanya dapat dicatat pada jadwal yang sudah dipublikasikan."));
+    }
+
+    // 13. user dengan cleanliness.report.read dapat melihat schedule walaupun bukan assignment-nya
+    @Test
+    @WithMockUser(username = "pembina@example.com", authorities = {"cleanliness.report.read"})
+    void reportReaderCanViewAnySchedule() throws Exception {
+        CleanlinessSchedule s1 = scheduleRepository.save(CleanlinessSchedule.builder()
+                .title("Other Schedule").dutyDate(LocalDate.now()).startTime(LocalTime.of(8, 0)).endTime(LocalTime.of(10, 0))
+                .location("Sekre").status(ScheduleStatus.PUBLISHED).createdByEmail("manager@test.com").active(true).build());
+
+        assignmentRepository.save(CleanlinessAssignment.builder()
+                .schedule(s1).memberId(testMember1.getId()).memberName("Member Satu").memberEmail("member1@example.com")
+                .attendanceStatus(AttendanceStatus.PENDING).active(true).build());
+
+        mockMvc.perform(get("/api/organization/cleanliness/schedules/" + s1.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.title").value("Other Schedule"));
     }
 }
 

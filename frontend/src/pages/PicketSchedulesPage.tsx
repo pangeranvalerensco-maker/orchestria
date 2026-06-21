@@ -169,12 +169,15 @@ export function PicketSchedulesPage() {
     try {
       const req: AttendanceRequest = {
         status: attendanceStatus,
-        note: attendanceNote,
-        evidenceUrl: attendanceEvidenceUrl,
+        note: attendanceNote.trim() || undefined,
+        evidenceUrl: attendanceEvidenceUrl.trim() || undefined,
       };
       await recordAttendance(attendanceFormOpen.assignmentId, req, token);
       setAttendanceFormOpen(null);
       setSuccessMessage("Presensi berhasil dicatat.");
+      setAttendanceNote("");
+      setAttendanceEvidenceUrl("");
+      setAttendanceStatus("PRESENT");
       loadData();
     } catch (err: unknown) {
       setErrorMessage("Gagal menyimpan presensi.");

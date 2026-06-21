@@ -62,14 +62,25 @@ public class CleanlinessService {
                 .anyMatch(a -> a.equals("cleanliness.schedule.manage") || a.equals("ROLE_SUPER_ADMIN"));
     }
 
+    private boolean canReadAllSchedules() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("cleanliness.schedule.manage") || 
+                               a.equals("cleanliness.attendance.read") || 
+                               a.equals("cleanliness.report.read") || 
+                               a.equals("ROLE_SUPER_ADMIN"));
+    }
+
     // ==========================================
     // SCHEDULE MANAGEMENT
     // ==========================================
 
     @Transactional
     public ScheduleResponse createSchedule(ScheduleRequest request) {
-        if (request.endTime().isBefore(request.startTime())) {
-            throw new BadRequestException("Waktu selesai tidak boleh sebelum waktu mulai.");
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new BadRequestException("Waktu selesai harus setelah waktu mulai.");
         }
 
         CleanlinessSchedule schedule = CleanlinessSchedule.builder()
@@ -112,7 +123,7 @@ public class CleanlinessService {
 
     @Transactional(readOnly = true)
     public List<ScheduleResponse> getAllSchedules() {
-        if (isManager()) {
+        if (canReadAllSchedules()) {
             return scheduleRepository.findByActiveTrueOrderByDutyDateDescStartTimeDesc().stream()
                     .map(s -> ScheduleResponse.fromEntity(s, assignmentRepository.findByScheduleIdAndActiveTrue(s.getId())))
                     .toList();
@@ -146,7 +157,7 @@ public class CleanlinessService {
 
         List<CleanlinessAssignment> assignments = assignmentRepository.findByScheduleIdAndActiveTrue(id);
 
-        if (!isManager()) {
+        if (!canReadAllSchedules()) {
             if (schedule.getStatus() == ScheduleStatus.DRAFT) {
                 throw new AccessDeniedException("Jadwal belum dipublikasikan");
             }
@@ -162,8 +173,8 @@ public class CleanlinessService {
 
     @Transactional
     public ScheduleResponse updateSchedule(String id, ScheduleRequest request) {
-        if (request.endTime().isBefore(request.startTime())) {
-            throw new BadRequestException("Waktu selesai tidak boleh sebelum waktu mulai.");
+        if (!request.endTime().isAfter(request.startTime())) {
+            throw new BadRequestException("Waktu selesai harus setelah waktu mulai.");
         }
 
         CleanlinessSchedule schedule = scheduleRepository.findByIdAndActiveTrue(id)
@@ -245,8 +256,8 @@ public class CleanlinessService {
                 .orElseThrow(() -> new ResourceNotFoundException("Assignment tidak ditemukan"));
 
         CleanlinessSchedule schedule = assignment.getSchedule();
-        if (schedule.getStatus() == ScheduleStatus.COMPLETED || schedule.getStatus() == ScheduleStatus.CANCELLED) {
-            throw new BadRequestException("Tidak dapat mengubah presensi pada jadwal yang sudah selesai atau dibatalkan");
+        if (schedule.getStatus() != ScheduleStatus.PUBLISHED) {
+            throw new BadRequestException("Presensi hanya dapat dicatat pada jadwal yang sudah dipublikasikan.");
         }
 
         if (!isManager()) {
