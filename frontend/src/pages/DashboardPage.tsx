@@ -25,7 +25,7 @@ export function DashboardPage() {
   const [myCleanlinessPoints, setMyCleanlinessPoints] = useState<number | null>(null);
   
   const [activeEnglishActivitiesCount, setActiveEnglishActivitiesCount] = useState<number | null>(null);
-  const [myEnglishScore, setMyEnglishScore] = useState<number | null>(null);
+  const [pendingEnglishDepositsCount, setPendingEnglishDepositsCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -46,6 +46,8 @@ export function DashboardPage() {
   const canReadCleanliness = hasPermission("cleanliness.schedule.read");
   const canReadEnglish = hasPermission("english.activity.read");
   const canReadOwnEnglishDeposit = hasPermission("english.deposit.read.own");
+  const canReadAllEnglishDeposit = hasPermission("english.deposit.read.all");
+  const canVerifyEnglishDeposit = hasPermission("english.deposit.verify");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -149,29 +151,33 @@ export function DashboardPage() {
       if (canReadEnglish && token) {
         promises.push(
           englishService.getAllActivities(token).then((res) => {
-            if (res && res.data) {
-              const active = res.data.filter((a: any) => a.status === "PUBLISHED");
+            if (res) {
+              const active = res.filter((a) => a.status === "PUBLISHED");
               setActiveEnglishActivitiesCount(active.length);
             }
-          }).catch(() => {})
+          })
         );
       }
 
-      if (canReadOwnEnglishDeposit && token) {
+      if ((canReadAllEnglishDeposit || canVerifyEnglishDeposit) && token) {
+        if (canReadAllEnglishDeposit) {
+          promises.push(
+            englishService.getAllDeposits(token).then((res) => {
+              if (res) {
+                const submitted = res.filter((d) => d.status === "SUBMITTED");
+                setPendingEnglishDepositsCount(submitted.length);
+              }
+            })
+          );
+        }
+      } else if (canReadOwnEnglishDeposit && token) {
         promises.push(
           englishService.getMyDeposits(token).then((res) => {
-            if (res && res.data && res.data.length > 0) {
-              const verified = res.data.filter((d: any) => d.status === "VERIFIED" && d.score != null);
-              if (verified.length > 0) {
-                const total = verified.reduce((sum: number, d: any) => sum + (d.score || 0), 0);
-                setMyEnglishScore(Math.round(total / verified.length));
-              } else {
-                setMyEnglishScore(0);
-              }
-            } else {
-              setMyEnglishScore(0);
+            if (res) {
+              const submitted = res.filter((d) => d.status === "SUBMITTED");
+              setPendingEnglishDepositsCount(submitted.length);
             }
-          }).catch(() => {})
+          })
         );
       }
 
@@ -185,7 +191,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness, canReadEnglish, canReadOwnEnglishDeposit]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness, canReadEnglish, canReadOwnEnglishDeposit, canReadAllEnglishDeposit, canVerifyEnglishDeposit]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -340,13 +346,19 @@ export function DashboardPage() {
           </div>
         )}
 
-        {canReadOwnEnglishDeposit && (
-          <div className="dashboard-card stat-card stat-success">
-            <span className="stat-label">Skor English Saya</span>
-            <strong className="stat-value">{renderCount(myEnglishScore)}</strong>
-            <Link to="/english-activities" className="stat-link">Lihat Setoran &rarr;</Link>
+        {(canReadAllEnglishDeposit || canVerifyEnglishDeposit) ? (
+          <div className="dashboard-card stat-card stat-warning">
+            <span className="stat-label">Setoran Menunggu Verifikasi</span>
+            <strong className="stat-value">{renderCount(pendingEnglishDepositsCount)}</strong>
+            <Link to="/english-management" className="stat-link">Proses Sekarang &rarr;</Link>
           </div>
-        )}
+        ) : canReadOwnEnglishDeposit ? (
+          <div className="dashboard-card stat-card stat-info">
+            <span className="stat-label">Setoran Bahasa Inggris Saya</span>
+            <strong className="stat-value">{renderCount(pendingEnglishDepositsCount)}</strong>
+            <Link to="/english-activities" className="stat-link">Lihat Status &rarr;</Link>
+          </div>
+        ) : null}
       </section>
 
       <div className="dashboard-main-grid">

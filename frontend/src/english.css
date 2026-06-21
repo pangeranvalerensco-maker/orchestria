@@ -211,3 +211,22 @@
   color: #6b7280;
   font-size: 0.875rem;
 }
+
+.english-card-column { display: flex; flex-direction: column; gap: 0.75rem; }
+.english-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.english-card-meta { font-size: 0.875rem; color: #4b5563; }
+.english-card-description { font-size: 0.875rem; color: #6b7280; margin: 0; }
+.english-card-footer { margin-top: auto; padding-top: 1rem; }
+.english-deposit-summary { font-size: 0.875rem; background: #f9fafb; padding: 0.75rem; border-radius: 4px; }
+.english-full-width { width: 100%; }
+.english-tab-bar { display: flex; gap: 1rem; padding: 1rem; }
+.english-section-header { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.english-table-spaced { margin-top: 1rem; }
+.english-report-list { padding-left: 1.5rem; margin-top: 1rem; }
+.english-report-wide { grid-column: 1 / -1; }
+.english-form-row { display: flex; gap: 1rem; }
+.english-form-column { flex: 1; }
+.english-verification-summary { margin-bottom: 1rem; font-size: 0.875rem; }
+.english-inline-gap { display: flex; gap: 0.5rem; }
+.english-success-message { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+

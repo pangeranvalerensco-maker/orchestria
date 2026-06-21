@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { englishService } from '../services/englishService';
 import type { EnglishActivity, EnglishDepositRequest, EnglishDeposit } from '../types/english';
 import { useAuth } from '../auth/useAuth';
+import { ApiError } from '../api/http';
 
 export const EnglishActivityPage: React.FC = () => {
   const { token, hasPermission } = useAuth();
@@ -9,6 +10,7 @@ export const EnglishActivityPage: React.FC = () => {
   const [myDeposits, setMyDeposits] = useState<EnglishDeposit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<EnglishActivity | null>(null);
@@ -31,13 +33,13 @@ export const EnglishActivityPage: React.FC = () => {
     setError('');
     try {
       const acts = await englishService.getAllActivities(token);
-      setActivities(acts.data);
+      setActivities(acts);
       if (hasDepositAuth) {
         const deps = await englishService.getMyDeposits(token);
-        setMyDeposits(deps.data);
+        setMyDeposits(deps);
       }
-    } catch (err: any) {
-      setError(err.message || 'Gagal memuat data');
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : 'Gagal memuat data');
     } finally {
       setLoading(false);
     }
@@ -48,10 +50,12 @@ export const EnglishActivityPage: React.FC = () => {
     if (!token) return;
     try {
       await englishService.createDeposit(token, depositForm);
+      setSuccessMessage('Setoran berhasil dikirim!');
+      setDepositForm({ activityId: '', topic: '', evidenceUrl: '', submissionNote: '' });
       setShowDepositModal(false);
       loadData();
-    } catch (err: any) {
-      setError(err.message || 'Gagal mengirim setoran');
+    } catch (err: unknown) {
+      setError(err instanceof ApiError ? err.message : 'Gagal mengirim setoran');
     }
   };
 
@@ -69,6 +73,7 @@ export const EnglishActivityPage: React.FC = () => {
       </div>
 
       {error && <div className="english-alert english-alert-error">{error}</div>}
+      {successMessage && <div className="english-alert english-success-message">{successMessage}</div>}
 
       <div className="english-grid">
         {loading ? (
@@ -78,22 +83,21 @@ export const EnglishActivityPage: React.FC = () => {
         ) : activities.map(act => {
           const myDep = getMyDepositForActivity(act.id);
           return (
-            <div key={act.id} className="english-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h3 style={{ margin: 0, fontSize: '1.125rem' }}>{act.title}</h3>
+            <div key={act.id} className="english-card english-card-column">
+              <div className="english-card-header">
+                <h3 className="english-title">{act.title}</h3>
                 {myDep && <span className="english-badge english-badge-success">{myDep.status}</span>}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+              <div className="english-card-meta">
                 <div><strong>Tanggal:</strong> {act.activityDate} ({act.startTime} - {act.endTime})</div>
                 <div><strong>Topik:</strong> {act.topic}</div>
               </div>
-              {act.description && <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>{act.description}</p>}
+              {act.description && <p className="english-card-description">{act.description}</p>}
               
-              <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
+              <div className="english-card-footer">
                 {!myDep && hasDepositAuth && act.status === 'PUBLISHED' && (
                   <button 
-                    className="english-btn english-btn-primary" 
-                    style={{ width: '100%' }}
+                    className="english-btn english-btn-primary english-full-width" 
                     onClick={() => {
                       setSelectedActivity(act);
                       setDepositForm({
@@ -109,8 +113,8 @@ export const EnglishActivityPage: React.FC = () => {
                   </button>
                 )}
                 {myDep && (
-                  <div style={{ fontSize: '0.875rem', background: '#f9fafb', padding: '0.75rem', borderRadius: '4px' }}>
-                    <div style={{ marginBottom: '0.25rem' }}><strong>Topik Anda:</strong> {myDep.topic}</div>
+                  <div className="english-deposit-summary">
+                    <div className="english-deposit-topic"><strong>Topik Anda:</strong> {myDep.topic}</div>
                     {myDep.score != null && <div><strong>Skor:</strong> {myDep.score}</div>}
                     {myDep.verificationNote && <div><strong>Catatan:</strong> {myDep.verificationNote}</div>}
                   </div>
