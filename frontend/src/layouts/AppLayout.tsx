@@ -50,6 +50,13 @@ export function AppLayout() {
             </div>
           )}
 
+          {hasPermission("division.task.read") && (
+            <div className="nav-group">
+              <span className="nav-group-title">Aktivitas Divisi</span>
+              <NavLink to="/division-tasks" className={navClass}>Tugas Divisi</NavLink>
+            </div>
+          )}
+
           {hasPermission("archive.manage") && (
             <div className="nav-group">
               <span className="nav-group-title">Administrasi</span>

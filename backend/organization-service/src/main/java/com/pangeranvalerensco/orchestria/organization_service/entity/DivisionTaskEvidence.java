@@ -44,6 +44,9 @@ public class DivisionTaskEvidence {
     @Column(length = 500)
     private String externalLink;
 
+    @Column(name = "submitted_by_member_id")
+    private Long submittedByMemberId;
+
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;

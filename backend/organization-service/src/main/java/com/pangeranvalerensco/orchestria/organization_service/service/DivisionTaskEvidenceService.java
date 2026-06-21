@@ -17,4 +17,10 @@ public interface DivisionTaskEvidenceService {
     ApiResponse<DivisionTaskEvidenceResponse> updateEvidence(Long id, DivisionTaskEvidenceRequest request);
 
     ApiResponse<Void> deleteEvidence(Long id);
+
+    ApiResponse<DivisionTaskEvidenceResponse> createMyEvidence(DivisionTaskEvidenceRequest request);
+
+    ApiResponse<DivisionTaskEvidenceResponse> updateMyEvidence(Long id, DivisionTaskEvidenceRequest request);
+
+    ApiResponse<Void> deleteMyEvidence(Long id);
 }

@@ -22,7 +22,7 @@ public class DivisionTaskController {
     private final DivisionTaskService taskService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('division.task.read')")
+    @PreAuthorize("hasAuthority('division.task.manage')")
     public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getAllTasks() {
         return ResponseEntity.ok(taskService.getAllTasks());
     }
@@ -35,21 +35,21 @@ public class DivisionTaskController {
     }
 
     @GetMapping("/division/{divisionId}")
-    @PreAuthorize("hasAuthority('division.task.read')")
+    @PreAuthorize("hasAuthority('division.task.manage')")
     public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getTasksByDivision(
             @PathVariable Long divisionId) {
         return ResponseEntity.ok(taskService.getTasksByDivision(divisionId));
     }
 
     @GetMapping("/member/{memberId}")
-    @PreAuthorize("hasAuthority('division.task.read')")
+    @PreAuthorize("hasAuthority('division.task.manage')")
     public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getTasksByAssignedMember(
             @PathVariable Long memberId) {
         return ResponseEntity.ok(taskService.getTasksByAssignedMember(memberId));
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAuthority('division.task.read')")
+    @PreAuthorize("hasAuthority('division.task.manage')")
     public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getTasksByStatus(
             @PathVariable TaskStatus status) {
         return ResponseEntity.ok(taskService.getTasksByStatus(status));
@@ -84,5 +84,19 @@ public class DivisionTaskController {
     public ResponseEntity<ApiResponse<Void>> deleteTask(
             @PathVariable Long id) {
         return ResponseEntity.ok(taskService.deleteTask(id));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<List<DivisionTaskResponse>>> getMyTasks() {
+        return ResponseEntity.ok(taskService.getMyTasks());
+    }
+
+    @PatchMapping("/{id}/my-status/{status}")
+    @PreAuthorize("hasAuthority('division.task.read')")
+    public ResponseEntity<ApiResponse<DivisionTaskResponse>> updateMyTaskStatus(
+            @PathVariable Long id,
+            @PathVariable TaskStatus status) {
+        return ResponseEntity.ok(taskService.updateMyTaskStatus(id, status));
     }
 }
