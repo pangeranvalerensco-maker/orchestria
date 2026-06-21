@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useAuth } from "../auth/useAuth";
 import divisionTaskService from "../services/divisionTaskService";
 import { getDivisions } from "../services/organizationService";
@@ -18,6 +18,7 @@ export const DivisionTasksPage: React.FC = () => {
   const [divisions, setDivisions] = useState<DivisionResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [dataWarning, setDataWarning] = useState("");
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<DivisionTask | null>(null);
@@ -68,7 +69,7 @@ export const DivisionTasksPage: React.FC = () => {
       const res = await getDivisions(token);
       if (res.data) setDivisions(res.data);
     } catch (err: unknown) {
-      //
+      setDataWarning("Daftar divisi belum dapat dimuat.");
     }
   };
 
@@ -98,27 +99,27 @@ export const DivisionTasksPage: React.FC = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    let filtered = tasks.filter(task => task.status !== "DONE" && task.status !== "CANCELLED");
+    let filtered = [...tasks];
 
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(
-        t => t.title.toLowerCase().includes(s) || (t.assignedMemberName && t.assignedMemberName.toLowerCase().includes(s))
+        (task) => task.title.toLowerCase().includes(s) || (task.assignedMemberName && task.assignedMemberName.toLowerCase().includes(s))
       );
     }
     if (filterDivision) {
-      filtered = filtered.filter(t => t.divisionId.toString() === filterDivision);
+      filtered = filtered.filter((task) => task.divisionId.toString() === filterDivision);
     }
     if (filterStatus) {
-      filtered = filtered.filter(t => t.status === filterStatus);
+      filtered = filtered.filter((task) => task.status === filterStatus);
     }
     if (filterPriority) {
-      filtered = filtered.filter(t => t.priority === filterPriority);
+      filtered = filtered.filter((task) => task.priority === filterPriority);
     }
     if (filterOverdue) {
-      filtered = filtered.filter(t => {
-        if (!t.dueDate) return false;
-        const dDate = new Date(t.dueDate);
+      filtered = filtered.filter((task) => {
+        if (!task.dueDate || task.status === "DONE" || task.status === "CANCELLED") return false;
+        const dDate = new Date(task.dueDate);
         return dDate < today;
       });
     }
@@ -206,10 +207,12 @@ export const DivisionTasksPage: React.FC = () => {
           </select>
         )}
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-          <option value="">Semua Status Aktif</option>
+          <option value="">Semua Status</option>
           <option value="TODO">TODO</option>
           <option value="IN_PROGRESS">IN_PROGRESS</option>
           <option value="SUBMITTED">SUBMITTED</option>
+          <option value="DONE">DONE</option>
+          <option value="CANCELLED">CANCELLED</option>
         </select>
         <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
           <option value="">Semua Prioritas</option>
@@ -223,6 +226,7 @@ export const DivisionTasksPage: React.FC = () => {
         </label>
       </div>
 
+      {dataWarning && <div className="alert alert-warning" style={{ background: '#fef3c7', color: '#92400e' }}>{dataWarning}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
       {isLoading ? (
@@ -233,7 +237,7 @@ export const DivisionTasksPage: React.FC = () => {
             <div key={task.id} className="division-task-card">
               <div className="division-task-card-header">
                 <h3>{task.title}</h3>
-                <span className={`division-task-status status-${task.status.toLowerCase()}`}>
+                <span className={`division-task-status division-task-status-${task.status.toLowerCase()}`}>
                   {task.status}
                 </span>
               </div>
@@ -241,10 +245,10 @@ export const DivisionTasksPage: React.FC = () => {
                 {task.divisionName} &bull; {task.assignedMemberName || "Belum ditugaskan"}
               </div>
               <div className="division-task-card-footer">
-                <span className={`division-task-priority priority-${task.priority.toLowerCase()}`}>
+                <span className={`division-task-priority division-task-priority-${task.priority.toLowerCase()}`}>
                   {task.priority}
                 </span>
-                <span className={`division-task-due ${isOverdue(task.dueDate) ? "overdue" : ""}`}>
+                <span className={`division-task-due ${isOverdue(task.dueDate) ? "division-task-due-overdue" : ""}`}>
                   {task.dueDate ? new Date(task.dueDate).toLocaleDateString("id-ID") : "Tanpa tenggat"}
                 </span>
               </div>

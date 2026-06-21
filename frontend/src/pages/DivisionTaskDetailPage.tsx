@@ -16,10 +16,10 @@ export const DivisionTaskDetailPage: React.FC = () => {
   const [evidences, setEvidences] = useState<DivisionTaskEvidence[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const [isEditingTask, setIsEditingTask] = useState(false);
 
-  // Evidence Form State
   const [showEvidenceForm, setShowEvidenceForm] = useState(false);
   const [editingEvidence, setEditingEvidence] = useState<DivisionTaskEvidence | null>(null);
   const [evidenceType, setEvidenceType] = useState<EvidenceType>("NOTE");
@@ -30,16 +30,13 @@ export const DivisionTaskDetailPage: React.FC = () => {
   const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
 
   const isManager = hasPermission("division.task.manage");
-
-  // The assignment member ID is in task.assignedMemberId.
-  // Wait, user object has what properties? Let's assume we match user.email with task.assignedMemberEmail, 
-  // or maybe better if the backend tells us. The backend updateMyTaskStatus will fail if we are not the assigned member.
   const isAssigned = task?.assignedMemberEmail?.toLowerCase() === user?.email.toLowerCase();
 
   const fetchTaskDetails = async () => {
     if (!token || !id) return;
     setIsLoading(true);
     setError("");
+    setActionError("");
     try {
       const res = await divisionTaskService.getTaskById(token, Number(id));
       if (res.data) setTask(res.data);
@@ -73,21 +70,25 @@ export const DivisionTaskDetailPage: React.FC = () => {
 
   const handleUpdateMyStatus = async (status: TaskStatus) => {
     if (!token || !id) return;
+    setActionError("");
     try {
       await divisionTaskService.updateMyTaskStatus(token, Number(id), status);
       fetchTaskDetails();
     } catch (err: unknown) {
-      if (err instanceof ApiError) alert(err.message);
+      if (err instanceof ApiError) setActionError(err.message);
+      else setActionError("Gagal memperbarui status");
     }
   };
 
   const handleUpdateTaskStatus = async (status: TaskStatus) => {
     if (!token || !id) return;
+    setActionError("");
     try {
       await divisionTaskService.updateTaskStatus(token, Number(id), status);
       fetchTaskDetails();
     } catch (err: unknown) {
-      if (err instanceof ApiError) alert(err.message);
+      if (err instanceof ApiError) setActionError(err.message);
+      else setActionError("Gagal memperbarui status");
     }
   };
 
@@ -113,30 +114,18 @@ export const DivisionTaskDetailPage: React.FC = () => {
 
   const handleDeleteEvidence = async (ev: DivisionTaskEvidence) => {
     if (!token) return;
+    setActionError("");
     if (window.confirm("Hapus bukti ini?")) {
       try {
-        if (isManager && !isAssigned) {
-          // If manager and not assigned (manager flow)
-          // Wait, manager can edit their own and other's if managed.
-          // Let's just try deleteEvidence or deleteMyEvidence.
-          // Actually, manager uses deleteEvidence. Member uses deleteMyEvidence.
-          if (ev.submittedByMemberId === task?.assignedMemberId && !isManager) {
-             await divisionTaskService.deleteMyEvidence(token, ev.id);
-          } else {
-             await divisionTaskService.deleteEvidence(token, ev.id);
-          }
+        if (isManager) {
+          await divisionTaskService.deleteEvidence(token, ev.id);
         } else {
-          // If user is just member, or manager trying to delete own.
-          // Let's just use deleteMyEvidence for member, deleteEvidence for manager.
-          if (isManager) {
-            await divisionTaskService.deleteEvidence(token, ev.id);
-          } else {
-            await divisionTaskService.deleteMyEvidence(token, ev.id);
-          }
+          await divisionTaskService.deleteMyEvidence(token, ev.id);
         }
         fetchTaskDetails();
       } catch (err: unknown) {
-        if (err instanceof ApiError) alert(err.message);
+        if (err instanceof ApiError) setActionError(err.message);
+        else setActionError("Gagal menghapus bukti");
       }
     }
   };
@@ -144,6 +133,7 @@ export const DivisionTaskDetailPage: React.FC = () => {
   const handleSaveEvidence = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !id) return;
+    setActionError("");
     setIsSubmittingEvidence(true);
     try {
       const data = {
@@ -162,18 +152,17 @@ export const DivisionTaskDetailPage: React.FC = () => {
           await divisionTaskService.updateMyEvidence(token, editingEvidence.id, data);
         }
       } else {
-        if (isManager && !isAssigned) {
+        if (isManager) {
           await divisionTaskService.createEvidence(token, data);
-        } else if (isAssigned) {
+        } else {
           await divisionTaskService.createMyEvidence(token, data);
-        } else if (isManager) {
-          await divisionTaskService.createEvidence(token, data);
         }
       }
       setShowEvidenceForm(false);
       fetchTaskDetails();
     } catch (err: unknown) {
-      if (err instanceof ApiError) alert(err.message);
+      if (err instanceof ApiError) setActionError(err.message);
+      else setActionError("Gagal menyimpan bukti");
     } finally {
       setIsSubmittingEvidence(false);
     }
@@ -192,21 +181,23 @@ export const DivisionTaskDetailPage: React.FC = () => {
         &larr; Kembali
       </button>
 
+      {actionError && <div className="alert alert-error">{actionError}</div>}
+
       <div className="division-task-header-detail">
         <div>
           <h1>{task.title}</h1>
-          <span className={`division-task-status status-${task.status.toLowerCase()}`}>
+          <span className={`division-task-status division-task-status-${task.status.toLowerCase()}`}>
             {task.status}
           </span>
         </div>
         <div className="division-task-actions">
           {isAssigned && task.status === "TODO" && (
-            <button type="button" className="btn-start" onClick={() => handleUpdateMyStatus("IN_PROGRESS")}>
+            <button type="button" className="division-task-btn-start" onClick={() => handleUpdateMyStatus("IN_PROGRESS")}>
               Mulai Kerjakan
             </button>
           )}
           {isAssigned && task.status === "IN_PROGRESS" && (
-            <button type="button" className="btn-submit" onClick={() => handleUpdateMyStatus("SUBMITTED")}>
+            <button type="button" className="division-task-btn-submit" onClick={() => handleUpdateMyStatus("SUBMITTED")}>
               Kirim untuk Review
             </button>
           )}
@@ -215,10 +206,10 @@ export const DivisionTaskDetailPage: React.FC = () => {
             <>
               {task.status === "SUBMITTED" && (
                 <>
-                  <button type="button" className="btn-done" onClick={() => handleUpdateTaskStatus("DONE")}>
+                  <button type="button" className="division-task-btn-done" onClick={() => handleUpdateTaskStatus("DONE")}>
                     Tandai Selesai
                   </button>
-                  <button type="button" className="btn-reject" onClick={() => handleUpdateTaskStatus("IN_PROGRESS")}>
+                  <button type="button" className="division-task-btn-reject" onClick={() => handleUpdateTaskStatus("IN_PROGRESS")}>
                     Kembalikan ke IN_PROGRESS
                   </button>
                 </>
@@ -226,7 +217,7 @@ export const DivisionTaskDetailPage: React.FC = () => {
               {canMutateTask && (
                  <>
                    <button type="button" className="secondary-link-button" onClick={() => setIsEditingTask(true)}>Edit Tugas</button>
-                   <button type="button" className="btn-reject" onClick={() => handleUpdateTaskStatus("CANCELLED")}>Batalkan Tugas</button>
+                   <button type="button" className="division-task-btn-reject" onClick={() => handleUpdateTaskStatus("CANCELLED")}>Batalkan Tugas</button>
                  </>
               )}
             </>
@@ -288,10 +279,10 @@ export const DivisionTaskDetailPage: React.FC = () => {
         <div className="division-task-sidebar">
           <div className="division-task-card">
             <h3>Informasi Tugas</h3>
-            <ul className="task-info-list">
+            <ul className="division-task-info-list">
               <li><strong>Divisi:</strong> {task.divisionName}</li>
               <li><strong>Ditugaskan Ke:</strong> {task.assignedMemberName || "Belum ditugaskan"}</li>
-              <li><strong>Prioritas:</strong> <span className={`priority-${task.priority.toLowerCase()}`}>{task.priority}</span></li>
+              <li><strong>Prioritas:</strong> <span className={`division-task-priority division-task-priority-${task.priority.toLowerCase()}`}>{task.priority}</span></li>
               <li><strong>Tenggat:</strong> {task.dueDate ? new Date(task.dueDate).toLocaleDateString("id-ID") : "Tanpa tenggat"}</li>
               <li><strong>Dibuat:</strong> {new Date(task.createdAt).toLocaleString("id-ID")}</li>
               <li><strong>Terakhir Diperbarui:</strong> {new Date(task.updatedAt).toLocaleString("id-ID")}</li>

@@ -9,7 +9,7 @@ import {
 import divisionTaskService from "../../services/divisionTaskService";
 import { ApiError } from "../../api/http";
 import type { DivisionResponse, MemberAssignment } from "../../types/organization";
-import type { TaskStatus, TaskPriority, DivisionTaskRequest, DivisionTask } from "../../types/divisionTask";
+import type { TaskPriority, DivisionTaskRequest, DivisionTask } from "../../types/divisionTask";
 
 interface Props {
   initialData?: DivisionTask | null;
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSuccess }) => {
-  const { token, hasPermission } = useAuth();
+  const { user, token } = useAuth();
   
   const [divisions, setDivisions] = useState<DivisionResponse[]>([]);
   const [members, setMembers] = useState<MemberAssignment[]>([]);
@@ -32,29 +32,38 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
-  const [status, setStatus] = useState<TaskStatus>("TODO");
 
-  const isGlobalManager = hasPermission("organization.manage") || hasPermission("request.read.all");
+  const isGlobalManager = user?.roles.includes("ROLE_SUPER_ADMIN") || user?.roles.includes("ROLE_KETUA_PUB");
+  const isKetuaDivisi = user?.roles.includes("ROLE_KETUA_DIVISI");
 
   useEffect(() => {
     async function initForm() {
       if (!token) return;
       try {
         setLoadingContext(true);
-        const [divsRes, periodRes, contextRes] = await Promise.all([
+
+        const promises: Promise<any>[] = [
           getDivisions(token),
-          getCurrentPeriod(token),
-          getCurrentMemberContext(token),
-        ]);
+          getCurrentPeriod(token)
+        ];
+
+        if (isKetuaDivisi && !isGlobalManager) {
+          promises.push(getCurrentMemberContext(token));
+        }
+
+        const results = await Promise.all(promises);
+        const divsRes = results[0];
+        const periodRes = results[1];
 
         let allowedDivisions = divsRes.data || [];
         
-        if (!isGlobalManager) {
+        if (!isGlobalManager && isKetuaDivisi) {
+           const contextRes = results[2];
            const myAssignments = contextRes.data?.activeAssignments || [];
            const managedDivIds = myAssignments
              .filter((a: MemberAssignment) => a.status === "ACTIVE" && a.periodId === periodRes.data?.id && a.positionCode === "KETUA_DIVISI")
              .map((a: MemberAssignment) => a.divisionId);
-           allowedDivisions = allowedDivisions.filter(d => managedDivIds.includes(d.id));
+           allowedDivisions = allowedDivisions.filter((d: DivisionResponse) => managedDivIds.includes(d.id));
         }
         
         setDivisions(allowedDivisions);
@@ -66,7 +75,6 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
           setDescription(initialData.description || "");
           setDueDate(initialData.dueDate || "");
           setPriority(initialData.priority);
-          setStatus(initialData.status);
         } else if (allowedDivisions.length === 1) {
           setDivisionId(allowedDivisions[0].id);
         }
@@ -82,7 +90,7 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
       }
     }
     initForm();
-  }, [token, initialData, isGlobalManager]);
+  }, [token, initialData, isGlobalManager, isKetuaDivisi]);
 
   useEffect(() => {
     async function loadMembers() {
@@ -136,7 +144,7 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
       description: trimDesc || null,
       dueDate: dueDate || null,
       priority,
-      status,
+      status: initialData ? initialData.status : "TODO",
     };
 
     setIsSubmitting(true);
@@ -221,17 +229,6 @@ export const DivisionTaskForm: React.FC<Props> = ({ initialData, onClose, onSucc
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
                 <option value="HIGH">High</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <span>Status</span>
-              <select value={status} onChange={e => setStatus(e.target.value as TaskStatus)}>
-                <option value="TODO">TODO</option>
-                <option value="IN_PROGRESS">IN_PROGRESS</option>
-                <option value="SUBMITTED">SUBMITTED</option>
-                <option value="DONE">DONE</option>
-                <option value="CANCELLED">CANCELLED</option>
               </select>
             </div>
 
