@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DivisionTaskAccessService {
+    private static final String DIVISION_HEAD_POSITION_CODE = "KETUA_DIVISI";
 
     private final MemberRepository memberRepository;
     private final MemberAssignmentRepository memberAssignmentRepository;
@@ -70,7 +71,9 @@ public class DivisionTaskAccessService {
                             currentMember, AssignmentStatus.ACTIVE);
             
             return activeAssignments.stream()
+                    .filter(a -> DIVISION_HEAD_POSITION_CODE.equals(a.getPosition().getCode()))
                     .map(a -> a.getDivision().getId())
+                    .distinct()
                     .collect(Collectors.toList());
         }
 

@@ -205,12 +205,27 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
             }
         }
         
-        if (request.getFileUrl() != null && request.getFileUrl().trim().startsWith("javascript:")) {
+        validateUrlSafe(request.getExternalLink(), true);
+        validateUrlSafe(request.getFileUrl(), false);
+    }
+
+    private void validateUrlSafe(String url, boolean isExternalOnly) {
+        if (url == null || url.trim().isEmpty()) return;
+        
+        String normalized = url.trim().toLowerCase(java.util.Locale.ROOT);
+        
+        if (normalized.startsWith("javascript:") || normalized.startsWith("data:")) {
             throw new BadRequestException("Format URL tidak valid");
         }
         
-        if (request.getExternalLink() != null && request.getExternalLink().trim().startsWith("javascript:")) {
-            throw new BadRequestException("Format URL tidak valid");
+        if (isExternalOnly) {
+            if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+                throw new BadRequestException("Format URL tidak valid, hanya http dan https yang diizinkan");
+            }
+        } else {
+            if (!normalized.startsWith("http://") && !normalized.startsWith("https://") && !normalized.startsWith("/")) {
+                throw new BadRequestException("Format URL tidak valid, harus berupa http, https, atau path relatif");
+            }
         }
     }
 
@@ -236,8 +251,12 @@ public class DivisionTaskEvidenceServiceImpl implements DivisionTaskEvidenceServ
     }
 
     private DivisionTaskEvidence findEvidenceById(Long id) {
-        return evidenceRepository.findById(id)
+        DivisionTaskEvidence evidence = evidenceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bukti tugas divisi tidak ditemukan"));
+        if (!evidence.getActive()) {
+            throw new ResourceNotFoundException("Bukti tugas divisi tidak ditemukan");
+        }
+        return evidence;
     }
 
     private DivisionTask findTaskById(Long id) {

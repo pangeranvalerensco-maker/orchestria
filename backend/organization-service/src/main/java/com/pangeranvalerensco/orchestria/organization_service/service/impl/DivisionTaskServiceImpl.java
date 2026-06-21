@@ -150,7 +150,7 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
                 .title(request.getTitle().trim())
                 .description(trimOrNull(request.getDescription()))
                 .dueDate(request.getDueDate())
-                .status(defaultIfNull(request.getStatus(), TaskStatus.TODO))
+                .status(TaskStatus.TODO)
                 .priority(defaultIfNull(request.getPriority(), TaskPriority.MEDIUM))
                 .active(true)
                 .build();
@@ -173,6 +173,10 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         if (task.getStatus() == TaskStatus.DONE || task.getStatus() == TaskStatus.CANCELLED) {
             throw new BadRequestException("Tugas yang sudah DONE atau CANCELLED tidak dapat diubah");
         }
+        
+        if (request.getStatus() != null && request.getStatus() != task.getStatus()) {
+            throw new BadRequestException("Status tugas hanya dapat diubah melalui endpoint perubahan status");
+        }
 
         Division division = findDivisionById(request.getDivisionId());
         Member assignedMember = null;
@@ -187,7 +191,6 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
         task.setTitle(request.getTitle().trim());
         task.setDescription(trimOrNull(request.getDescription()));
         task.setDueDate(request.getDueDate());
-        task.setStatus(defaultIfNull(request.getStatus(), TaskStatus.TODO));
         task.setPriority(defaultIfNull(request.getPriority(), TaskPriority.MEDIUM));
 
         DivisionTask savedTask = taskRepository.save(task);
@@ -318,8 +321,12 @@ public class DivisionTaskServiceImpl implements DivisionTaskService {
     }
 
     private DivisionTask findTaskById(Long id) {
-        return taskRepository.findById(id)
+        DivisionTask task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tugas divisi tidak ditemukan"));
+        if (!task.getActive()) {
+            throw new ResourceNotFoundException("Tugas divisi tidak ditemukan");
+        }
+        return task;
     }
 
     private Division findDivisionById(Long id) {
