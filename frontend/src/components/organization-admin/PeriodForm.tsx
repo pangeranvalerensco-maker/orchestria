@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createPeriod, updatePeriod } from "../../services/organizationService";
 import type { OrganizationPeriodResponse, OrganizationPeriodRequest } from "../../types/organization";
-import { ApiError } from "../../api/http";
+import { getErrorMessage } from "../../utils/apiErrorHandler";
 
 interface PeriodFormProps {
   token: string;
@@ -59,11 +59,7 @@ export function PeriodForm({ token, initialData, onSuccess, onCancel }: PeriodFo
       }
       onSuccess();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Gagal menyimpan data periode.");
-      }
+      setError(getErrorMessage(err, "Gagal menyimpan data periode."));
     } finally {
       setSubmitting(false);
     }
@@ -79,11 +75,11 @@ export function PeriodForm({ token, initialData, onSuccess, onCancel }: PeriodFo
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Tanggal Mulai</label>
           <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} />
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Tanggal Selesai</label>
           <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} />
         </div>
@@ -95,7 +91,7 @@ export function PeriodForm({ token, initialData, onSuccess, onCancel }: PeriodFo
           Jadikan sebagai Periode Aktif Saat Ini (Current Period)
         </label>
         {formData.currentPeriod && (
-          <small style={{ color: "#b45309", marginTop: "4px" }}>
+          <small className="org-admin-period-warning">
             Peringatan: Jika disimpan, periode lain akan otomatis kehilangan status current-nya sesuai aturan backend (jika dikonfigurasi demikian). Hanya boleh ada 1 periode current.
           </small>
         )}
@@ -108,11 +104,11 @@ export function PeriodForm({ token, initialData, onSuccess, onCancel }: PeriodFo
         </label>
       </div>
 
-      <div className="org-admin-modal-footer" style={{ marginTop: "24px", margin: "0 -24px -24px" }}>
+      <div className="org-admin-modal-footer org-admin-modal-footer-spacing">
         <button type="button" className="secondary-link-button" onClick={onCancel} disabled={submitting}>
           Batal
         </button>
-        <button type="submit" className="primary-button" style={{ width: "auto" }} disabled={submitting}>
+        <button type="submit" className="primary-button org-admin-primary-button-auto" disabled={submitting}>
           {submitting ? "Menyimpan..." : "Simpan"}
         </button>
       </div>

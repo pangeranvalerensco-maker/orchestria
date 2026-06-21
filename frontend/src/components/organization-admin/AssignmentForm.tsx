@@ -8,7 +8,7 @@ import type {
   PositionResponse,
   OrganizationPeriodResponse
 } from "../../types/organization";
-import { ApiError } from "../../api/http";
+import { getErrorMessage } from "../../utils/apiErrorHandler";
 
 interface AssignmentFormProps {
   token: string;
@@ -55,7 +55,7 @@ export function AssignmentForm({
       periodId: Number(formData.periodId),
       divisionId: Number(formData.divisionId),
       positionId: Number(formData.positionId),
-      status: formData.status as any,
+      status: formData.status as MemberAssignmentRequest["status"],
     };
 
     try {
@@ -66,11 +66,7 @@ export function AssignmentForm({
       }
       onSuccess();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Gagal menyimpan data penempatan.");
-      }
+      setError(getErrorMessage(err, "Gagal menyimpan data penempatan."));
     } finally {
       setSubmitting(false);
     }
@@ -112,7 +108,7 @@ export function AssignmentForm({
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Jabatan *</label>
           <select name="positionId" value={formData.positionId} onChange={handleChange} required>
             <option value="">-- Pilih Jabatan --</option>
@@ -121,7 +117,7 @@ export function AssignmentForm({
             ))}
           </select>
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Status *</label>
           <select name="status" value={formData.status} onChange={handleChange} required>
             <option value="ACTIVE">Aktif</option>
@@ -130,11 +126,11 @@ export function AssignmentForm({
         </div>
       </div>
 
-      <div className="org-admin-modal-footer" style={{ marginTop: "24px", margin: "0 -24px -24px" }}>
+      <div className="org-admin-modal-footer org-admin-modal-footer-spacing">
         <button type="button" className="secondary-link-button" onClick={onCancel} disabled={submitting}>
           Batal
         </button>
-        <button type="submit" className="primary-button" style={{ width: "auto" }} disabled={submitting}>
+        <button type="submit" className="primary-button org-admin-primary-button-auto" disabled={submitting}>
           {submitting ? "Menyimpan..." : "Simpan"}
         </button>
       </div>

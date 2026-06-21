@@ -7,7 +7,7 @@ import {
 import type {
   MemberResponse, DivisionResponse, PositionResponse, OrganizationPeriodResponse, MemberAssignment
 } from "../types/organization";
-import { ApiError } from "../api/http";
+import { getErrorMessage } from "../utils/apiErrorHandler";
 
 import { AdminTabs, ADMIN_TABS } from "../components/organization-admin/AdminTabs";
 import { Modal } from "../components/organization-admin/Modal";
@@ -17,12 +17,20 @@ import { PositionForm } from "../components/organization-admin/PositionForm";
 import { PeriodForm } from "../components/organization-admin/PeriodForm";
 import { AssignmentForm } from "../components/organization-admin/AssignmentForm";
 
+type OrganizationAdminEditable =
+  | MemberResponse
+  | DivisionResponse
+  | PositionResponse
+  | OrganizationPeriodResponse
+  | MemberAssignment;
+
 export function OrganizationAdminPage() {
   const { token } = useAuth();
   
   const [activeTab, setActiveTab] = useState(ADMIN_TABS.MEMBERS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataWarning, setDataWarning] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
   const [members, setMembers] = useState<MemberResponse[]>([]);
@@ -38,40 +46,57 @@ export function OrganizationAdminPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"create" | "edit">("create");
-  const [editData, setEditData] = useState<any>(null);
+  const [editData, setEditData] = useState<OrganizationAdminEditable | null>(null);
 
   const loadData = async (tab?: string) => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      setError("Sesi tidak valid. Silakan login kembali.");
+      return;
+    }
     setLoading(true);
     setError(null);
+    setDataWarning(null);
+
     try {
       const targetTab = tab || activeTab;
       
-      // Always load all basic data once to ensure summaries and dropdowns work, but refresh target tab specifically.
-      // Optimizing: in a real app we might only load what's needed, but for summaries we need members, divisions, periods.
-      const [membersRes, divRes, posRes, perRes, assignRes] = await Promise.all([
+      const promises: Promise<any>[] = [
         getMembers(token),
         getDivisions(token),
         getPositions(token),
-        getPeriods(token),
-        targetTab === ADMIN_TABS.ASSIGNMENTS ? getMemberAssignments(token) : Promise.resolve({ data: assignments })
-      ]);
+        getPeriods(token)
+      ];
 
-      setMembers(membersRes.data);
-      setDivisions(divRes.data);
-      setPositions(posRes.data);
-      setPeriods(perRes.data);
       if (targetTab === ADMIN_TABS.ASSIGNMENTS) {
-        setAssignments(assignRes.data);
+        promises.push(getMemberAssignments(token));
+      }
+
+      const results = await Promise.allSettled(promises);
+      let hasPartialFailure = false;
+
+      if (results[0].status === "fulfilled") setMembers(results[0].value.data);
+      else { setMembers([]); hasPartialFailure = true; }
+
+      if (results[1].status === "fulfilled") setDivisions(results[1].value.data);
+      else { setDivisions([]); hasPartialFailure = true; }
+
+      if (results[2].status === "fulfilled") setPositions(results[2].value.data);
+      else { setPositions([]); hasPartialFailure = true; }
+
+      if (results[3].status === "fulfilled") setPeriods(results[3].value.data);
+      else { setPeriods([]); hasPartialFailure = true; }
+
+      if (targetTab === ADMIN_TABS.ASSIGNMENTS) {
+        if (results[4].status === "fulfilled") setAssignments(results[4].value.data);
+        else { setAssignments([]); hasPartialFailure = true; }
+      }
+
+      if (hasPartialFailure) {
+        setDataWarning("Sebagian data organisasi belum dapat dimuat.");
       }
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 401) setError("Sesi tidak valid. Silakan login kembali.");
-        else if (err.status === 403) setError("Anda tidak memiliki izin untuk mengelola organisasi.");
-        else setError(err.message);
-      } else {
-        setError("Layanan organisasi sedang bermasalah.");
-      }
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -112,18 +137,12 @@ export function OrganizationAdminPage() {
       setSuccessMsg(`Data berhasil dihapus/dinonaktifkan.`);
       void loadData(activeTab);
     } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 409) setError("Data tidak dapat diubah karena sedang digunakan atau mengalami konflik.");
-        else if (err.status === 404) setError("Data organisasi tidak ditemukan.");
-        else setError(err.message);
-      } else {
-        setError("Layanan organisasi sedang bermasalah.");
-      }
+      setError(getErrorMessage(err));
       setLoading(false);
     }
   };
 
-  const handleOpenModal = (type: "create" | "edit", data?: any) => {
+  const handleOpenModal = (type: "create" | "edit", data?: OrganizationAdminEditable) => {
     setModalType(type);
     setEditData(data || null);
     setIsModalOpen(true);
@@ -144,7 +163,7 @@ export function OrganizationAdminPage() {
     const activePeriods = periods.filter(p => p.currentPeriod).length;
 
     return (
-      <section className="summary-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+      <section className="summary-grid org-admin-summary-grid">
         <div className="summary-card">
           <span>Total Anggota</span>
           <strong>{totalMembers}</strong>
@@ -183,7 +202,7 @@ export function OrganizationAdminPage() {
       return (
         <section className="content-card">
           <div className="org-admin-flex-between">
-            <div className="org-admin-search-bar" style={{ marginBottom: 0 }}>
+            <div className="org-admin-search-bar org-admin-toolbar">
               <input type="text" placeholder="Cari nama, email, NIM..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                 <option value="">Semua Status</option>
@@ -192,10 +211,10 @@ export function OrganizationAdminPage() {
                 <option value="ALUMNI">Alumni</option>
               </select>
             </div>
-            <button type="button" className="primary-button" style={{ width: "auto" }} onClick={() => handleOpenModal("create")}>+ Tambah Anggota</button>
+            <button type="button" className="primary-button org-admin-primary-button-auto" onClick={() => handleOpenModal("create")}>+ Tambah Anggota</button>
           </div>
           
-          <div className="request-table-wrapper" style={{ marginTop: "20px" }}>
+          <div className="request-table-wrapper org-admin-table-spacing">
             <table className="request-table">
               <thead>
                 <tr>
@@ -217,7 +236,7 @@ export function OrganizationAdminPage() {
                       <small>{m.publicVisible ? "Publik" : "Sembunyi"}</small>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="org-admin-action-group">
                         <button type="button" className="org-admin-table-action-btn" onClick={() => handleOpenModal("edit", m)}>Edit</button>
                         <button type="button" className="org-admin-table-action-btn danger" onClick={() => handleDelete(m.id, m.fullName, "Anggota")}>Hapus</button>
                       </div>
@@ -235,10 +254,10 @@ export function OrganizationAdminPage() {
       return (
         <section className="content-card">
           <div className="org-admin-flex-between">
-            <h2 style={{ margin: 0, fontSize: "18px" }}>Daftar Divisi</h2>
-            <button type="button" className="primary-button" style={{ width: "auto" }} onClick={() => handleOpenModal("create")}>+ Tambah Divisi</button>
+            <h2 className="org-admin-section-title">Daftar Divisi</h2>
+            <button type="button" className="primary-button org-admin-primary-button-auto" onClick={() => handleOpenModal("create")}>+ Tambah Divisi</button>
           </div>
-          <div className="request-table-wrapper" style={{ marginTop: "20px" }}>
+          <div className="request-table-wrapper org-admin-table-spacing">
             <table className="request-table">
               <thead>
                 <tr>
@@ -250,14 +269,14 @@ export function OrganizationAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {divisions.length > 0 ? divisions.sort((a,b) => (a.displayOrder || 0) - (b.displayOrder || 0)).map(d => (
+                {divisions.length > 0 ? [...divisions].sort((a,b) => (a.displayOrder || 0) - (b.displayOrder || 0)).map(d => (
                   <tr key={d.id}>
                     <td><strong>{d.code}</strong></td>
                     <td>{d.name}</td>
                     <td>{d.description || "-"}</td>
                     <td>{d.displayOrder || 0} <small>{d.publicVisible ? "Publik" : "Sembunyi"}</small></td>
                     <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="org-admin-action-group">
                         <button type="button" className="org-admin-table-action-btn" onClick={() => handleOpenModal("edit", d)}>Edit</button>
                         <button type="button" className="org-admin-table-action-btn danger" onClick={() => handleDelete(d.id, d.name, "Divisi")}>Hapus</button>
                       </div>
@@ -275,10 +294,10 @@ export function OrganizationAdminPage() {
       return (
         <section className="content-card">
           <div className="org-admin-flex-between">
-            <h2 style={{ margin: 0, fontSize: "18px" }}>Daftar Jabatan</h2>
-            <button type="button" className="primary-button" style={{ width: "auto" }} onClick={() => handleOpenModal("create")}>+ Tambah Jabatan</button>
+            <h2 className="org-admin-section-title">Daftar Jabatan</h2>
+            <button type="button" className="primary-button org-admin-primary-button-auto" onClick={() => handleOpenModal("create")}>+ Tambah Jabatan</button>
           </div>
-          <div className="request-table-wrapper" style={{ marginTop: "20px" }}>
+          <div className="request-table-wrapper org-admin-table-spacing">
             <table className="request-table">
               <thead>
                 <tr>
@@ -290,14 +309,14 @@ export function OrganizationAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {positions.length > 0 ? positions.sort((a,b) => (a.levelOrder || 0) - (b.levelOrder || 0)).map(p => (
+                {positions.length > 0 ? [...positions].sort((a,b) => (a.levelOrder || 0) - (b.levelOrder || 0)).map(p => (
                   <tr key={p.id}>
                     <td><strong>{p.code}</strong></td>
                     <td>{p.name}</td>
                     <td>{p.description || "-"}</td>
                     <td>Level {p.levelOrder || 0} <small>{p.publicVisible ? "Publik" : "Sembunyi"}</small></td>
                     <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="org-admin-action-group">
                         <button type="button" className="org-admin-table-action-btn" onClick={() => handleOpenModal("edit", p)}>Edit</button>
                         <button type="button" className="org-admin-table-action-btn danger" onClick={() => handleDelete(p.id, p.name, "Jabatan")}>Hapus</button>
                       </div>
@@ -315,10 +334,10 @@ export function OrganizationAdminPage() {
       return (
         <section className="content-card">
           <div className="org-admin-flex-between">
-            <h2 style={{ margin: 0, fontSize: "18px" }}>Daftar Periode Kepengurusan</h2>
-            <button type="button" className="primary-button" style={{ width: "auto" }} onClick={() => handleOpenModal("create")}>+ Tambah Periode</button>
+            <h2 className="org-admin-section-title">Daftar Periode Kepengurusan</h2>
+            <button type="button" className="primary-button org-admin-primary-button-auto" onClick={() => handleOpenModal("create")}>+ Tambah Periode</button>
           </div>
-          <div className="request-table-wrapper" style={{ marginTop: "20px" }}>
+          <div className="request-table-wrapper org-admin-table-spacing">
             <table className="request-table">
               <thead>
                 <tr>
@@ -330,7 +349,7 @@ export function OrganizationAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {periods.length > 0 ? periods.sort((a,b) => (b.startDate || "").localeCompare(a.startDate || "")).map(p => (
+                {periods.length > 0 ? [...periods].sort((a,b) => (b.startDate || "").localeCompare(a.startDate || "")).map(p => (
                   <tr key={p.id}>
                     <td><strong>{p.name}</strong></td>
                     <td>{p.startDate || "-"}</td>
@@ -340,7 +359,7 @@ export function OrganizationAdminPage() {
                       <small>{p.publicVisible ? "Publik" : "Sembunyi"}</small>
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="org-admin-action-group">
                         <button type="button" className="org-admin-table-action-btn" onClick={() => handleOpenModal("edit", p)}>Edit</button>
                         <button type="button" className="org-admin-table-action-btn danger" onClick={() => handleDelete(p.id, p.name, "Periode")}>Hapus</button>
                       </div>
@@ -365,9 +384,13 @@ export function OrganizationAdminPage() {
         return matchesSearch && matchesPeriod && matchesDivision && matchesStatus;
       });
 
-      // Sort: period/current, divisi, positionLevelOrder, nama
-      const sorted = filtered.sort((a, b) => {
-        if (a.periodId !== b.periodId) return b.periodId - a.periodId; // rough descending
+      // Sort: current period, divisi, positionLevelOrder, nama anggota
+      const sorted = [...filtered].sort((a, b) => {
+        const periodA = periods.find(p => p.id === a.periodId);
+        const periodB = periods.find(p => p.id === b.periodId);
+        const isCurrentA = periodA?.currentPeriod ? 1 : 0;
+        const isCurrentB = periodB?.currentPeriod ? 1 : 0;
+        if (isCurrentA !== isCurrentB) return isCurrentB - isCurrentA;
         if (a.divisionName !== b.divisionName) return a.divisionName.localeCompare(b.divisionName);
         const levelA = a.positionLevelOrder || 999;
         const levelB = b.positionLevelOrder || 999;
@@ -378,7 +401,7 @@ export function OrganizationAdminPage() {
       return (
         <section className="content-card">
           <div className="org-admin-flex-between">
-            <div className="org-admin-search-bar" style={{ marginBottom: 0 }}>
+            <div className="org-admin-search-bar org-admin-toolbar">
               <input type="text" placeholder="Cari nama/email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
               <select value={periodFilter} onChange={e => setPeriodFilter(e.target.value)}>
                 <option value="">Semua Periode</option>
@@ -394,9 +417,9 @@ export function OrganizationAdminPage() {
                 <option value="INACTIVE">Tidak Aktif</option>
               </select>
             </div>
-            <button type="button" className="primary-button" style={{ width: "auto" }} onClick={() => handleOpenModal("create")}>+ Tambah Penempatan</button>
+            <button type="button" className="primary-button org-admin-primary-button-auto" onClick={() => handleOpenModal("create")}>+ Tambah Penempatan</button>
           </div>
-          <div className="request-table-wrapper" style={{ marginTop: "20px" }}>
+          <div className="request-table-wrapper org-admin-table-spacing">
             <table className="request-table">
               <thead>
                 <tr>
@@ -417,7 +440,7 @@ export function OrganizationAdminPage() {
                     <td>{a.positionName} <small>Level {a.positionLevelOrder || '-'}</small></td>
                     <td><span className={`status-badge status-${a.status.toLowerCase()}`}>{a.status}</span></td>
                     <td>
-                      <div style={{ display: "flex", gap: "8px" }}>
+                      <div className="org-admin-action-group">
                         <button type="button" className="org-admin-table-action-btn" onClick={() => handleOpenModal("edit", a)}>Edit</button>
                         <button type="button" className="org-admin-table-action-btn danger" onClick={() => handleDelete(a.id, a.memberName, "Penempatan")}>Hapus</button>
                       </div>
@@ -456,32 +479,33 @@ export function OrganizationAdminPage() {
       </section>
 
       {error && <div className="alert alert-error" role="alert">{error}</div>}
+      {dataWarning && <div className="alert alert-warning" role="alert">{dataWarning}</div>}
       {successMsg && <div className="alert alert-success" role="alert">{successMsg}</div>}
 
       {renderSummaryCards()}
 
-      <div style={{ marginTop: "24px" }}>
+      <div className="org-admin-table-spacing">
         <AdminTabs activeTab={activeTab} onTabChange={handleTabChange} />
         {renderContent()}
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={getModalTitle()}>
         {token && isModalOpen && activeTab === ADMIN_TABS.MEMBERS && (
-          <MemberForm token={token} initialData={editData} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
+          <MemberForm token={token} initialData={editData as MemberResponse} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
         )}
         {token && isModalOpen && activeTab === ADMIN_TABS.DIVISIONS && (
-          <DivisionForm token={token} initialData={editData} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
+          <DivisionForm token={token} initialData={editData as DivisionResponse} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
         )}
         {token && isModalOpen && activeTab === ADMIN_TABS.POSITIONS && (
-          <PositionForm token={token} initialData={editData} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
+          <PositionForm token={token} initialData={editData as PositionResponse} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
         )}
         {token && isModalOpen && activeTab === ADMIN_TABS.PERIODS && (
-          <PeriodForm token={token} initialData={editData} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
+          <PeriodForm token={token} initialData={editData as OrganizationPeriodResponse} onSuccess={handleFormSuccess} onCancel={() => setIsModalOpen(false)} />
         )}
         {token && isModalOpen && activeTab === ADMIN_TABS.ASSIGNMENTS && (
           <AssignmentForm 
             token={token} 
-            initialData={editData} 
+            initialData={editData as MemberAssignment} 
             members={members}
             divisions={divisions}
             positions={positions}

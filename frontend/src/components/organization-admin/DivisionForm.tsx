@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createDivision, updateDivision } from "../../services/organizationService";
 import type { DivisionResponse, DivisionRequest } from "../../types/organization";
-import { ApiError } from "../../api/http";
+import { getErrorMessage } from "../../utils/apiErrorHandler";
 
 interface DivisionFormProps {
   token: string;
@@ -52,11 +52,7 @@ export function DivisionForm({ token, initialData, onSuccess, onCancel }: Divisi
       }
       onSuccess();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Gagal menyimpan data divisi.");
-      }
+      setError(getErrorMessage(err, "Gagal menyimpan data divisi."));
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +78,7 @@ export function DivisionForm({ token, initialData, onSuccess, onCancel }: Divisi
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Urutan Tampilan</label>
           <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleChange} required />
         </div>
@@ -93,11 +89,11 @@ export function DivisionForm({ token, initialData, onSuccess, onCancel }: Divisi
         Tampilkan di halaman publik
       </label>
 
-      <div className="org-admin-modal-footer" style={{ marginTop: "24px", margin: "0 -24px -24px" }}>
+      <div className="org-admin-modal-footer org-admin-modal-footer-spacing">
         <button type="button" className="secondary-link-button" onClick={onCancel} disabled={submitting}>
           Batal
         </button>
-        <button type="submit" className="primary-button" style={{ width: "auto" }} disabled={submitting}>
+        <button type="submit" className="primary-button org-admin-primary-button-auto" disabled={submitting}>
           {submitting ? "Menyimpan..." : "Simpan"}
         </button>
       </div>

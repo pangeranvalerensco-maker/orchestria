@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createPosition, updatePosition } from "../../services/organizationService";
 import type { PositionResponse, PositionRequest } from "../../types/organization";
-import { ApiError } from "../../api/http";
+import { getErrorMessage } from "../../utils/apiErrorHandler";
 
 interface PositionFormProps {
   token: string;
@@ -52,11 +52,7 @@ export function PositionForm({ token, initialData, onSuccess, onCancel }: Positi
       }
       onSuccess();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Gagal menyimpan data jabatan.");
-      }
+      setError(getErrorMessage(err, "Gagal menyimpan data jabatan."));
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +78,7 @@ export function PositionForm({ token, initialData, onSuccess, onCancel }: Positi
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Level Jabatan</label>
           <input type="number" name="levelOrder" value={formData.levelOrder} onChange={handleChange} required />
           <small>Level yang lebih kecil berarti jabatan lebih tinggi (misal: 1 = Ketua)</small>
@@ -94,11 +90,11 @@ export function PositionForm({ token, initialData, onSuccess, onCancel }: Positi
         Tampilkan di halaman publik
       </label>
 
-      <div className="org-admin-modal-footer" style={{ marginTop: "24px", margin: "0 -24px -24px" }}>
+      <div className="org-admin-modal-footer org-admin-modal-footer-spacing">
         <button type="button" className="secondary-link-button" onClick={onCancel} disabled={submitting}>
           Batal
         </button>
-        <button type="submit" className="primary-button" style={{ width: "auto" }} disabled={submitting}>
+        <button type="submit" className="primary-button org-admin-primary-button-auto" disabled={submitting}>
           {submitting ? "Menyimpan..." : "Simpan"}
         </button>
       </div>

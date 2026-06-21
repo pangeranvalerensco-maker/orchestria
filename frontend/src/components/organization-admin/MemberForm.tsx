@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { createMember, updateMember } from "../../services/organizationService";
 import type { MemberResponse, MemberRequest } from "../../types/organization";
-import { ApiError } from "../../api/http";
+import { getErrorMessage } from "../../utils/apiErrorHandler";
 
 interface MemberFormProps {
   token: string;
@@ -55,7 +55,7 @@ export function MemberForm({ token, initialData, onSuccess, onCancel }: MemberFo
       campusClass: formData.campusClass.trim() || null,
       publicVisible: formData.publicVisible,
       displayOrder: Number(formData.displayOrder) || 0,
-      status: formData.status as any,
+      status: formData.status as MemberRequest["status"],
     };
 
     try {
@@ -66,11 +66,7 @@ export function MemberForm({ token, initialData, onSuccess, onCancel }: MemberFo
       }
       onSuccess();
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Gagal menyimpan data anggota.");
-      }
+      setError(getErrorMessage(err, "Gagal menyimpan data anggota."));
     } finally {
       setSubmitting(false);
     }
@@ -101,15 +97,15 @@ export function MemberForm({ token, initialData, onSuccess, onCancel }: MemberFo
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Angkatan</label>
           <input type="text" name="cohort" value={formData.cohort} onChange={handleChange} placeholder="Contoh: 2023" />
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Jurusan</label>
           <input type="text" name="major" value={formData.major} onChange={handleChange} />
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Kelas</label>
           <input type="text" name="campusClass" value={formData.campusClass} onChange={handleChange} />
         </div>
@@ -121,16 +117,16 @@ export function MemberForm({ token, initialData, onSuccess, onCancel }: MemberFo
       </div>
 
       <div className="org-admin-flex-between">
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Auth User ID</label>
           <input type="number" name="authUserId" value={formData.authUserId} onChange={handleChange} min="1" />
           <small>Kosongkan jika belum terhubung dengan akun login</small>
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Urutan Tampilan</label>
           <input type="number" name="displayOrder" value={formData.displayOrder} onChange={handleChange} required />
         </div>
-        <div className="org-admin-form-group" style={{ flex: 1 }}>
+        <div className="org-admin-form-group org-admin-form-column">
           <label>Status</label>
           <select name="status" value={formData.status} onChange={handleChange}>
             <option value="ACTIVE">Aktif</option>
@@ -145,11 +141,11 @@ export function MemberForm({ token, initialData, onSuccess, onCancel }: MemberFo
         Tampilkan di halaman publik
       </label>
 
-      <div className="org-admin-modal-footer" style={{ marginTop: "24px", margin: "0 -24px -24px" }}>
+      <div className="org-admin-modal-footer org-admin-modal-footer-spacing">
         <button type="button" className="secondary-link-button" onClick={onCancel} disabled={submitting}>
           Batal
         </button>
-        <button type="submit" className="primary-button" style={{ width: "auto" }} disabled={submitting}>
+        <button type="submit" className="primary-button org-admin-primary-button-auto" disabled={submitting}>
           {submitting ? "Menyimpan..." : "Simpan"}
         </button>
       </div>
