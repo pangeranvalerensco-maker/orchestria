@@ -1,0 +1,39 @@
+{
+  "properties": [
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secret used to verify Orchestria JWT tokens."
+    },
+    {
+      "name": "app.internal.api-key",
+      "type": "java.lang.String",
+      "description": "Shared API key for trusted internal service calls."
+    },
+    {
+      "name": "app.mail.from",
+      "type": "java.lang.String",
+      "description": "Sender address used by Orchestria email notifications."
+    },
+    {
+      "name": "app.mail.from-name",
+      "type": "java.lang.String",
+      "description": "Display name used by Orchestria email notifications."
+    },
+    {
+      "name": "app.scheduler.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enables scheduled notification and report jobs."
+    },
+    {
+      "name": "app.scheduler.cron.weekly-report",
+      "type": "java.lang.String",
+      "description": "Cron expression for the weekly report job."
+    },
+    {
+      "name": "services.request.base-url",
+      "type": "java.lang.String",
+      "description": "Base URL of request-service for report aggregation."
+    }
+  ]
+}
