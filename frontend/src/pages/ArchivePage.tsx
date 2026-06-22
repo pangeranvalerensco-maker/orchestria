@@ -337,7 +337,6 @@ export function ArchivePage() {
                       <th>Kategori</th>
                       <th>Ukuran</th>
                       <th>Waktu Unggah</th>
-                      <th className="action-col">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -348,6 +347,26 @@ export function ArchivePage() {
                             <strong>{doc.title}</strong>
                             <small>{doc.originalFileName}</small>
                             {doc.description && <span className="archive-doc-desc">{doc.description}</span>}
+                            <div style={{ marginTop: "8px", display: "flex", gap: "8px" }}>
+                              <button 
+                                type="button"
+                                className="button button-outline archive-action-btn"
+                                onClick={() => handleDownload(doc.id, doc.originalFileName)}
+                                title="Unduh Dokumen"
+                                style={{ padding: "4px 8px", fontSize: "12px" }}
+                              >
+                                Unduh
+                              </button>
+                              <button 
+                                type="button"
+                                className="button button-danger archive-action-btn"
+                                onClick={() => handleDelete(doc.id)}
+                                title="Hapus Dokumen"
+                                style={{ padding: "4px 8px", fontSize: "12px" }}
+                              >
+                                Hapus
+                              </button>
+                            </div>
                           </div>
                         </td>
                         <td>
@@ -358,26 +377,6 @@ export function ArchivePage() {
                           <div className="archive-date">
                             <span>{formatDate(doc.uploadedAt)}</span>
                             <small>oleh {doc.uploadedByName || doc.uploadedByEmail}</small>
-                          </div>
-                        </td>
-                        <td className="action-col">
-                          <div className="archive-actions">
-                            <button 
-                              type="button"
-                              className="button button-outline archive-action-btn"
-                              onClick={() => handleDownload(doc.id, doc.originalFileName)}
-                              title="Unduh Dokumen"
-                            >
-                              Unduh
-                            </button>
-                            <button 
-                              type="button"
-                              className="button button-danger archive-action-btn"
-                              onClick={() => handleDelete(doc.id)}
-                              title="Hapus Dokumen"
-                            >
-                              Hapus
-                            </button>
                           </div>
                         </td>
                       </tr>

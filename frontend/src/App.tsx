@@ -63,7 +63,6 @@ function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/security" element={<SecuritySettingsPage />} />
           <Route path="/requests" element={<MyRequestsPage />} />

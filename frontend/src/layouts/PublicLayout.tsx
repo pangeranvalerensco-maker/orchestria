@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router";
+import logoFull from "../assets/logo_orchestria_teks.png";
+import logoIcon from "../assets/logo_orchestria.png";
 
 export function PublicLayout() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -17,11 +19,7 @@ export function PublicLayout() {
       <header className="public-header">
         <div className="public-header-container">
           <Link to="/" className="public-brand" onClick={closeMenu}>
-            <div className="public-brand-logo">PUB</div>
-            <div className="public-brand-text">
-              <strong>Orchestria</strong>
-              <span>Program Unggulan Bersama</span>
-            </div>
+            <img src={logoFull} alt="Orchestria" style={{ height: 40, objectFit: 'contain' }} />
           </Link>
 
           <button 
@@ -55,7 +53,7 @@ export function PublicLayout() {
       <footer className="public-footer">
         <div className="public-footer-container">
           <div className="public-footer-col">
-            <div className="public-brand-logo public-footer-logo">PUB</div>
+            <img src={logoFull} alt="Orchestria" className="logo-white-rect" style={{ height: 48, marginBottom: 16 }} />
             <p>
               Program Unggulan Bersama (PUB) merupakan program pembinaan dan organisasi mahasiswa 
               di bawah naungan Universitas Nasional PASIM.

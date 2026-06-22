@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router";
 
 import { useAuth } from "../auth/useAuth";
+import logoIcon from "../assets/logo_orchestria.png";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return isActive ? "nav-item active" : "nav-item";
@@ -25,7 +26,9 @@ export function AppLayout() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-logo">O</div>
+          <div style={{ display: 'grid', placeItems: 'center' }}>
+            <img src={logoIcon} alt="O" className="logo-white-pill" style={{ width: 42, height: 42 }} />
+          </div>
           <div><strong>Orchestria</strong><small>Organization OS</small></div>
         </div>
 

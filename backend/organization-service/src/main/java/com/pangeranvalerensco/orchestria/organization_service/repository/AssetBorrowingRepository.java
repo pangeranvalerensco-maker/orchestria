@@ -26,7 +26,7 @@ public interface AssetBorrowingRepository extends JpaRepository<AssetBorrowing, 
     @Query("SELECT b FROM AssetBorrowing b WHERE b.active = true " +
             "AND (:status IS NULL OR b.status = :status) " +
             "AND (:assetId IS NULL OR b.asset.id = :assetId) " +
-            "AND (:borrowerName IS NULL OR LOWER(b.borrowerName) LIKE LOWER(CONCAT('%', :borrowerName, '%'))) " +
+            "AND (LOWER(b.borrowerName) LIKE LOWER(CONCAT('%', COALESCE(:borrowerName, ''), '%'))) " +
             "ORDER BY b.createdAt DESC")
     Page<AssetBorrowing> findAllWithFilters(
             @Param("status") BorrowingStatus status,

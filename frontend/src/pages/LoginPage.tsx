@@ -12,6 +12,7 @@ import {
 
 import { ApiError } from "../api/http";
 import { useAuth } from "../auth/useAuth";
+import logoIcon from "../assets/logo_orchestria.png";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -146,8 +147,10 @@ export function LoginPage() {
   return (
     <main className="login-page">
       <section className="login-brand-panel">
-        <div className="brand-badge">O</div>
-
+        <div>
+          <img src={logoIcon} alt="Logo" className="logo-white-pill" style={{ width: 64, height: 64 }} />
+        </div>
+        
         <div>
           <p className="eyebrow">ORGANIZATION OPERATING SYSTEM</p>
           <h1>Orchestria</h1>
@@ -231,10 +234,7 @@ export function LoginPage() {
                 : "Masuk"}
             </button>
 
-            <div className="mt-1-text-center session-demo-link-wrapper">
-              <Link to="/session-demo" className="login-public-link font-bold">Demo Stateful Session</Link>
-              <p className="session-demo-link-desc">Fitur khusus demonstrasi materi pelatihan, bukan login operasional.</p>
-            </div>
+
 
             <p className="login-footer">
               <Link to="/" className="login-public-link">&larr; Kembali ke Beranda Publik</Link>
