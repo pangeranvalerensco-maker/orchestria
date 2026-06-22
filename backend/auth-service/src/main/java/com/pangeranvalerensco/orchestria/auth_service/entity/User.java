@@ -34,7 +34,7 @@ public class User {
     private Boolean active = true;
 
     @Builder.Default
-    @Column(name = "two_factor_enabled", nullable = false)
+    @Column(name = "two_factor_enabled", nullable = false, columnDefinition = "boolean default false")
     private Boolean twoFactorEnabled = false;
 
     @ManyToMany(fetch = FetchType.EAGER)
