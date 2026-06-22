@@ -26,7 +26,11 @@ public class PublicContentResponse {
     private String authorRole;
     private Integer displayOrder;
     private PublicationStatus publicationStatus;
+    private boolean active;
+    private String createdByEmail;
+    private String updatedByEmail;
     private LocalDateTime publishedAt;
+    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static PublicContentResponse fromEntity(PublicContentEntry entity) {
@@ -45,7 +49,11 @@ public class PublicContentResponse {
                 .authorRole(entity.getAuthorRole())
                 .displayOrder(entity.getDisplayOrder())
                 .publicationStatus(entity.getPublicationStatus())
+                .active(entity.isActive())
+                .createdByEmail(entity.getCreatedByEmail())
+                .updatedByEmail(entity.getUpdatedByEmail())
                 .publishedAt(entity.getPublishedAt())
+                .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .build();
     }

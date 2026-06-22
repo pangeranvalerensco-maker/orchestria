@@ -1,9 +1,12 @@
 package com.pangeranvalerensco.orchestria.organization_service.controller;
 
+import com.pangeranvalerensco.orchestria.organization_service.entity.PublicContentEntry;
 import com.pangeranvalerensco.orchestria.organization_service.entity.PublicContentType;
+import com.pangeranvalerensco.orchestria.organization_service.entity.PublicationStatus;
 import com.pangeranvalerensco.orchestria.organization_service.payload.request.PublicContentRequest;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.ApiResponse;
 import com.pangeranvalerensco.orchestria.organization_service.payload.response.PublicContentResponse;
+import com.pangeranvalerensco.orchestria.organization_service.service.impl.PublicContentServiceImpl;
 import com.pangeranvalerensco.orchestria.organization_service.service.PublicContentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,18 +23,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminPublicContentController {
 
-    private final PublicContentService publicContentService;
+    private final PublicContentServiceImpl publicContentService; // Impl to access getEntry
 
     @GetMapping
-    @PreAuthorize("hasAuthority('public.content.read')")
-    public ResponseEntity<ApiResponse<List<PublicContentResponse>>> getAllContents() {
-        return ResponseEntity.ok(ApiResponse.<List<PublicContentResponse>>builder().success(true).message("Berhasil mengambil konten publik").data(publicContentService.getAllContents()).build());
+    @PreAuthorize("hasAnyAuthority('public.content.read', 'public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
+    public ResponseEntity<ApiResponse<List<PublicContentResponse>>> getAllContents(
+            @RequestParam(required = false) PublicContentType type,
+            @RequestParam(required = false) PublicationStatus status,
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(ApiResponse.<List<PublicContentResponse>>builder().success(true).message("Berhasil mengambil konten publik").data(publicContentService.getAllContents(type, status, active)).build());
     }
 
-    @GetMapping("/type/{type}")
-    @PreAuthorize("hasAuthority('public.content.read')")
-    public ResponseEntity<ApiResponse<List<PublicContentResponse>>> getContentsByType(@PathVariable PublicContentType type) {
-        return ResponseEntity.ok(ApiResponse.<List<PublicContentResponse>>builder().success(true).message("Berhasil mengambil konten publik berdasarkan tipe").data(publicContentService.getContentsByType(type)).build());
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('public.content.read', 'public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
+    public ResponseEntity<ApiResponse<PublicContentResponse>> getContent(@PathVariable String id) {
+        return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Berhasil mengambil detail konten").data(publicContentService.getContent(id)).build());
     }
 
     @PostMapping
@@ -50,37 +56,42 @@ public class AdminPublicContentController {
             @PathVariable String id,
             @Valid @RequestBody PublicContentRequest request) {
         
-        checkPermission(request.getContentType());
+        PublicContentEntry entry = publicContentService.getEntry(id);
+        checkPermission(entry.getContentType());
+        
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil diperbarui").data(publicContentService.updateContent(id, request, userEmail)).build());
     }
 
-    @PutMapping("/{id}/publish")
+    @PostMapping("/{id}/publish")
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> publishContent(
-            @PathVariable String id,
-            @RequestParam PublicContentType type) {
-        checkPermission(type);
+            @PathVariable String id) {
+        PublicContentEntry entry = publicContentService.getEntry(id);
+        checkPermission(entry.getContentType());
+
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil dipublikasikan").data(publicContentService.publishContent(id, userEmail)).build());
     }
 
-    @PutMapping("/{id}/archive")
+    @PostMapping("/{id}/archive")
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> archiveContent(
-            @PathVariable String id,
-            @RequestParam PublicContentType type) {
-        checkPermission(type);
+            @PathVariable String id) {
+        PublicContentEntry entry = publicContentService.getEntry(id);
+        checkPermission(entry.getContentType());
+
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil diarsipkan").data(publicContentService.archiveContent(id, userEmail)).build());
     }
 
-    @PutMapping("/{id}/restore")
+    @PostMapping("/{id}/restore-draft")
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> restoreContent(
-            @PathVariable String id,
-            @RequestParam PublicContentType type) {
-        checkPermission(type);
+            @PathVariable String id) {
+        PublicContentEntry entry = publicContentService.getEntry(id);
+        checkPermission(entry.getContentType());
+
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil dikembalikan ke DRAFT").data(publicContentService.restoreDraftContent(id, userEmail)).build());
     }
@@ -88,10 +99,12 @@ public class AdminPublicContentController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<Void>> deleteContent(
-            @PathVariable String id,
-            @RequestParam PublicContentType type) {
-        checkPermission(type);
-        publicContentService.deleteContent(id);
+            @PathVariable String id) {
+        PublicContentEntry entry = publicContentService.getEntry(id);
+        checkPermission(entry.getContentType());
+
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        publicContentService.deleteContent(id, userEmail);
         return ResponseEntity.ok(ApiResponse.<Void>builder().success(true).message("Konten berhasil dihapus").data(null).build());
     }
     

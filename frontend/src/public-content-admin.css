@@ -398,3 +398,10 @@
   white-space: pre-line;
 }
 
+.public-content-modal-sm {
+  max-width: 400px;
+}
+
+.public-content-confirm-text {
+  margin: 20px 0;
+}

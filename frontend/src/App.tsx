@@ -99,7 +99,7 @@ function App() {
             <Route path="/admin/organization" element={<OrganizationAdminPage />} />
           </Route>
 
-          <Route element={<PermissionRoute anyOf={["public.content.manage"]} />}>
+          <Route element={<PermissionRoute anyOf={["public.content.manage", "public.organization.manage", "public.activity.manage", "public.media.manage"]} />}>
             <Route path="/public-content-management" element={<PublicContentManagementPage />} />
           </Route>
 

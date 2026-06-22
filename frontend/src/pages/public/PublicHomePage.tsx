@@ -19,7 +19,7 @@ export function PublicHomePage() {
       try {
         const [structRes, contentsRes] = await Promise.allSettled([
           getPublicStructureCurrent(),
-          publicContentService.getAllPublished()
+          publicContentService.getPublished()
         ]);
 
         if (structRes.status === "fulfilled" && structRes.value.data) {
@@ -60,26 +60,26 @@ export function PublicHomePage() {
     return sorted.slice(0, 4); // Max 4 for landing page
   }, [structure]);
 
-  const heroContent = useMemo(() => contents.find(c => c.type === PublicContentType.HERO), [contents]);
-  const programs = useMemo(() => contents.filter(c => c.type === PublicContentType.PROGRAM).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
-  const facilities = useMemo(() => contents.filter(c => c.type === PublicContentType.FACILITY).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
-  const activities = useMemo(() => contents.filter(c => c.type === PublicContentType.ACTIVITY_PUBLICATION).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
-  const testimonials = useMemo(() => contents.filter(c => c.type === PublicContentType.TESTIMONIAL).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const heroContent = useMemo(() => contents.find(c => c.contentType === PublicContentType.HERO), [contents]);
+  const programs = useMemo(() => contents.filter(c => c.contentType === PublicContentType.PROGRAM).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const facilities = useMemo(() => contents.filter(c => c.contentType === PublicContentType.FACILITY).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const activities = useMemo(() => contents.filter(c => c.contentType === PublicContentType.ACTIVITY).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const testimonials = useMemo(() => contents.filter(c => c.contentType === PublicContentType.TESTIMONIAL).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
 
   return (
     <div className="public-home">
       {/* 1. HERO */}
-      <section className="public-hero" style={heroContent?.mediaUrl ? { backgroundImage: `url(${heroContent.mediaUrl})`, backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative' } : {}}>
-        {heroContent?.mediaUrl && <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}></div>}
-        <div className="public-hero-content" style={{ position: 'relative', zIndex: 1, ...(heroContent?.mediaUrl ? { color: 'white' } : {}) }}>
-          <p className="eyebrow" style={heroContent?.mediaUrl ? { color: '#bfdbfe' } : {}}>PROGRAM UNGGULAN BERSAMA</p>
-          <h1 style={heroContent?.mediaUrl ? { color: 'white' } : {}}>{heroContent?.title || "Bina Prestasi, Wujudkan Mimpi"}</h1>
-          <p className="public-hero-desc" style={heroContent?.mediaUrl ? { color: '#e5e7eb' } : {}}>
-            {heroContent?.content || "Wadah pembinaan dan organisasi mahasiswa Universitas Nasional PASIM untuk mencetak pemimpin tangguh, profesional, dan berkarakter unggul di era digital."}
+      <section className={`public-hero ${heroContent?.mediaUrl ? 'public-hero-dynamic' : ''}`} style={heroContent?.mediaUrl ? { backgroundImage: `url(${heroContent.mediaUrl})` } : undefined}>
+        {heroContent?.mediaUrl && <div className="public-hero-overlay"></div>}
+        <div className={`public-hero-content ${heroContent?.mediaUrl ? 'public-hero-content-dynamic' : ''}`}>
+          <p className="eyebrow">{heroContent?.subtitle || "PROGRAM UNGGULAN BERSAMA"}</p>
+          <h1>{heroContent?.title || "Bina Prestasi, Wujudkan Mimpi"}</h1>
+          <p className="public-hero-desc">
+            {heroContent?.body || "Wadah pembinaan dan organisasi mahasiswa Universitas Nasional PASIM untuk mencetak pemimpin tangguh, profesional, dan berkarakter unggul di era digital."}
           </p>
           <div className="public-hero-cta">
             <Link to="/about" className="public-btn public-btn-primary">Kenali PUB</Link>
-            <Link to="/login" className="public-btn public-btn-outline" style={heroContent?.mediaUrl ? { borderColor: 'white', color: 'white' } : {}}>Masuk Anggota</Link>
+            <Link to="/login" className="public-btn public-btn-outline">Masuk Anggota</Link>
           </div>
         </div>
         {!heroContent?.mediaUrl && (
@@ -127,9 +127,9 @@ export function PublicHomePage() {
           <div className="public-grid-3">
             {programs.length > 0 ? programs.map(prog => (
               <div key={prog.id} className="public-card">
-                {prog.mediaUrl && <img src={prog.mediaUrl} alt={prog.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />}
+                {prog.mediaUrl && <img src={prog.mediaUrl} alt={prog.title} className="public-card-img" />}
                 <h3>{prog.title}</h3>
-                <p>{prog.content}</p>
+                <p>{prog.body}</p>
               </div>
             )) : staticPrograms.map(prog => (
               <div key={prog.id} className="public-card">
@@ -151,9 +151,9 @@ export function PublicHomePage() {
           <div className="public-grid-3">
             {facilities.length > 0 ? facilities.map(fac => (
               <div key={fac.id} className="public-card">
-                {fac.mediaUrl && <img src={fac.mediaUrl} alt={fac.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />}
+                {fac.mediaUrl && <img src={fac.mediaUrl} alt={fac.title} className="public-card-img" />}
                 <h3>{fac.title}</h3>
-                <p>{fac.content}</p>
+                <p>{fac.body}</p>
               </div>
             )) : staticFacilities.map(fac => (
               <div key={fac.id} className="public-card">
@@ -216,9 +216,9 @@ export function PublicHomePage() {
           <div className="public-grid-3">
             {activities.length > 0 ? activities.slice(0, 3).map(act => (
               <div key={act.id} className="public-card">
-                {act.mediaUrl && <img src={act.mediaUrl} alt={act.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '8px', marginBottom: '16px' }} />}
+                {act.mediaUrl && <img src={act.mediaUrl} alt={act.title} className="public-card-img" />}
                 <h3 className="public-card-title-spacing">{act.title}</h3>
-                <p>{act.content}</p>
+                <p>{act.body}</p>
                 {act.eventDate && <small className="public-meta">{act.eventDate}</small>}
               </div>
             )) : staticActivities.slice(0, 3).map(act => (
@@ -248,10 +248,11 @@ export function PublicHomePage() {
           <div className="public-grid-3">
             {testimonials.length > 0 ? testimonials.map(testi => (
               <div key={testi.id} className="public-testi-card">
-                {testi.mediaUrl && <img src={testi.mediaUrl} alt={testi.title} style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', marginBottom: '16px' }} />}
-                <p className="testi-text">"{testi.content}"</p>
+                {testi.mediaUrl && <img src={testi.mediaUrl} alt={testi.title} className="public-testi-img" />}
+                <p className="testi-text">"{testi.body}"</p>
                 <div className="testi-author">
-                  <strong>{testi.title}</strong>
+                  <strong>{testi.authorName || testi.title}</strong>
+                  {testi.authorRole && <span>{testi.authorRole}</span>}
                 </div>
               </div>
             )) : staticTestimonials.map(testi => (

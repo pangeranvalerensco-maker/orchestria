@@ -97,7 +97,7 @@ export function AppLayout() {
             </div>
           )}
 
-          {hasPermission("public.content.manage") && (
+          {(hasPermission("public.content.manage") || hasPermission("public.organization.manage") || hasPermission("public.activity.manage") || hasPermission("public.media.manage")) && (
             <div className="nav-group">
               <span className="nav-group-title">Humas</span>
               <NavLink to="/public-content-management" className={navClass}>Kelola Konten Publik</NavLink>

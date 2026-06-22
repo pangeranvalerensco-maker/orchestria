@@ -77,6 +77,7 @@ public class PublicContentIntegrationTest {
                 .contentType(type)
                 .title("Test Title")
                 .body("Test Body")
+                .category("Test Category")
                 .authorName("Test Author")
                 .eventDate(LocalDate.now())
                 .mediaUrl("http://example.com/image.jpg")
@@ -94,206 +95,206 @@ public class PublicContentIntegrationTest {
         return repository.save(entry);
     }
 
-    // --- Scenario 1 to 4: Create HERO ---
+    // 1. public list tanpa token
     @Test
-    @WithMockUser(authorities = {"public.organization.manage"}, username = "admin@test.com")
-    void shouldCreateHeroContent() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.HERO);
-        
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+    void shouldGetPublicListWithoutToken() throws Exception {
+        saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
+
+        mockMvc.perform(get("/api/organization/public/content"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.contentType").value("HERO"))
-                .andExpect(jsonPath("$.data.publicationStatus").value("DRAFT"));
+                .andExpect(jsonPath("$.data", hasSize(1)));
     }
 
+    // 2. public detail tanpa token
     @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectHeroWithoutTitle() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.HERO);
-        request.setTitle("");
-        
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+    void shouldGetPublicDetailWithoutToken() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
+
+        mockMvc.perform(get("/api/organization/public/content/" + entry.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(entry.getId()));
     }
 
+    // 3. public hanya PUBLISHED aktif
     @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectHeroWithoutMediaUrl() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.HERO);
-        request.setMediaUrl("");
-        
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+    void shouldOnlyGetActivePublishedContentsForPublic() throws Exception {
+        saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
+        saveEntry(PublicContentType.PROGRAM, PublicationStatus.ARCHIVED);
+        PublicContentEntry activeEntry = saveEntry(PublicContentType.FACILITY, PublicationStatus.PUBLISHED);
+        PublicContentEntry inactiveEntry = saveEntry(PublicContentType.TESTIMONIAL, PublicationStatus.PUBLISHED);
+        inactiveEntry.setActive(false);
+        repository.save(inactiveEntry);
+
+        mockMvc.perform(get("/api/organization/public/content"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].id").value(activeEntry.getId()));
     }
 
+    // 4. sorting displayOrder
+    @Test
+    void shouldSortByDisplayOrderAscThenPublishedAtDesc() throws Exception {
+        PublicContentEntry e1 = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
+        e1.setDisplayOrder(2);
+        e1.setPublishedAt(LocalDateTime.now().minusDays(1));
+        repository.save(e1);
+
+        PublicContentEntry e2 = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
+        e2.setDisplayOrder(1);
+        e2.setPublishedAt(LocalDateTime.now().minusDays(2));
+        repository.save(e2);
+
+        PublicContentEntry e3 = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
+        e3.setDisplayOrder(1);
+        e3.setPublishedAt(LocalDateTime.now());
+        repository.save(e3);
+
+        mockMvc.perform(get("/api/organization/public/content"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(3)))
+                .andExpect(jsonPath("$.data[0].id").value(e3.getId())) // order 1, newest
+                .andExpect(jsonPath("$.data[1].id").value(e2.getId())) // order 1, older
+                .andExpect(jsonPath("$.data[2].id").value(e1.getId())); // order 2
+    }
+
+    // 5. admin list filter type/status/active
+    @Test
+    @WithMockUser(authorities = {"public.content.read"})
+    void shouldFilterAdminList() throws Exception {
+        saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
+        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
+
+        mockMvc.perform(get("/api/organization/public-content")
+                .param("type", "ABOUT")
+                .param("status", "DRAFT")
+                .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].contentType").value("ABOUT"));
+    }
+
+    // 6. admin detail
     @Test
     @WithMockUser(authorities = {"public.content.manage"})
-    void shouldDenyHeroCreateWithoutCorrectPermission() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.HERO);
+    void shouldGetAdminDetail() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
+
+        mockMvc.perform(get("/api/organization/public-content/" + entry.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value(entry.getId()));
+    }
+
+    // 7. permission spoofing empat kasus
+    // a. user public.activity.manage tidak dapat update HERO dengan request contentType ACTIVITY
+    @Test
+    @WithMockUser(authorities = {"public.activity.manage"})
+    void spoof1_activityManageCannotUpdateHeroWithActivityType() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.HERO, PublicationStatus.DRAFT);
+        PublicContentRequest request = createValidRequest(PublicContentType.ACTIVITY);
         
-        mockMvc.perform(post("/api/organization/public-content")
+        mockMvc.perform(put("/api/organization/public-content/" + entry.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
     }
 
-    // --- Scenario 5: Create PROGRAM ---
-    @Test
-    @WithMockUser(authorities = {"public.content.manage"})
-    void shouldCreateProgramContent() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.PROGRAM);
-        
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
-    }
-
-    // --- Scenario 6: Create TESTIMONIAL ---
-    @Test
-    @WithMockUser(authorities = {"public.content.manage"})
-    void shouldCreateTestimonial() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.TESTIMONIAL);
-        
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
-    }
-
-    // --- Scenario 7: Create ACTIVITY ---
+    // b. user public.activity.manage tidak dapat publish HERO
     @Test
     @WithMockUser(authorities = {"public.activity.manage"})
-    void shouldCreateActivity() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.ACTIVITY);
+    void spoof2_activityManageCannotPublishHero() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.HERO, PublicationStatus.DRAFT);
         
-        mockMvc.perform(post("/api/organization/public-content")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/organization/public-content/" + entry.getId() + "/publish"))
+                .andExpect(status().isForbidden());
     }
 
-    // --- Scenario 8: Update Content ---
+    // c. user public.content.manage tidak dapat archive MEDIA
+    @Test
+    @WithMockUser(authorities = {"public.content.manage"})
+    void spoof3_contentManageCannotArchiveMedia() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.MEDIA, PublicationStatus.PUBLISHED);
+        
+        mockMvc.perform(post("/api/organization/public-content/" + entry.getId() + "/archive"))
+                .andExpect(status().isForbidden());
+    }
+
+    // d. user public.organization.manage tidak dapat delete ACTIVITY
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldUpdateContent() throws Exception {
-        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
+    void spoof4_organizationManageCannotDeleteActivity() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.ACTIVITY, PublicationStatus.DRAFT);
+        
+        mockMvc.perform(delete("/api/organization/public-content/" + entry.getId()))
+                .andExpect(status().isForbidden());
+    }
+
+    // 8. update PUBLISHED ditolak
+    @Test
+    @WithMockUser(authorities = {"public.organization.manage"})
+    void shouldRejectUpdateOnPublished() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
         PublicContentRequest request = createValidRequest(PublicContentType.ABOUT);
-        request.setTitle("Updated Title");
 
         mockMvc.perform(put("/api/organization/public-content/" + entry.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.title").value("Updated Title"));
+                .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 9: Publish Content ---
+    // 9. restore PUBLISHED ditolak
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldPublishContent() throws Exception {
-        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
-
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/publish")
-                .param("type", "ABOUT"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.publicationStatus").value("PUBLISHED"));
-    }
-
-    // --- Scenario 10: Reject Publish Already Published ---
-    @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectPublishIfAlreadyPublished() throws Exception {
+    void shouldRejectRestoreOnPublished() throws Exception {
         PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
 
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/publish")
-                .param("type", "ABOUT"))
+        mockMvc.perform(post("/api/organization/public-content/" + entry.getId() + "/restore-draft"))
                 .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 11: Reject Publish HERO > 1 ---
+    // 10. restore ARCHIVED berhasil
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectPublishHeroIfLimitReached() throws Exception {
-        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
-        PublicContentEntry entry = saveEntry(PublicContentType.HERO, PublicationStatus.DRAFT);
-
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/publish")
-                .param("type", "HERO"))
-                .andExpect(status().isBadRequest());
-    }
-
-    // --- Scenario 12: Archive Content ---
-    @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldArchiveContent() throws Exception {
-        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
-
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/archive")
-                .param("type", "ABOUT"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.publicationStatus").value("ARCHIVED"));
-    }
-
-    // --- Scenario 13: Reject Archive Already Archived ---
-    @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectArchiveAlreadyArchived() throws Exception {
+    void shouldRestoreArchivedToDraft() throws Exception {
         PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.ARCHIVED);
 
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/archive")
-                .param("type", "ABOUT"))
-                .andExpect(status().isBadRequest());
-    }
-
-    // --- Scenario 14: Restore Draft ---
-    @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRestoreDraft() throws Exception {
-        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.ARCHIVED);
-
-        mockMvc.perform(put("/api/organization/public-content/" + entry.getId() + "/restore")
-                .param("type", "ABOUT"))
+        mockMvc.perform(post("/api/organization/public-content/" + entry.getId() + "/restore-draft"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.publicationStatus").value("DRAFT"));
     }
 
-    // --- Scenario 15: Delete Content ---
+    // 11. delete PUBLISHED menjadi ARCHIVED
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldDeleteDraftContent() throws Exception {
-        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
-
-        mockMvc.perform(delete("/api/organization/public-content/" + entry.getId())
-                .param("type", "ABOUT"))
-                .andExpect(status().isOk());
-                
-        assertFalse(repository.findById(entry.getId()).get().isActive());
-    }
-
-    // --- Scenario 16: Reject Delete Published ---
-    @Test
-    @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectDeletePublishedContent() throws Exception {
+    void shouldDeletePublishedToArchived() throws Exception {
         PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
 
-        mockMvc.perform(delete("/api/organization/public-content/" + entry.getId())
-                .param("type", "ABOUT"))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/api/organization/public-content/" + entry.getId()))
+                .andExpect(status().isOk());
+                
+        PublicContentEntry dbEntry = repository.findById(entry.getId()).get();
+        assertTrue(dbEntry.isActive());
+        assertEquals(PublicationStatus.ARCHIVED, dbEntry.getPublicationStatus());
     }
 
-    // --- Scenario 17: Negative Display Order ---
+    // 12. delete DRAFT soft delete
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectNegativeDisplayOrder() throws Exception {
+    void shouldSoftDeleteDraft() throws Exception {
+        PublicContentEntry entry = saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
+
+        mockMvc.perform(delete("/api/organization/public-content/" + entry.getId()))
+                .andExpect(status().isOk());
+                
+        PublicContentEntry dbEntry = repository.findById(entry.getId()).get();
+        assertFalse(dbEntry.isActive());
+    }
+
+    // 13. URL ftp ditolak
+    @Test
+    @WithMockUser(authorities = {"public.organization.manage"})
+    void shouldRejectFtpUrl() throws Exception {
         PublicContentRequest request = createValidRequest(PublicContentType.ABOUT);
-        request.setDisplayOrder(-1);
+        request.setMediaUrl("ftp://example.com/file");
 
         mockMvc.perform(post("/api/organization/public-content")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -301,12 +302,12 @@ public class PublicContentIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 18: Invalid URL ---
+    // 14. ABOUT tanpa title ditolak
     @Test
     @WithMockUser(authorities = {"public.organization.manage"})
-    void shouldRejectInvalidMediaUrl() throws Exception {
-        PublicContentRequest request = createValidRequest(PublicContentType.HERO);
-        request.setMediaUrl("invalid-url");
+    void shouldRejectAboutWithoutTitle() throws Exception {
+        PublicContentRequest request = createValidRequest(PublicContentType.ABOUT);
+        request.setTitle("");
 
         mockMvc.perform(post("/api/organization/public-content")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -314,49 +315,25 @@ public class PublicContentIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 19: Get All Contents Admin ---
+    // 15. ACTIVITY tanpa category ditolak
     @Test
-    @WithMockUser(authorities = {"public.content.read"})
-    void shouldGetAllContentsAdmin() throws Exception {
-        saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
-        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
+    @WithMockUser(authorities = {"public.activity.manage"})
+    void shouldRejectActivityWithoutCategory() throws Exception {
+        PublicContentRequest request = createValidRequest(PublicContentType.ACTIVITY);
+        request.setCategory("");
 
-        mockMvc.perform(get("/api/organization/public-content"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(2)));
+        mockMvc.perform(post("/api/organization/public-content")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 20: Get Contents By Type Admin ---
-    @Test
-    @WithMockUser(authorities = {"public.content.read"})
-    void shouldGetContentsByTypeAdmin() throws Exception {
-        saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
-        saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
-        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
-
-        mockMvc.perform(get("/api/organization/public-content/type/ABOUT"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(2)));
-    }
-
-    // --- Scenario 21: Get Published By Type Public ---
-    @Test
-    void shouldGetPublishedContentsByTypePublic() throws Exception {
-        saveEntry(PublicContentType.ABOUT, PublicationStatus.DRAFT);
-        saveEntry(PublicContentType.ABOUT, PublicationStatus.PUBLISHED);
-        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
-
-        mockMvc.perform(get("/api/organization/public/content/type/ABOUT"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)));
-    }
-
-    // --- Scenario 22: Reject Create Media Without Url ---
+    // 16. MEDIA tanpa title ditolak
     @Test
     @WithMockUser(authorities = {"public.media.manage"})
-    void shouldRejectMediaWithoutUrl() throws Exception {
+    void shouldRejectMediaWithoutTitle() throws Exception {
         PublicContentRequest request = createValidRequest(PublicContentType.MEDIA);
-        request.setMediaUrl("");
+        request.setTitle("");
 
         mockMvc.perform(post("/api/organization/public-content")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -364,25 +341,14 @@ public class PublicContentIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // --- Scenario 23: Get Activities By Category Public ---
+    // 17. HERO kedua tidak dapat dipublish
     @Test
-    void shouldGetPublishedActivitiesByCategoryPublic() throws Exception {
-        PublicContentEntry entry1 = saveEntry(PublicContentType.ACTIVITY, PublicationStatus.PUBLISHED);
-        entry1.setCategory("WORKSHOP");
-        repository.save(entry1);
-        
-        PublicContentEntry entry2 = saveEntry(PublicContentType.ACTIVITY, PublicationStatus.DRAFT);
-        entry2.setCategory("WORKSHOP");
-        repository.save(entry2);
-        
-        PublicContentEntry entry3 = saveEntry(PublicContentType.ACTIVITY, PublicationStatus.PUBLISHED);
-        entry3.setCategory("SEMINAR");
-        repository.save(entry3);
+    @WithMockUser(authorities = {"public.organization.manage"})
+    void shouldRejectPublishSecondHero() throws Exception {
+        saveEntry(PublicContentType.HERO, PublicationStatus.PUBLISHED);
+        PublicContentEntry entry = saveEntry(PublicContentType.HERO, PublicationStatus.DRAFT);
 
-        mockMvc.perform(get("/api/organization/public/content/activities")
-                .param("category", "WORKSHOP"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].category").value("WORKSHOP"));
+        mockMvc.perform(post("/api/organization/public-content/" + entry.getId() + "/publish"))
+                .andExpect(status().isBadRequest());
     }
 }

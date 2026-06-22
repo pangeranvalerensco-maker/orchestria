@@ -27,33 +27,36 @@ public class PublicContentServiceImpl implements PublicContentService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PublicContentResponse> getAllContents() {
+    public List<PublicContentResponse> getAllContents(PublicContentType type, PublicationStatus status, Boolean active) {
         return repository.findAll().stream()
+                .filter(c -> type == null || c.getContentType() == type)
+                .filter(c -> status == null || c.getPublicationStatus() == status)
+                .filter(c -> active == null || c.isActive() == active)
                 .map(PublicContentResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<PublicContentResponse> getContentsByType(PublicContentType type) {
+    public PublicContentResponse getContent(String id) {
+        return PublicContentResponse.fromEntity(getEntry(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PublicContentResponse> getPublishedContents(PublicContentType type, String category) {
         return repository.findAll().stream()
-                .filter(c -> c.getContentType() == type && c.isActive())
-                .map(PublicContentResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<PublicContentResponse> getPublishedContentsByType(PublicContentType type) {
-        return repository.findByContentTypeAndActiveTrueAndPublicationStatusOrderByDisplayOrderAscPublishedAtDesc(type, PublicationStatus.PUBLISHED).stream()
-                .map(PublicContentResponse::fromEntity)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<PublicContentResponse> getPublishedActivitiesByCategory(String category) {
-        return repository.findByContentTypeAndCategoryAndActiveTrueAndPublicationStatusOrderByDisplayOrderAscPublishedAtDesc(PublicContentType.ACTIVITY, category, PublicationStatus.PUBLISHED).stream()
+                .filter(c -> c.isActive() && c.getPublicationStatus() == PublicationStatus.PUBLISHED)
+                .filter(c -> type == null || c.getContentType() == type)
+                .filter(c -> category == null || category.equals(c.getCategory()))
+                .sorted((a, b) -> {
+                    int orderCmp = Integer.compare(a.getDisplayOrder(), b.getDisplayOrder());
+                    if (orderCmp != 0) return orderCmp;
+                    if (a.getPublishedAt() == null && b.getPublishedAt() == null) return 0;
+                    if (a.getPublishedAt() == null) return 1;
+                    if (b.getPublishedAt() == null) return -1;
+                    return b.getPublishedAt().compareTo(a.getPublishedAt()); // DESC
+                })
                 .map(PublicContentResponse::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -88,13 +91,21 @@ public class PublicContentServiceImpl implements PublicContentService {
     @Override
     @Transactional
     public PublicContentResponse updateContent(String id, PublicContentRequest request, String currentUserEmail) {
-        validateRequest(request);
-
         PublicContentEntry entry = getEntry(id);
         
         if (!entry.isActive()) {
             throw new BadRequestException("Konten sudah dihapus");
         }
+        
+        if (entry.getPublicationStatus() != PublicationStatus.DRAFT) {
+            throw new BadRequestException("Hanya konten DRAFT yang dapat diedit");
+        }
+
+        if (entry.getContentType() != request.getContentType()) {
+            throw new BadRequestException("Tidak mengizinkan perubahan tipe konten");
+        }
+
+        validateRequest(request);
 
         entry.setTitle(request.getTitle());
         entry.setSubtitle(request.getSubtitle());
@@ -121,12 +132,8 @@ public class PublicContentServiceImpl implements PublicContentService {
             throw new BadRequestException("Konten sudah dihapus");
         }
         
-        if (entry.getPublicationStatus() == PublicationStatus.PUBLISHED) {
-            throw new BadRequestException("Konten sudah dipublikasikan");
-        }
-        
-        if (entry.getPublicationStatus() == PublicationStatus.ARCHIVED) {
-            throw new BadRequestException("Konten sudah diarsipkan, tidak bisa langsung di-publish. Kembalikan ke DRAFT dulu.");
+        if (entry.getPublicationStatus() != PublicationStatus.DRAFT) {
+            throw new BadRequestException("Hanya konten DRAFT yang dapat dipublikasikan");
         }
 
         if (entry.getContentType() == PublicContentType.HERO) {
@@ -171,11 +178,12 @@ public class PublicContentServiceImpl implements PublicContentService {
             throw new BadRequestException("Konten sudah dihapus");
         }
         
-        if (entry.getPublicationStatus() == PublicationStatus.DRAFT) {
-            throw new BadRequestException("Konten sudah DRAFT");
+        if (entry.getPublicationStatus() != PublicationStatus.ARCHIVED) {
+            throw new BadRequestException("Hanya konten ARCHIVED yang dapat di-restore ke DRAFT");
         }
 
         entry.setPublicationStatus(PublicationStatus.DRAFT);
+        entry.setPublishedAt(null);
         entry.setUpdatedByEmail(currentUserEmail);
 
         return PublicContentResponse.fromEntity(repository.save(entry));
@@ -183,16 +191,26 @@ public class PublicContentServiceImpl implements PublicContentService {
 
     @Override
     @Transactional
-    public void deleteContent(String id) {
+    public void deleteContent(String id, String currentUserEmail) {
         PublicContentEntry entry = getEntry(id);
-        if (entry.getPublicationStatus() == PublicationStatus.PUBLISHED) {
-            throw new BadRequestException("Tidak dapat menghapus konten yang sedang PUBLISHED. Archive atau jadikan DRAFT terlebih dahulu.");
+        
+        if (!entry.isActive()) {
+            return; // Already deleted
         }
-        entry.setActive(false);
-        repository.save(entry);
+
+        if (entry.getPublicationStatus() == PublicationStatus.PUBLISHED) {
+            entry.setPublicationStatus(PublicationStatus.ARCHIVED);
+            entry.setUpdatedByEmail(currentUserEmail);
+            repository.save(entry);
+        } else {
+            // DRAFT or ARCHIVED
+            entry.setActive(false);
+            entry.setUpdatedByEmail(currentUserEmail);
+            repository.save(entry);
+        }
     }
 
-    private PublicContentEntry getEntry(String id) {
+    public PublicContentEntry getEntry(String id) {
         return repository.findById(id).orElseThrow(() -> new BadRequestException("Konten tidak ditemukan"));
     }
 
@@ -212,13 +230,10 @@ public class PublicContentServiceImpl implements PublicContentService {
         switch (request.getContentType()) {
             case HERO:
                 if (!StringUtils.hasText(request.getTitle())) throw new BadRequestException("Title wajib untuk konten HERO");
-                if (!StringUtils.hasText(request.getMediaUrl())) throw new BadRequestException("Media URL wajib untuk konten HERO");
                 break;
             case ABOUT:
             case VISION:
             case MISSION:
-                if (!StringUtils.hasText(request.getBody())) throw new BadRequestException("Body wajib untuk konten " + request.getContentType());
-                break;
             case PROGRAM:
             case FACILITY:
                 if (!StringUtils.hasText(request.getTitle())) throw new BadRequestException("Title wajib untuk konten " + request.getContentType());
@@ -231,9 +246,11 @@ public class PublicContentServiceImpl implements PublicContentService {
             case ACTIVITY:
                 if (!StringUtils.hasText(request.getTitle())) throw new BadRequestException("Title wajib untuk ACTIVITY");
                 if (!StringUtils.hasText(request.getBody())) throw new BadRequestException("Body wajib untuk ACTIVITY");
+                if (!StringUtils.hasText(request.getCategory())) throw new BadRequestException("Category wajib untuk ACTIVITY");
                 if (request.getEventDate() == null) throw new BadRequestException("Tanggal aktivitas wajib untuk ACTIVITY");
                 break;
             case MEDIA:
+                if (!StringUtils.hasText(request.getTitle())) throw new BadRequestException("Title wajib untuk konten MEDIA");
                 if (!StringUtils.hasText(request.getMediaUrl())) throw new BadRequestException("Media URL wajib untuk konten MEDIA");
                 break;
             default:
@@ -241,10 +258,11 @@ public class PublicContentServiceImpl implements PublicContentService {
         }
     }
 
-    private boolean isValidUrl(String url) {
+    private boolean isValidUrl(String urlString) {
         try {
-            new URL(url);
-            return true;
+            URL url = new URL(urlString);
+            String protocol = url.getProtocol();
+            return "http".equalsIgnoreCase(protocol) || "https".equalsIgnoreCase(protocol);
         } catch (MalformedURLException e) {
             return false;
         }

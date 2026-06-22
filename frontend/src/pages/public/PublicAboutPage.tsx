@@ -5,18 +5,22 @@ import type { PublicContentEntry } from '../../types/publicContent';
 import { PublicContentType } from '../../types/publicContent';
 
 export function PublicAboutPage() {
-  const [profile, setProfile] = useState<PublicContentEntry | null>(null);
+  const [about, setAbout] = useState<PublicContentEntry | null>(null);
+  const [vision, setVision] = useState<PublicContentEntry | null>(null);
+  const [mission, setMission] = useState<PublicContentEntry | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    publicContentService.getPublishedByType(PublicContentType.ORGANIZATION_PROFILE)
-      .then(res => {
-        if (res.length > 0) {
-          setProfile(res[0]);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      publicContentService.getPublished(PublicContentType.ABOUT),
+      publicContentService.getPublished(PublicContentType.VISION),
+      publicContentService.getPublished(PublicContentType.MISSION)
+    ]).then(([aboutRes, visionRes, missionRes]) => {
+      if (aboutRes.length > 0) setAbout(aboutRes[0]);
+      if (visionRes.length > 0) setVision(visionRes[0]);
+      if (missionRes.length > 0) setMission(missionRes[0]);
+    }).catch(() => {})
+    .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -29,7 +33,7 @@ export function PublicAboutPage() {
       </div>
 
       <div className="public-container public-content-wrapper">
-        {!profile && !loading && (
+        {(!about && !vision && !mission) && !loading && (
           <div className="public-alert-info">
             <strong>Catatan Demo:</strong> Konten profil ini merupakan versi ringkas untuk demo Orchestria dan dapat disesuaikan dengan profil resmi PUB.
           </div>
@@ -37,11 +41,11 @@ export function PublicAboutPage() {
 
         <section className="public-about-section">
           <h2>Profil PUB</h2>
-          {profile ? (
+          {about ? (
             <div>
-              {profile.mediaUrl && <img src={profile.mediaUrl} alt={profile.title} style={{ width: '100%', maxHeight: '400px', objectFit: 'cover', borderRadius: '8px', marginBottom: '20px' }} />}
-              <h3>{profile.title}</h3>
-              <div style={{ whiteSpace: 'pre-line' }}>{profile.content}</div>
+              {about.mediaUrl && <img src={about.mediaUrl} alt={about.title} className="public-profile-img" />}
+              <h3>{about.title}</h3>
+              <div className="public-profile-content">{about.body}</div>
             </div>
           ) : (
             <p>
@@ -52,7 +56,21 @@ export function PublicAboutPage() {
           )}
         </section>
 
-        {!profile && (
+        {(vision || mission) ? (
+          <section className="public-about-section">
+            <h2>Visi & Misi</h2>
+            <div className="public-grid-2">
+              <div className="public-card">
+                <h3>{vision?.title || 'Visi'}</h3>
+                <div className="public-profile-content">{vision?.body || 'Belum ada visi.'}</div>
+              </div>
+              <div className="public-card">
+                <h3>{mission?.title || 'Misi'}</h3>
+                <div className="public-profile-content">{mission?.body || 'Belum ada misi.'}</div>
+              </div>
+            </div>
+          </section>
+        ) : !about && (
           <>
             <section className="public-about-section">
               <h2>Visi & Misi</h2>

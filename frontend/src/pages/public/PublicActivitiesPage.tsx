@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { staticActivities, activityCategories } from "../../data/publicContent";
+import { staticActivities } from "../../data/publicContent";
 import { publicContentService } from "../../services/publicContentService";
 import type { PublicContentEntry } from '../../types/publicContent';
 import { PublicContentType } from '../../types/publicContent';
@@ -8,20 +8,24 @@ export function PublicActivitiesPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [contents, setContents] = useState<PublicContentEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
-    publicContentService.getPublishedByType(PublicContentType.ACTIVITY_PUBLICATION)
-      .then(res => setContents(res))
+    publicContentService.getPublished(PublicContentType.ACTIVITY)
+      .then(res => {
+        setContents(res);
+        const uniqueCats = Array.from(new Set(res.map(c => c.category).filter(Boolean))) as string[];
+        setCategories(uniqueCats.length > 0 ? uniqueCats : []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   const filteredActivities = useMemo(() => {
-    // Note: Since ACTIVITY_PUBLICATION doesn't have a specific category field in the backend model, 
-    // we'll just show all of them if "ALL" is selected, and fallback to static data.
     if (contents.length > 0) {
-      // Ignore static categories for dynamic data since we don't have categories in PublicContentEntry
-      return contents.sort((a,b) => a.displayOrder - b.displayOrder);
+      const activeContents = contents.sort((a,b) => a.displayOrder - b.displayOrder);
+      if (selectedCategory === "ALL") return activeContents;
+      return activeContents.filter(c => c.category === selectedCategory);
     }
     if (selectedCategory === "ALL") return staticActivities;
     return staticActivities.filter(act => act.category === selectedCategory);
@@ -43,7 +47,7 @@ export function PublicActivitiesPage() {
           </div>
         )}
 
-        {contents.length === 0 && (
+        {(contents.length > 0 || !loading) && (
           <div className="public-filters public-filter-spacing">
             <div className="public-category-tabs">
               <button 
@@ -53,7 +57,7 @@ export function PublicActivitiesPage() {
               >
                 Semua Kategori
               </button>
-              {activityCategories.map(cat => (
+              {(contents.length > 0 ? categories : Array.from(new Set(staticActivities.map(a => a.category)))).map(cat => (
                 <button 
                   type="button"
                   key={cat}
@@ -76,16 +80,17 @@ export function PublicActivitiesPage() {
         ) : (
           <div className="public-grid-3">
             {contents.length > 0 ? (
-              contents.map(act => (
+              (filteredActivities as PublicContentEntry[]).map(act => (
                 <div key={act.id} className="public-activity-card">
-                  {act.mediaUrl && <img src={act.mediaUrl} alt={act.title} style={{ width: '100%', height: '200px', objectFit: 'cover', borderTopLeftRadius: '8px', borderTopRightRadius: '8px' }} />}
-                  <div style={{ padding: '16px' }}>
+                  {act.mediaUrl && <img src={act.mediaUrl} alt={act.title} className="public-activity-img" />}
+                  <div className="public-activity-card-body">
                     <div className="activity-card-header">
-                      <span className="public-badge">Kegiatan</span>
+                      <span className="public-badge">{act.category}</span>
+                      {act.statusLabel && <span className="activity-status">{act.statusLabel}</span>}
                     </div>
-                    <h3 style={{ margin: '8px 0' }}>{act.title}</h3>
+                    <h3 className="public-activity-title">{act.title}</h3>
                     {act.eventDate && <p className="activity-date">📅 {act.eventDate}</p>}
-                    <p className="activity-desc">{act.content}</p>
+                    <p className="activity-desc">{act.body}</p>
                   </div>
                 </div>
               ))
@@ -96,7 +101,7 @@ export function PublicActivitiesPage() {
                     <span className="public-badge">{act.category}</span>
                     <span className="activity-status">{act.status}</span>
                   </div>
-                  <h3>{act.title}</h3>
+                  <h3 className="public-activity-title">{act.title}</h3>
                   <p className="activity-date">📅 {act.date}</p>
                   <p className="activity-desc">{act.description}</p>
                 </div>

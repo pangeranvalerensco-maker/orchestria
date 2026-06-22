@@ -1,10 +1,13 @@
 export const PublicContentType = {
-  ORGANIZATION_PROFILE: 'ORGANIZATION_PROFILE',
+  HERO: 'HERO',
+  ABOUT: 'ABOUT',
+  VISION: 'VISION',
+  MISSION: 'MISSION',
   PROGRAM: 'PROGRAM',
   FACILITY: 'FACILITY',
   TESTIMONIAL: 'TESTIMONIAL',
-  ACTIVITY_PUBLICATION: 'ACTIVITY_PUBLICATION',
-  HERO: 'HERO'
+  ACTIVITY: 'ACTIVITY',
+  MEDIA: 'MEDIA'
 } as const;
 
 export type PublicContentType = typeof PublicContentType[keyof typeof PublicContentType];
@@ -19,23 +22,38 @@ export type PublicationStatus = typeof PublicationStatus[keyof typeof Publicatio
 
 export interface PublicContentEntry {
   id: string;
-  type: PublicContentType;
+  contentType: PublicContentType;
   title: string;
-  content: string;
+  subtitle?: string;
+  body?: string;
+  category?: string;
+  statusLabel?: string;
+  eventDate?: string;
   mediaUrl?: string;
+  linkUrl?: string;
+  authorName?: string;
+  authorRole?: string;
   displayOrder: number;
-  status: PublicationStatus;
-  publishedAt?: string; // ISO-8601 UTC format
-  eventDate?: string; // ISO-8601 UTC format
-  createdAt: string; // ISO-8601 UTC format
-  updatedAt: string; // ISO-8601 UTC format
+  publicationStatus: PublicationStatus;
+  active: boolean;
+  publishedAt?: string;
+  createdByEmail?: string;
+  updatedByEmail?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PublicContentRequest {
-  type: PublicContentType;
+  contentType: PublicContentType;
   title: string;
-  content: string;
+  subtitle?: string;
+  body?: string;
+  category?: string;
+  statusLabel?: string;
+  eventDate?: string;
   mediaUrl?: string;
+  linkUrl?: string;
+  authorName?: string;
+  authorRole?: string;
   displayOrder: number;
-  eventDate?: string; // e.g. "YYYY-MM-DD"
 }

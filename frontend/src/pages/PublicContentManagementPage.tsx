@@ -6,73 +6,101 @@ import { publicContentService } from '../services/publicContentService';
 import '../public-content-admin.css';
 
 const CONTENT_TYPES = [
-  { value: PublicContentType.ORGANIZATION_PROFILE, label: 'Profile' },
-  { value: PublicContentType.PROGRAM, label: 'Program' },
-  { value: PublicContentType.FACILITY, label: 'Facility' },
-  { value: PublicContentType.TESTIMONIAL, label: 'Testimonial' },
-  { value: PublicContentType.ACTIVITY_PUBLICATION, label: 'Activity Publication' },
-  { value: PublicContentType.HERO, label: 'Hero Content' }
+  { value: PublicContentType.HERO, label: 'Hero Content', reqPerm: 'public.organization.manage' },
+  { value: PublicContentType.ABOUT, label: 'About', reqPerm: 'public.organization.manage' },
+  { value: PublicContentType.VISION, label: 'Vision', reqPerm: 'public.organization.manage' },
+  { value: PublicContentType.MISSION, label: 'Mission', reqPerm: 'public.organization.manage' },
+  { value: PublicContentType.PROGRAM, label: 'Program', reqPerm: 'public.content.manage' },
+  { value: PublicContentType.FACILITY, label: 'Facility', reqPerm: 'public.content.manage' },
+  { value: PublicContentType.TESTIMONIAL, label: 'Testimonial', reqPerm: 'public.content.manage' },
+  { value: PublicContentType.ACTIVITY, label: 'Activity', reqPerm: 'public.activity.manage' },
+  { value: PublicContentType.MEDIA, label: 'Media', reqPerm: 'public.media.manage' }
 ];
 
 export const PublicContentManagementPage: React.FC = () => {
-  const { token } = useAuth();
+  const { token, hasPermission } = useAuth();
   const [contents, setContents] = useState<PublicContentEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContent, setEditingContent] = useState<PublicContentEntry | null>(null);
+  const [contentToDelete, setContentToDelete] = useState<PublicContentEntry | null>(null);
   
   const [formData, setFormData] = useState<PublicContentRequest>({
-    type: PublicContentType.ACTIVITY_PUBLICATION,
+    contentType: PublicContentType.ACTIVITY,
     title: '',
-    content: '',
+    subtitle: '',
+    body: '',
+    category: '',
+    statusLabel: '',
+    eventDate: '',
     mediaUrl: '',
-    displayOrder: 0,
-    eventDate: ''
+    linkUrl: '',
+    authorName: '',
+    authorRole: '',
+    displayOrder: 0
   });
 
   const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
+  const availableTypes = CONTENT_TYPES.filter(t => hasPermission(t.reqPerm));
 
   useEffect(() => {
     loadContents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, filterType, filterStatus]);
 
   const loadContents = async () => {
     if (!token) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await publicContentService.getAllContentsAdmin(token);
+      const typeParam = filterType !== 'ALL' ? (filterType as PublicContentType) : undefined;
+      const statusParam = filterStatus !== 'ALL' ? (filterStatus as PublicationStatus) : undefined;
+      const data = await publicContentService.getAllContents(token, typeParam, statusParam);
       setContents(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load public contents');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load public contents');
     } finally {
       setLoading(false);
     }
   };
 
   const handleOpenModal = (content?: PublicContentEntry) => {
+    setError(null);
     if (content) {
       setEditingContent(content);
       setFormData({
-        type: content.type,
+        contentType: content.contentType,
         title: content.title,
-        content: content.content,
+        subtitle: content.subtitle || '',
+        body: content.body || '',
+        category: content.category || '',
+        statusLabel: content.statusLabel || '',
+        eventDate: content.eventDate || '',
         mediaUrl: content.mediaUrl || '',
-        displayOrder: content.displayOrder,
-        eventDate: content.eventDate || ''
+        linkUrl: content.linkUrl || '',
+        authorName: content.authorName || '',
+        authorRole: content.authorRole || '',
+        displayOrder: content.displayOrder
       });
     } else {
       setEditingContent(null);
       setFormData({
-        type: PublicContentType.ACTIVITY_PUBLICATION,
+        contentType: availableTypes.length > 0 ? availableTypes[0].value : PublicContentType.ACTIVITY,
         title: '',
-        content: '',
+        subtitle: '',
+        body: '',
+        category: '',
+        statusLabel: '',
+        eventDate: '',
         mediaUrl: '',
-        displayOrder: 0,
-        eventDate: ''
+        linkUrl: '',
+        authorName: '',
+        authorRole: '',
+        displayOrder: 0
       });
     }
     setIsModalOpen(true);
@@ -98,7 +126,6 @@ export const PublicContentManagementPage: React.FC = () => {
     try {
       const payload = { ...formData };
       if (!payload.eventDate) delete payload.eventDate;
-      if (!payload.mediaUrl) delete payload.mediaUrl;
 
       if (editingContent) {
         await publicContentService.updateContent(editingContent.id, payload, token);
@@ -107,8 +134,8 @@ export const PublicContentManagementPage: React.FC = () => {
       }
       handleCloseModal();
       loadContents();
-    } catch (err: any) {
-      setError(err.message || 'Failed to save content');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save content');
     }
   };
 
@@ -117,8 +144,8 @@ export const PublicContentManagementPage: React.FC = () => {
     try {
       await publicContentService.publishContent(id, token);
       loadContents();
-    } catch (err: any) {
-      setError(err.message || 'Failed to publish content');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish content');
     }
   };
 
@@ -127,52 +154,70 @@ export const PublicContentManagementPage: React.FC = () => {
     try {
       await publicContentService.archiveContent(id, token);
       loadContents();
-    } catch (err: any) {
-      setError(err.message || 'Failed to archive content');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to archive content');
     }
   };
 
   const handleRestore = async (id: string) => {
     if (!token) return;
     try {
-      await publicContentService.restoreContent(id, token);
+      await publicContentService.restoreDraftContent(id, token);
       loadContents();
-    } catch (err: any) {
-      setError(err.message || 'Failed to restore content');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore content');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!token) return;
-    if (!window.confirm('Are you sure you want to delete this content?')) return;
+  const handleDelete = (content: PublicContentEntry) => {
+    setContentToDelete(content);
+  };
+
+  const confirmDelete = async () => {
+    if (!token || !contentToDelete) return;
     try {
-      await publicContentService.deleteContent(id, token);
+      await publicContentService.deleteContent(contentToDelete.id, token);
+      setContentToDelete(null);
       loadContents();
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete content');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete content');
+      setContentToDelete(null);
     }
   };
 
-  const filteredContents = filterType === 'ALL' 
-    ? contents 
-    : contents.filter(c => c.type === filterType);
+  const canManageType = (type: PublicContentType) => {
+    const matchedType = CONTENT_TYPES.find(t => t.value === type);
+    return matchedType ? hasPermission(matchedType.reqPerm) : false;
+  };
 
-  if (loading) return <div className="public-content-loading">Loading public contents...</div>;
+  const showBodyField = ['ABOUT', 'VISION', 'MISSION', 'PROGRAM', 'FACILITY', 'TESTIMONIAL', 'ACTIVITY'].includes(formData.contentType);
+  const showTitleField = ['HERO', 'ABOUT', 'VISION', 'MISSION', 'PROGRAM', 'FACILITY', 'ACTIVITY', 'MEDIA'].includes(formData.contentType);
+  const showSubtitleField = ['HERO', 'PROGRAM', 'ACTIVITY'].includes(formData.contentType);
+  const showCategoryField = ['ACTIVITY'].includes(formData.contentType);
+  const showStatusLabelField = ['ACTIVITY'].includes(formData.contentType);
+  const showEventDateField = ['ACTIVITY'].includes(formData.contentType);
+  const showMediaUrlField = ['HERO', 'ABOUT', 'PROGRAM', 'FACILITY', 'ACTIVITY', 'MEDIA'].includes(formData.contentType);
+  const showLinkUrlField = ['HERO', 'PROGRAM', 'ACTIVITY', 'MEDIA'].includes(formData.contentType);
+  const showAuthorField = ['TESTIMONIAL'].includes(formData.contentType);
+
+  if (loading && contents.length === 0) return <div className="public-content-loading">Loading public contents...</div>;
 
   return (
     <div className="public-content-page">
       <div className="public-content-header">
         <h1>Public Content Management</h1>
-        <button className="public-content-btn-primary" onClick={() => handleOpenModal()}>
-          + Create Content
-        </button>
+        {availableTypes.length > 0 && (
+          <button className="public-content-btn-primary" onClick={() => handleOpenModal()}>
+            + Create Content
+          </button>
+        )}
       </div>
 
       {error && <div className="public-content-error">{error}</div>}
 
       <div className="public-content-filters">
         <div className="public-content-filter-group">
-          <label>Filter by Type:</label>
+          <label>Type:</label>
           <select value={filterType} onChange={e => setFilterType(e.target.value)}>
             <option value="ALL">All Types</option>
             {CONTENT_TYPES.map(type => (
@@ -180,77 +225,97 @@ export const PublicContentManagementPage: React.FC = () => {
             ))}
           </select>
         </div>
+        <div className="public-content-filter-group">
+          <label>Status:</label>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="ALL">All Status</option>
+            <option value="DRAFT">DRAFT</option>
+            <option value="PUBLISHED">PUBLISHED</option>
+            <option value="ARCHIVED">ARCHIVED</option>
+          </select>
+        </div>
       </div>
 
-      {filteredContents.length === 0 ? (
+      {contents.length === 0 ? (
         <div className="public-content-empty">No contents found.</div>
       ) : (
         <div className="public-content-grid">
-          {filteredContents.map(content => (
-            <div key={content.id} className="public-content-card">
-              {content.mediaUrl && (
-                <img src={content.mediaUrl} alt={content.title} className="public-content-image" />
-              )}
-              <div className="public-content-card-header">
-                <h3>{content.title}</h3>
-                <span className={`public-content-status public-content-status-${content.status.toLowerCase()}`}>
-                  {content.status}
-                </span>
-              </div>
-              <div className="public-content-type">{content.type.replace('_', ' ')}</div>
-              <p className="public-content-desc">{content.content}</p>
-              
-              <div className="public-content-meta">
-                <span>Order: {content.displayOrder}</span>
-                {content.eventDate && <span>Date: {content.eventDate}</span>}
-              </div>
+          {contents.map(content => {
+            const isAuthorized = canManageType(content.contentType);
 
-              <div className="public-content-actions">
-                <button 
-                  className="public-content-action-btn"
-                  onClick={() => handleOpenModal(content)}
-                >
-                  Edit
-                </button>
+            return (
+              <div key={content.id} className="public-content-card">
+                {content.mediaUrl && (
+                  <img src={content.mediaUrl} alt={content.title} className="public-content-image" />
+                )}
+                <div className="public-content-card-header">
+                  <h3>{content.title || content.authorName || 'No Title'}</h3>
+                  <span className={`public-content-status public-content-status-${content.publicationStatus.toLowerCase()}`}>
+                    {content.publicationStatus}
+                  </span>
+                </div>
+                <div className="public-content-type">{content.contentType.replace('_', ' ')}</div>
                 
-                {content.status === PublicationStatus.DRAFT && (
-                  <button 
-                    className="public-content-action-btn success"
-                    onClick={() => handlePublish(content.id)}
-                  >
-                    Publish
-                  </button>
-                )}
+                <p className="public-content-desc">
+                  {content.body ? (content.body.length > 100 ? content.body.substring(0, 100) + '...' : content.body) : 'No content'}
+                </p>
                 
-                {content.status === PublicationStatus.PUBLISHED && (
-                  <button 
-                    className="public-content-action-btn danger"
-                    onClick={() => handleArchive(content.id)}
-                  >
-                    Archive
-                  </button>
-                )}
+                <div className="public-content-meta">
+                  <span>Order: {content.displayOrder}</span>
+                  {content.eventDate && <span>Date: {content.eventDate}</span>}
+                </div>
 
-                {content.status === PublicationStatus.ARCHIVED && (
-                  <button 
-                    className="public-content-action-btn success"
-                    onClick={() => handleRestore(content.id)}
-                  >
-                    Restore
-                  </button>
-                )}
+                {isAuthorized && (
+                  <div className="public-content-actions">
+                    {content.publicationStatus === PublicationStatus.DRAFT && (
+                      <button 
+                        className="public-content-action-btn"
+                        onClick={() => handleOpenModal(content)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    
+                    {content.publicationStatus === PublicationStatus.DRAFT && (
+                      <button 
+                        className="public-content-action-btn success"
+                        onClick={() => handlePublish(content.id)}
+                      >
+                        Publish
+                      </button>
+                    )}
+                    
+                    {content.publicationStatus === PublicationStatus.PUBLISHED && (
+                      <button 
+                        className="public-content-action-btn danger"
+                        onClick={() => handleArchive(content.id)}
+                      >
+                        Archive
+                      </button>
+                    )}
 
-                {(content.status === PublicationStatus.DRAFT || content.status === PublicationStatus.ARCHIVED) && (
-                  <button 
-                    className="public-content-action-btn danger"
-                    onClick={() => handleDelete(content.id)}
-                  >
-                    Delete
-                  </button>
+                    {content.publicationStatus === PublicationStatus.ARCHIVED && (
+                      <button 
+                        className="public-content-action-btn success"
+                        onClick={() => handleRestore(content.id)}
+                      >
+                        Restore
+                      </button>
+                    )}
+
+                    {(content.publicationStatus === PublicationStatus.DRAFT || content.publicationStatus === PublicationStatus.ARCHIVED) && (
+                      <button 
+                        className="public-content-action-btn danger"
+                        onClick={() => handleDelete(content)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -266,49 +331,134 @@ export const PublicContentManagementPage: React.FC = () => {
               <div className="public-content-form-group">
                 <label>Content Type</label>
                 <select 
-                  name="type" 
-                  value={formData.type} 
+                  name="contentType" 
+                  value={formData.contentType} 
                   onChange={handleChange}
+                  disabled={!!editingContent}
                   required
                 >
-                  {CONTENT_TYPES.map(type => (
+                  {availableTypes.map(type => (
                     <option key={type.value} value={type.value}>{type.label}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="public-content-form-group">
-                <label>Title</label>
-                <input 
-                  type="text" 
-                  name="title" 
-                  value={formData.title} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
+              {showTitleField && (
+                <div className="public-content-form-group">
+                  <label>Title</label>
+                  <input 
+                    type="text" 
+                    name="title" 
+                    value={formData.title} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                </div>
+              )}
 
-              <div className="public-content-form-group">
-                <label>Content</label>
-                <textarea 
-                  name="content" 
-                  value={formData.content} 
-                  onChange={handleChange} 
-                  rows={4}
-                  required 
-                />
-              </div>
+              {showSubtitleField && (
+                <div className="public-content-form-group">
+                  <label>Subtitle (Optional)</label>
+                  <input 
+                    type="text" 
+                    name="subtitle" 
+                    value={formData.subtitle} 
+                    onChange={handleChange} 
+                  />
+                </div>
+              )}
 
-              <div className="public-content-form-group">
-                <label>Media URL (Optional)</label>
-                <input 
-                  type="text" 
-                  name="mediaUrl" 
-                  value={formData.mediaUrl} 
-                  onChange={handleChange} 
-                  placeholder="https://..."
-                />
-              </div>
+              {showBodyField && (
+                <div className="public-content-form-group">
+                  <label>Body Content</label>
+                  <textarea 
+                    name="body" 
+                    value={formData.body} 
+                    onChange={handleChange} 
+                    rows={4}
+                    required 
+                  />
+                </div>
+              )}
+
+              {showCategoryField && (
+                <div className="public-content-form-group">
+                  <label>Category</label>
+                  <input 
+                    type="text" 
+                    name="category" 
+                    value={formData.category} 
+                    onChange={handleChange} 
+                    placeholder="e.g. SEMINAR, WORKSHOP"
+                    required
+                  />
+                </div>
+              )}
+
+              {showStatusLabelField && (
+                <div className="public-content-form-group">
+                  <label>Status Label (Optional)</label>
+                  <input 
+                    type="text" 
+                    name="statusLabel" 
+                    value={formData.statusLabel} 
+                    onChange={handleChange} 
+                    placeholder="e.g. REGISTRATION OPEN"
+                  />
+                </div>
+              )}
+
+              {showMediaUrlField && (
+                <div className="public-content-form-group">
+                  <label>Media URL {formData.contentType === 'MEDIA' ? '' : '(Optional)'}</label>
+                  <input 
+                    type="text" 
+                    name="mediaUrl" 
+                    value={formData.mediaUrl} 
+                    onChange={handleChange} 
+                    placeholder="https://..."
+                    required={formData.contentType === 'MEDIA'}
+                  />
+                </div>
+              )}
+
+              {showLinkUrlField && (
+                <div className="public-content-form-group">
+                  <label>Action Link URL (Optional)</label>
+                  <input 
+                    type="text" 
+                    name="linkUrl" 
+                    value={formData.linkUrl} 
+                    onChange={handleChange} 
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
+
+              {showAuthorField && (
+                <div className="public-content-form-group">
+                  <label>Author Name</label>
+                  <input 
+                    type="text" 
+                    name="authorName" 
+                    value={formData.authorName} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                </div>
+              )}
+
+              {showAuthorField && (
+                <div className="public-content-form-group">
+                  <label>Author Role (Optional)</label>
+                  <input 
+                    type="text" 
+                    name="authorRole" 
+                    value={formData.authorRole} 
+                    onChange={handleChange} 
+                  />
+                </div>
+              )}
 
               <div className="public-content-form-group">
                 <label>Display Order</label>
@@ -322,15 +472,18 @@ export const PublicContentManagementPage: React.FC = () => {
                 />
               </div>
 
-              <div className="public-content-form-group">
-                <label>Event Date (Optional)</label>
-                <input 
-                  type="date" 
-                  name="eventDate" 
-                  value={formData.eventDate} 
-                  onChange={handleChange} 
-                />
-              </div>
+              {showEventDateField && (
+                <div className="public-content-form-group">
+                  <label>Event Date</label>
+                  <input 
+                    type="date" 
+                    name="eventDate" 
+                    value={formData.eventDate} 
+                    onChange={handleChange} 
+                    required
+                  />
+                </div>
+              )}
 
               <div className="public-content-modal-actions">
                 <button type="button" className="public-content-btn-secondary" onClick={handleCloseModal}>
@@ -341,6 +494,21 @@ export const PublicContentManagementPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {contentToDelete && (
+        <div className="public-content-modal-overlay">
+          <div className="public-content-modal-content public-content-modal-sm">
+            <div className="public-content-modal-header">
+              <h2>Confirm Delete</h2>
+            </div>
+            <p className="public-content-confirm-text">Are you sure you want to delete {contentToDelete.title || 'this content'}?</p>
+            <div className="public-content-modal-actions">
+              <button className="public-content-btn-secondary" onClick={() => setContentToDelete(null)}>Cancel</button>
+              <button className="public-content-btn-primary danger" onClick={confirmDelete}>Delete</button>
+            </div>
           </div>
         </div>
       )}
