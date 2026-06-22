@@ -41,13 +41,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension.class) @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ReportServiceImplTest {
 
     private static final String AUTHORIZATION = "Bearer test-token";
 
     @Mock
     private RestTemplate restTemplate;
+
+    @Mock
+    private com.pangeranvalerensco.orchestria.notification_report_service.repository.ReportExportLogRepository reportExportLogRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -64,6 +67,7 @@ class ReportServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(reportService, "requestServiceBaseUrl", "http://localhost:8099");
+        when(reportExportLogRepository.save(any())).thenAnswer(i -> i.getArgument(0));
     }
 
     @Test
@@ -72,7 +76,7 @@ class ReportServiceImplTest {
                 .thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThatThrownBy(() -> reportService.fetchFundRequests(AUTHORIZATION))
-                .isInstanceOf(UpstreamServiceException.class)
+                .isInstanceOf(com.pangeranvalerensco.orchestria.notification_report_service.exception.UpstreamServiceException.class)
                 .hasMessageContaining("tidak dapat dihubungi");
     }
 
@@ -82,7 +86,7 @@ class ReportServiceImplTest {
                 .thenReturn(ResponseEntity.ok(null));
 
         assertThatThrownBy(() -> reportService.fetchFundRequests(AUTHORIZATION))
-                .isInstanceOf(UpstreamServiceException.class)
+                .isInstanceOf(com.pangeranvalerensco.orchestria.notification_report_service.exception.UpstreamServiceException.class)
                 .hasMessageContaining("respons kosong");
     }
 
@@ -95,8 +99,8 @@ class ReportServiceImplTest {
             when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
                     .thenReturn(ResponseEntity.status(status).body("{}"));
 
-            assertThatThrownBy(() -> reportService.generateFundRequestExcel(AUTHORIZATION))
-                    .isInstanceOf(UpstreamServiceException.class);
+            assertThatThrownBy(() -> reportService.generateFundRequestExcel(AUTHORIZATION, "user@example.com"))
+                    .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         }
     }
 
@@ -122,20 +126,13 @@ class ReportServiceImplTest {
     }
 
     @Test
-    void whenUpstreamReturnsSuccessfulEmptyContent_thenGenerateValidExcel() throws Exception {
+    void whenUpstreamReturnsSuccessfulEmptyContent_thenThrowException() throws Exception {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
                 .thenReturn(ResponseEntity.ok(successResponseWithEmptyContent()));
 
-        ByteArrayOutputStream output = reportService.generateFundRequestExcel(AUTHORIZATION);
-
-        try (XSSFWorkbook workbook = new XSSFWorkbook(
-                new ByteArrayInputStream(output.toByteArray()))) {
-            Sheet sheet = workbook.getSheetAt(0);
-            assertThat(sheet.getLastRowNum()).isZero();
-            assertThat(sheet.getRow(0).getCell(0).getStringCellValue()).isEqualTo("ID");
-            assertThat(sheet.getRow(0).getCell(6).getStringCellValue())
-                    .isEqualTo("Tanggal Dibuat");
-        }
+        assertThatThrownBy(() -> reportService.generateFundRequestExcel(AUTHORIZATION, "user@example.com"))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("Tidak ada data fund requests");
     }
 
     @Test
@@ -143,7 +140,7 @@ class ReportServiceImplTest {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
                 .thenReturn(ResponseEntity.ok(successResponseWithOneRecord()));
 
-        ByteArrayOutputStream output = reportService.generateFundRequestExcel(AUTHORIZATION);
+        ByteArrayOutputStream output = reportService.generateFundRequestExcel(AUTHORIZATION, "user@example.com");
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(
                 new ByteArrayInputStream(output.toByteArray()))) {
@@ -161,11 +158,11 @@ class ReportServiceImplTest {
     @Test
     void whenGenerateExcelSucceeds_thenReportReadyEventIsPublished() {
         when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
-                .thenReturn(ResponseEntity.ok(successResponseWithEmptyContent()));
+                .thenReturn(ResponseEntity.ok(successResponseWithOneRecord()));
 
-        reportService.generateFundRequestExcel(AUTHORIZATION);
+        reportService.generateFundRequestExcel(AUTHORIZATION, "user@example.com");
 
-        verify(eventPublisher, times(1)).publishEvent(any(NotificationEvent.class));
+        verify(eventPublisher, times(1)).publishEvent(any(com.pangeranvalerensco.orchestria.notification_report_service.event.ReportGeneratedEvent.class));
     }
 
     private String successResponseWithEmptyContent() {
@@ -199,8 +196,7 @@ class ReportServiceImplTest {
                         "divisionName": "IT",
                         "requesterName": "Siti",
                         "status": "COMPLETED",
-                        "totalAmount": 5000000.00,
-                        "createdAt": "2026-05-15T09:30:00"
+                        "totalAmount": 5000000.00
                       }
                     ],
                     "page": 0,

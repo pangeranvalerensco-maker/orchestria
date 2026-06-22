@@ -29,7 +29,7 @@ export const AssetDirectoryPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<AssetStatus | "">("");
   const [filterCondition, setFilterCondition] = useState<AssetCondition | "">("");
 
-  // Pagination simplified for now (fetching 100 to avoid pagination UI complexity in Phase 22)
+  // Pagination simplified (fetching 100 to avoid pagination UI complexity in Phase 22)
   const fetchAllAssets = async () => {
     setIsLoading(true);
     setError("");

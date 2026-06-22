@@ -1,0 +1,235 @@
+.nr-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.nr-header {
+    margin-bottom: 24px;
+}
+
+.nr-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.nr-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.nr-tabs {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nr-tab {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.nr-tab.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.nr-tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.nr-card {
+    background: var(--surface-color);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.nr-card-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text-primary);
+}
+
+.nr-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.nr-table th,
+.nr-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nr-table th {
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--background-color);
+}
+
+.nr-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.nr-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+}
+
+.nr-badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+}
+
+.nr-badge.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+}
+
+.nr-badge.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3B82F6;
+}
+
+.nr-btn {
+    padding: 8px 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.nr-btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.nr-btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.nr-btn-secondary {
+    background: var(--background-color);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.nr-btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.nr-action-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.nr-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.nr-summary-item {
+    background: var(--surface-color);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.nr-summary-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 4px;
+}
+
+.nr-summary-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.nr-form-group {
+    margin-bottom: 16px;
+}
+
+.nr-form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.nr-form-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--background-color);
+    color: var(--text-primary);
+}
+
+.nr-table-container {
+    overflow-x: auto;
+}
+
+.nr-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.nr-card-title-no-margin {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.nr-hidden-input {
+    display: none;
+}
+
+.nr-alert {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    border-left: 4px solid;
+}
+
+.nr-alert-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-left-color: #10B981;
+    color: #065F46;
+}
+
+.nr-alert-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left-color: #EF4444;
+    color: #991B1B;
+}
+
+.nr-alert ul {
+    margin-top: 8px;
+    margin-left: 24px;
+}

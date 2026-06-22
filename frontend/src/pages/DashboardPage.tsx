@@ -8,6 +8,7 @@ import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
 import { getMySchedules, getMyPoints } from "../services/cleanlinessService";
 import { englishService } from "../services/englishService";
 import { publicContentService } from "../services/publicContentService";
+import { notificationReportService } from "../services/notificationReportService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -29,6 +30,9 @@ export function DashboardPage() {
   const [pendingEnglishDepositsCount, setPendingEnglishDepositsCount] = useState<number | null>(null);
 
   const [draftPublicContentCount, setDraftPublicContentCount] = useState<number | null>(null);
+
+  const [failedNotificationsCount, setFailedNotificationsCount] = useState<number | null>(null);
+  const [totalReportExports, setTotalReportExports] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -53,6 +57,9 @@ export function DashboardPage() {
   const canVerifyEnglishDeposit = hasPermission("english.deposit.verify");
   
   const canManagePublicContent = hasPermission("public.content.manage") || hasPermission("public.organization.manage") || hasPermission("public.activity.manage") || hasPermission("public.media.manage");
+  
+  const canReadNotification = hasPermission("notification.read");
+  const canReadReportExport = hasPermission("report.read");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -190,6 +197,27 @@ export function DashboardPage() {
         promises.push(
           publicContentService.getAllContents(token, undefined, "DRAFT").then((res) => {
             setDraftPublicContentCount(res.length);
+          })
+        );
+      }
+
+      if (canReadNotification) {
+        promises.push(
+          notificationReportService.getNotificationLogs(token, undefined, 0, 1000).then((res) => {
+            if (res && res.content) {
+              const failed = res.content.filter(log => log.status === "FAILED");
+              setFailedNotificationsCount(failed.length);
+            }
+          })
+        );
+      }
+
+      if (canReadReportExport) {
+        promises.push(
+          notificationReportService.getExportLogs(token, 0, 1).then((res) => {
+            if (res) {
+              setTotalReportExports(res.totalElements);
+            }
           })
         );
       }
@@ -378,6 +406,22 @@ export function DashboardPage() {
             <span className="stat-label">Draft Konten Publik</span>
             <strong className="stat-value">{renderCount(draftPublicContentCount)}</strong>
             <Link to="/public-content-management" className="stat-link">Proses Draft &rarr;</Link>
+          </div>
+        )}
+
+        {canReadNotification && (
+          <div className="dashboard-card stat-card stat-danger">
+            <span className="stat-label">Notifikasi Gagal</span>
+            <strong className="stat-value">{renderCount(failedNotificationsCount)}</strong>
+            <Link to="/notification-report" className="stat-link">Lihat Log &rarr;</Link>
+          </div>
+        )}
+
+        {canReadReportExport && (
+          <div className="dashboard-card stat-card stat-neutral">
+            <span className="stat-label">Total Export Laporan</span>
+            <strong className="stat-value">{renderCount(totalReportExports)}</strong>
+            <Link to="/notification-report" className="stat-link">Lihat Riwayat &rarr;</Link>
           </div>
         )}
       </section>

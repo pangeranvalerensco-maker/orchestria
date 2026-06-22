@@ -1,5 +1,6 @@
 package com.pangeranvalerensco.orchestria.notification_report_service.service.impl;
 
+import com.pangeranvalerensco.orchestria.notification_report_service.service.EmailDeliveryResult;
 import com.pangeranvalerensco.orchestria.notification_report_service.service.EmailService;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -40,12 +41,12 @@ public class EmailServiceImpl implements EmailService {
     // =========================================================================
 
     @Override
-    public void sendPlainText(List<String> to, String subject, String body) {
-        sendPlainText(to, null, null, subject, body);
+    public EmailDeliveryResult sendPlainText(List<String> to, String subject, String body) {
+        return sendPlainText(to, null, null, subject, body);
     }
 
     @Override
-    public void sendPlainText(List<String> to, List<String> cc, List<String> bcc, String subject, String body) {
+    public EmailDeliveryResult sendPlainText(List<String> to, List<String> cc, List<String> bcc, String subject, String body) {
         log.info("[EMAIL] Mengirim plain text ke: {} | Subjek: {}", to, subject);
         try {
             SimpleMailMessage message = new SimpleMailMessage();
@@ -58,8 +59,13 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
             log.info("[EMAIL] ✓ Plain text berhasil dikirim ke: {}", to);
+            return EmailDeliveryResult.success();
         } catch (MailException e) {
             log.error("[EMAIL] ✗ GAGAL kirim plain text ke: {} | Subjek: {} | Penyebab: {}", to, subject, e.getMessage(), e);
+            return EmailDeliveryResult.failure(e.getMessage());
+        } catch (Exception e) {
+            log.error("[EMAIL] ✗ GAGAL kirim plain text (error tidak terduga) ke: {} | Penyebab: {}", to, e.getMessage(), e);
+            return EmailDeliveryResult.failure(e.getMessage());
         }
     }
 
@@ -68,12 +74,12 @@ public class EmailServiceImpl implements EmailService {
     // =========================================================================
 
     @Override
-    public void sendHtml(List<String> to, String subject, String htmlBody) {
-        sendHtml(to, null, null, subject, htmlBody);
+    public EmailDeliveryResult sendHtml(List<String> to, String subject, String htmlBody) {
+        return sendHtml(to, null, null, subject, htmlBody);
     }
 
     @Override
-    public void sendHtml(List<String> to, List<String> cc, List<String> bcc, String subject, String htmlBody) {
+    public EmailDeliveryResult sendHtml(List<String> to, List<String> cc, List<String> bcc, String subject, String htmlBody) {
         log.info("[EMAIL] Mengirim HTML ke: {} | Subjek: {}", to, subject);
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -88,10 +94,13 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(mimeMessage);
             log.info("[EMAIL] ✓ HTML berhasil dikirim ke: {}", to);
+            return EmailDeliveryResult.success();
         } catch (MailException e) {
             log.error("[EMAIL] ✗ GAGAL kirim HTML ke: {} | Subjek: {} | Penyebab: {}", to, subject, e.getMessage(), e);
+            return EmailDeliveryResult.failure(e.getMessage());
         } catch (Exception e) {
             log.error("[EMAIL] ✗ GAGAL kirim HTML (error tidak terduga) ke: {} | Penyebab: {}", to, e.getMessage(), e);
+            return EmailDeliveryResult.failure(e.getMessage());
         }
     }
 

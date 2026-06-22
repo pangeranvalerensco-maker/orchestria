@@ -17,7 +17,7 @@ public interface EmailService {
      * @param subject subjek email
      * @param body    isi email plain text
      */
-    void sendPlainText(List<String> to, String subject, String body);
+    EmailDeliveryResult sendPlainText(List<String> to, String subject, String body);
 
     /**
      * Kirim email plain text dengan Cc dan Bcc.
@@ -28,7 +28,7 @@ public interface EmailService {
      * @param subject subjek email
      * @param body    isi email plain text
      */
-    void sendPlainText(List<String> to, List<String> cc, List<String> bcc, String subject, String body);
+    EmailDeliveryResult sendPlainText(List<String> to, List<String> cc, List<String> bcc, String subject, String body);
 
     /**
      * Kirim email HTML.
@@ -37,7 +37,7 @@ public interface EmailService {
      * @param subject subjek email
      * @param htmlBody isi email dalam format HTML
      */
-    void sendHtml(List<String> to, String subject, String htmlBody);
+    EmailDeliveryResult sendHtml(List<String> to, String subject, String htmlBody);
 
     /**
      * Kirim email HTML dengan Cc dan Bcc.
@@ -48,5 +48,5 @@ public interface EmailService {
      * @param subject  subjek email
      * @param htmlBody isi email dalam format HTML
      */
-    void sendHtml(List<String> to, List<String> cc, List<String> bcc, String subject, String htmlBody);
+    EmailDeliveryResult sendHtml(List<String> to, List<String> cc, List<String> bcc, String subject, String htmlBody);
 }

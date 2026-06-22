@@ -8,13 +8,21 @@ package com.pangeranvalerensco.orchestria.notification_report_service.service;
  *
  * Implementasi: {@link com.pangeranvalerensco.orchestria.notification_report_service.service.impl.NotificationServiceImpl}
  */
+import com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse;
+import com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationSendRequest;
+import com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 public interface NotificationService {
 
-    /**
-     * Publikasikan event notifikasi dengan tipe dan pesan tertentu.
-     *
-     * @param eventType tipe event, misal "REPORT_READY"
-     * @param message   pesan deskriptif
-     */
     void publishNotification(String eventType, String message);
+
+    void sendNotification(NotificationSendRequest request, String requestedByEmail);
+
+    void retryNotification(String notificationId, String requestedByEmail);
+
+    Page<NotificationLogResponse> getNotificationLogs(String email, NotificationStatus status, Pageable pageable);
+
+    NotificationLogResponse getNotificationLogDetail(String id, String email);
 }

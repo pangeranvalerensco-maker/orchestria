@@ -43,7 +43,7 @@ export function PublicActivitiesPage() {
       <div className="public-container public-content-wrapper">
         {contents.length === 0 && !loading && (
           <div className="public-alert-info public-demo-note-spacing">
-            <strong>Catatan Demo:</strong> Data kegiatan berikut merupakan konten demo sementara.
+
           </div>
         )}
 

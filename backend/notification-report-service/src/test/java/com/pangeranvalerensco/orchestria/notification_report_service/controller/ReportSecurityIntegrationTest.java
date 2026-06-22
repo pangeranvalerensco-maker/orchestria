@@ -64,7 +64,7 @@ class ReportSecurityIntegrationTest {
     void reportEndpointWithRequiredPermissionPassesSecurityLayer() throws Exception {
         mockMvc.perform(get("/api/reports/fund-requests.xlsx")
                         .header(HttpHeaders.AUTHORIZATION,
-                                "Bearer " + tokenWithPermissions(List.of("request.read.all"))))
+                                "Bearer " + tokenWithPermissions(List.of("report.export"))))
                 .andExpect(status().isBadGateway());
     }
 

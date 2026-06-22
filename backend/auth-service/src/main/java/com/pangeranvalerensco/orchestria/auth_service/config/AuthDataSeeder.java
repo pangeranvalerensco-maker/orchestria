@@ -104,7 +104,14 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new PermissionSeed("public.content.manage", "Mengelola program, fasilitas, dan testimoni"),
                                 new PermissionSeed("public.organization.manage", "Mengelola profil publik organisasi"),
                                 new PermissionSeed("public.activity.manage", "Mengelola publikasi kegiatan"),
-                                new PermissionSeed("public.media.manage", "Mengelola metadata media publik"));
+                                new PermissionSeed("public.media.manage", "Mengelola metadata media publik"),
+
+                                new PermissionSeed("notification.send", "Mengirim notifikasi manual"),
+                                new PermissionSeed("notification.read", "Melihat notifikasi"),
+                                new PermissionSeed("notification.retry", "Mencoba ulang notifikasi gagal"),
+                                new PermissionSeed("report.export", "Mengekspor laporan"),
+                                new PermissionSeed("report.import", "Mengimpor data laporan"),
+                                new PermissionSeed("scheduler.log.read", "Melihat log penjadwalan"));
 
                 for (PermissionSeed seed : permissions) {
                         permissionRepository.findByName(seed.name())
@@ -190,7 +197,13 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "public.content.manage",
                                 "public.organization.manage",
                                 "public.activity.manage",
-                                "public.media.manage"));
+                                "public.media.manage",
+                                "notification.send",
+                                "notification.read",
+                                "notification.retry",
+                                "report.export",
+                                "report.import",
+                                "scheduler.log.read"));
 
                 assign("HUMAS", List.of(
                                 "public.content.read",
@@ -230,7 +243,11 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "cleanliness.report.read",
                                 "english.activity.read",
                                 "english.deposit.read.all",
-                                "english.report.read"));
+                                "english.report.read",
+                                "notification.send",
+                                "notification.read",
+                                "report.export",
+                                "scheduler.log.read"));
 
                 assign("KETUA_PUB", List.of(
                                 "organization.read",
@@ -260,7 +277,11 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "public.content.manage",
                                 "public.organization.manage",
                                 "public.activity.manage",
-                                "public.media.manage"));
+                                "public.media.manage",
+                                "notification.send",
+                                "notification.read",
+                                "report.export",
+                                "scheduler.log.read"));
 
                 assign("KETUA_DIVISI", List.of(
                                 "organization.read",
@@ -278,8 +299,14 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "organization.manage",
                                 "archive.manage",
                                 "report.read",
+                                "report.export",
+                                "report.import",
                                 "public.content.read",
-                                "public.organization.manage"));
+                                "public.organization.manage",
+                                "notification.send",
+                                "notification.read",
+                                "notification.retry",
+                                "scheduler.log.read"));
 
                 assign("BENDAHARA_INTERNAL", List.of(
                                 "organization.read",
@@ -287,12 +314,14 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "finance.disburse",
                                 "finance.settlement.verify",
                                 "finance.report.read",
-                                "report.read"));
+                                "report.read",
+                                "report.export"));
 
                 assign("BENDAHARA_EKSTERNAL", List.of(
                                 "organization.read",
                                 "finance.report.read",
-                                "report.read"));
+                                "report.read",
+                                "report.export"));
 
                 assign("CHECKER", List.of(
                                 "organization.read",
