@@ -5,6 +5,7 @@ import com.pangeranvalerensco.orchestria.notification_report_service.service.Not
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,22 +17,28 @@ public class ReportGeneratedListener {
 
     private final NotificationService notificationService;
 
+    @Async
     @EventListener
-    public void onReportGenerated(ReportGeneratedEvent event) {
-        log.info("[EVENT-LISTENER] Menerima event laporan: tipe={}, filename={}, oleh={}", 
-            event.getReportType(), event.getFilename(), event.getRequestedByEmail());
+    public void handleReportGeneratedEvent(ReportGeneratedEvent event) {
+        log.info("[REPORT-LISTENER] Menerima event laporan dibuat: {}", event.getFilename());
         
         NotificationSendRequest request = new NotificationSendRequest();
         request.setTo(List.of(event.getRequestedByEmail()));
-        request.setSubject("Laporan " + event.getReportType() + " telah di-generate");
-        request.setBody("Laporan Anda " + event.getFilename() + " sudah selesai dibuat. Silakan periksa sistem.");
-        request.setHtml(false);
+        request.setSubject("Laporan Anda Telah Selesai: " + event.getFilename());
         
+        String body = String.format(
+            "<h1>Laporan Selesai</h1><p>Laporan %s berhasil dibuat dengan %d record pada %s.</p>",
+            event.getFilename(),
+            event.getRecordCount(),
+            event.getOccurredAt().toString()
+        );
+        request.setBody(body);
+        request.setHtml(true);
+
         try {
-            notificationService.sendNotification(request, "system@orchestria.local");
-            log.info("[EVENT-LISTENER] Notifikasi email telah di-enqueue untuk {}", event.getRequestedByEmail());
+            notificationService.sendNotification(request, "system");
         } catch (Exception e) {
-            log.error("[EVENT-LISTENER] Gagal men-enqueue notifikasi: {}", e.getMessage(), e);
+            log.error("[REPORT-LISTENER] Gagal mengirim notifikasi laporan selesai", e);
         }
     }
 }

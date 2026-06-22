@@ -5,6 +5,7 @@ import com.pangeranvalerensco.orchestria.notification_report_service.dto.Notific
 import com.pangeranvalerensco.orchestria.notification_report_service.service.NotificationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,7 @@ public class NotificationController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{id}/retry")
+    @PostMapping("/logs/{id}/retry")
     @PreAuthorize("hasAuthority('notification.retry')")
     public ResponseEntity<Void> retryNotification(@PathVariable String id, Authentication authentication) {
         String email = authentication.getName();
@@ -37,8 +38,18 @@ public class NotificationController {
 
     @GetMapping("/logs")
     @PreAuthorize("hasAuthority('notification.read')")
-    public ResponseEntity<Page<NotificationLogResponse>> getNotificationLogs(Pageable pageable, Authentication authentication) {
+    public ResponseEntity<Page<NotificationLogResponse>> getNotificationLogs(
+            @RequestParam(required = false) NotificationStatus status,
+            Pageable pageable, 
+            Authentication authentication) {
         String email = authentication.getName();
-        return ResponseEntity.ok(notificationService.getNotificationLogs(email, pageable));
+        return ResponseEntity.ok(notificationService.getNotificationLogs(email, status, pageable));
+    }
+
+    @GetMapping("/logs/{id}")
+    @PreAuthorize("hasAuthority('notification.read')")
+    public ResponseEntity<NotificationLogResponse> getNotificationLogDetail(@PathVariable String id, Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(notificationService.getNotificationLogDetail(id, email));
     }
 }

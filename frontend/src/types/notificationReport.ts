@@ -18,7 +18,7 @@ export interface ReportExportLog {
     id: string;
     reportType: string;
     filename: string;
-    status: 'PROCESSING' | 'COMPLETED' | 'FAILED';
+    status: 'PROCESSING' | 'SUCCESS' | 'FAILED';
     recordCount?: number;
     fileSize?: number;
     errorMessage?: string;
@@ -42,7 +42,7 @@ export interface ReportSubscriber {
     id: number;
     email: string;
     name?: string;
-    reportType: 'WEEKLY' | 'MONTHLY';
+    reportType: 'WEEKLY_REQUEST_REPORT' | 'FUND_REQUEST';
     active: boolean;
     createdAt?: string;
 }
@@ -66,7 +66,29 @@ export interface PageResponse<T> {
 
 export interface ReportSummary {
     totalRequests: number;
-    totalPending: number;
-    totalApproved: number;
-    totalAmount: number;
+    totalRequestedAmount: number;
+    requestCountByStatus: Record<string, number>;
+    pendingApprovalCount: number;
+    readyForDisbursementCount: number;
+    disbursedCount: number;
+    settlementPendingCount: number;
+    completedCount: number;
+    notificationPendingCount: number;
+    notificationSentCount: number;
+    notificationFailedCount: number;
+    schedulerSuccessCount: number;
+    schedulerFailedCount: number;
+}
+
+export interface ImportError {
+    rowNumber: number;
+    message: string;
+}
+
+export interface ImportSummary {
+    totalRows: number;
+    importedRows: number;
+    updatedRows: number;
+    failedRows: number;
+    errors: ImportError[];
 }

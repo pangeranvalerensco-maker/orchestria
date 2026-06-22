@@ -1,4 +1,13 @@
-import type { NotificationLog, ReportExportLog, ScheduledJobLog, ReportSubscriber, NotificationSendRequest, PageResponse, ReportSummary } from '../types/notificationReport';
+import type { 
+    NotificationLog, 
+    ReportExportLog, 
+    ScheduledJobLog, 
+    ReportSubscriber, 
+    NotificationSendRequest, 
+    PageResponse, 
+    ReportSummary,
+    ImportSummary
+} from '../types/notificationReport';
 
 const BASE_URL = 'http://localhost:8000/api';
 
@@ -21,18 +30,29 @@ export const notificationReportService = {
     },
 
     retryNotification: async (token: string, id: string): Promise<void> => {
-        const res = await fetch(`${BASE_URL}/notifications/${id}/retry`, {
+        const res = await fetch(`${BASE_URL}/notifications/logs/${id}/retry`, {
             method: 'POST',
             headers: getHeaders(token)
         });
         if (!res.ok) throw new Error('Gagal retry notifikasi');
     },
 
-    getNotificationLogs: async (token: string, page = 0, size = 10): Promise<PageResponse<NotificationLog>> => {
-        const res = await fetch(`${BASE_URL}/notifications/logs?page=${page}&size=${size}`, {
+    getNotificationLogs: async (token: string, status?: string, page = 0, size = 10): Promise<PageResponse<NotificationLog>> => {
+        const query = new URLSearchParams({ page: page.toString(), size: size.toString() });
+        if (status) query.append('status', status);
+        
+        const res = await fetch(`${BASE_URL}/notifications/logs?${query.toString()}`, {
             headers: getHeaders(token)
         });
         if (!res.ok) throw new Error('Gagal mengambil log notifikasi');
+        return res.json();
+    },
+
+    getNotificationLogDetail: async (token: string, id: string): Promise<NotificationLog> => {
+        const res = await fetch(`${BASE_URL}/notifications/logs/${id}`, {
+            headers: getHeaders(token)
+        });
+        if (!res.ok) throw new Error('Gagal mengambil detail log notifikasi');
         return res.json();
     },
 
@@ -78,7 +98,7 @@ export const notificationReportService = {
         return res.json();
     },
 
-    importSubscribers: async (token: string, file: File): Promise<void> => {
+    importSubscribers: async (token: string, file: File): Promise<ImportSummary> => {
         const formData = new FormData();
         formData.append('file', file);
         
@@ -86,17 +106,14 @@ export const notificationReportService = {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
-                // Jangan set Content-Type untuk FormData agar browser yang urus boundary
             },
             body: formData
         });
-        if (!res.ok) throw new Error('Gagal import subscribers');
-    },
-
-    downloadFundRequests: (token: string) => {
-        window.open(`${BASE_URL}/reports/fund-requests.xlsx?access_token=${token}`, '_blank');
-        // Catatan: implementasi asli biasanya butuh download via fetch lalu buat object URL 
-        // karena butuh Auth header. Disini kita asumsikan simple fetch approach.
+        if (!res.ok) {
+            const err = await res.text();
+            throw new Error(err || 'Gagal import subscribers');
+        }
+        return res.json();
     },
     
     downloadFundRequestsBlob: async (token: string): Promise<void> => {
@@ -111,7 +128,16 @@ export const notificationReportService = {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `fund-requests.xlsx`;
+        const disposition = res.headers.get('Content-Disposition');
+        let filename = 'fund-requests.xlsx';
+        if (disposition && disposition.indexOf('attachment') !== -1) {
+            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+            const matches = filenameRegex.exec(disposition);
+            if (matches != null && matches[1]) { 
+                filename = matches[1].replace(/['"]/g, '');
+            }
+        }
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

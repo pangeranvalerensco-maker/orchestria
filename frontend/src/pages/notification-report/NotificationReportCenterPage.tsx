@@ -7,7 +7,8 @@ import type {
     ScheduledJobLog,
     ReportSubscriber,
     NotificationSendRequest,
-    ReportSummary
+    ReportSummary,
+    ImportSummary
 } from '../../types/notificationReport';
 import { useAuth } from '../../auth/useAuth';
 
@@ -22,6 +23,9 @@ export const NotificationReportCenterPage: React.FC = () => {
     const [schedulerLogs, setSchedulerLogs] = useState<ScheduledJobLog[]>([]);
     const [subscribers, setSubscribers] = useState<ReportSubscriber[]>([]);
     const [summary, setSummary] = useState<ReportSummary | null>(null);
+    const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
+    const [importErrorMsg, setImportErrorMsg] = useState<string>('');
+    const [logStatusFilter, setLogStatusFilter] = useState<string>('');
 
     // Form
     const [sendReq, setSendReq] = useState<NotificationSendRequest>({
@@ -43,15 +47,15 @@ export const NotificationReportCenterPage: React.FC = () => {
         } else if (activeTab === 'subscribers' && hasPermission('report.read')) {
             loadSubscribers();
         }
-    }, [activeTab]);
+    }, [activeTab, logStatusFilter]);
 
     const loadNotificationLogs = async () => {
         if (!token) return;
         try {
-            const data = await notificationReportService.getNotificationLogs(token);
+            const data = await notificationReportService.getNotificationLogs(token, logStatusFilter || undefined);
             setNotificationLogs(data.content || []);
         } catch (error) {
-            // Error handling ignored per requirements, but we shouldn't use console.log
+            // Ignored per standard rule
         }
     };
 
@@ -132,13 +136,22 @@ export const NotificationReportCenterPage: React.FC = () => {
 
     const handleImportSubscribers = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!token) return;
+        setImportErrorMsg('');
+        setImportSummary(null);
+        
         if (e.target.files && e.target.files.length > 0) {
             try {
-                await notificationReportService.importSubscribers(token, e.target.files[0]);
+                const res = await notificationReportService.importSubscribers(token, e.target.files[0]);
+                setImportSummary(res);
                 loadSubscribers();
                 if (fileInputRef.current) fileInputRef.current.value = '';
-            } catch (error) {
-                //
+            } catch (error: unknown) {
+                if (error instanceof Error) {
+                    setImportErrorMsg(error.message);
+                } else {
+                    setImportErrorMsg('Gagal import subscribers');
+                }
+                if (fileInputRef.current) fileInputRef.current.value = '';
             }
         }
     };
@@ -250,7 +263,19 @@ export const NotificationReportCenterPage: React.FC = () => {
 
                     {hasPermission('notification.read') && (
                         <div className="nr-card">
-                            <h2 className="nr-card-title">Riwayat Notifikasi</h2>
+                            <div className="nr-card-header">
+                                <h2 className="nr-card-title-no-margin">Riwayat Notifikasi</h2>
+                                <select 
+                                    className="nr-form-input"
+                                    value={logStatusFilter} 
+                                    onChange={e => setLogStatusFilter(e.target.value)}
+                                >
+                                    <option value="">Semua Status</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="SENT">Sent</option>
+                                    <option value="FAILED">Failed</option>
+                                </select>
+                            </div>
                             <div className="nr-table-container">
                                 <table className="nr-table">
                                     <thead>
@@ -274,7 +299,7 @@ export const NotificationReportCenterPage: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    {log.status === 'FAILED' && hasPermission('notification.retry') && (
+                                                    {(log.status === 'FAILED' || log.status === 'PENDING') && hasPermission('notification.retry') && (
                                                         <button
                                                             className="nr-btn nr-btn-secondary"
                                                             onClick={() => handleRetryNotification(log.id)}
@@ -297,26 +322,58 @@ export const NotificationReportCenterPage: React.FC = () => {
             {activeTab === 'reports' && hasPermission('report.read') && (
                 <div>
                     {summary && (
+                        <>
                         <div className="nr-summary-grid">
                             <div className="nr-summary-item">
                                 <div className="nr-summary-value">{summary.totalRequests}</div>
                                 <div className="nr-summary-label">Total Pengajuan</div>
                             </div>
                             <div className="nr-summary-item">
-                                <div className="nr-summary-value">{summary.totalPending}</div>
-                                <div className="nr-summary-label">Pending</div>
+                                <div className="nr-summary-value">{summary.pendingApprovalCount}</div>
+                                <div className="nr-summary-label">Pending Approval</div>
                             </div>
                             <div className="nr-summary-item">
-                                <div className="nr-summary-value">{summary.totalApproved}</div>
-                                <div className="nr-summary-label">Approved</div>
+                                <div className="nr-summary-value">{summary.readyForDisbursementCount}</div>
+                                <div className="nr-summary-label">Ready For Disbursement</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.disbursedCount}</div>
+                                <div className="nr-summary-label">Disbursed</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.completedCount}</div>
+                                <div className="nr-summary-label">Completed</div>
                             </div>
                             <div className="nr-summary-item">
                                 <div className="nr-summary-value">
-                                    Rp {(summary.totalAmount || 0).toLocaleString('id-ID')}
+                                    Rp {(summary.totalRequestedAmount || 0).toLocaleString('id-ID')}
                                 </div>
-                                <div className="nr-summary-label">Total Dana Disetujui</div>
+                                <div className="nr-summary-label">Total Dana Requested</div>
                             </div>
                         </div>
+                        <div className="nr-summary-grid">
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.notificationPendingCount}</div>
+                                <div className="nr-summary-label">Notification Pending</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.notificationSentCount}</div>
+                                <div className="nr-summary-label">Notification Sent</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.notificationFailedCount}</div>
+                                <div className="nr-summary-label">Notification Failed</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.schedulerSuccessCount}</div>
+                                <div className="nr-summary-label">Scheduler Success</div>
+                            </div>
+                            <div className="nr-summary-item">
+                                <div className="nr-summary-value">{summary.schedulerFailedCount}</div>
+                                <div className="nr-summary-label">Scheduler Failed</div>
+                            </div>
+                        </div>
+                        </>
                     )}
 
                     <div className="nr-card">
@@ -346,7 +403,7 @@ export const NotificationReportCenterPage: React.FC = () => {
                                             <td>{log.createdAt ? new Date(log.createdAt).toLocaleString() : '-'}</td>
                                             <td>{log.filename}</td>
                                             <td>
-                                                <span className={`nr-badge ${log.status === 'COMPLETED' ? 'success' : log.status === 'FAILED' ? 'danger' : 'warning'}`}>
+                                                <span className={`nr-badge ${log.status === 'SUCCESS' ? 'success' : log.status === 'FAILED' ? 'danger' : 'warning'}`}>
                                                     {log.status}
                                                 </span>
                                             </td>
@@ -385,6 +442,34 @@ export const NotificationReportCenterPage: React.FC = () => {
                             </div>
                         )}
                     </div>
+                    
+                    {importErrorMsg && (
+                        <div className="nr-alert nr-alert-danger">
+                            {importErrorMsg}
+                        </div>
+                    )}
+                    
+                    {importSummary && (
+                        <div className="nr-alert nr-alert-success">
+                            <h4>Import Berhasil</h4>
+                            <ul>
+                                <li>Total Baris: {importSummary.totalRows}</li>
+                                <li>Berhasil Import Baru: {importSummary.importedRows}</li>
+                                <li>Berhasil Update: {importSummary.updatedRows}</li>
+                                <li>Gagal: {importSummary.failedRows}</li>
+                            </ul>
+                            {importSummary.errors.length > 0 && (
+                                <div>
+                                    <strong>Detail Error:</strong>
+                                    <ul>
+                                        {importSummary.errors.map((err, idx) => (
+                                            <li key={idx}>Baris {err.rowNumber}: {err.message}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="nr-table-container">
                         <table className="nr-table">

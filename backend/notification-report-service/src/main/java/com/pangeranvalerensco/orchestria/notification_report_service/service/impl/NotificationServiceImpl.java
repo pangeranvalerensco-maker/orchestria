@@ -76,10 +76,20 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public Page<NotificationLogResponse> getNotificationLogs(String email, Pageable pageable) {
-        // Return all logs if needed, but for now filtering by createdByEmail
+    public Page<NotificationLogResponse> getNotificationLogs(String email, NotificationStatus status, Pageable pageable) {
+        if (status != null) {
+            return notificationLogRepository.findByStatus(status, pageable)
+                    .map(NotificationLogResponse::fromEntity);
+        }
         return notificationLogRepository.findAll(pageable)
                 .map(NotificationLogResponse::fromEntity);
+    }
+    
+    @Override
+    public NotificationLogResponse getNotificationLogDetail(String id, String email) {
+        NotificationLog logEntry = notificationLogRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Notification tidak ditemukan"));
+        return NotificationLogResponse.fromEntity(logEntry);
     }
     
     private void doSendNotification(NotificationLog logEntry) {

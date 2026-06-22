@@ -10,6 +10,7 @@ package com.pangeranvalerensco.orchestria.notification_report_service.service;
  */
 import com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse;
 import com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationSendRequest;
+import com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -21,5 +22,7 @@ public interface NotificationService {
 
     void retryNotification(String notificationId, String requestedByEmail);
 
-    Page<NotificationLogResponse> getNotificationLogs(String email, Pageable pageable);
+    Page<NotificationLogResponse> getNotificationLogs(String email, NotificationStatus status, Pageable pageable);
+
+    NotificationLogResponse getNotificationLogDetail(String id, String email);
 }

@@ -1,5 +1,6 @@
 package com.pangeranvalerensco.orchestria.notification_report_service.controller;
 
+import com.pangeranvalerensco.orchestria.notification_report_service.dto.ImportSummary;
 import com.pangeranvalerensco.orchestria.notification_report_service.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,11 +39,12 @@ public class ReportController {
     @PreAuthorize("hasAuthority('report.export')")
     @GetMapping("/fund-requests.xlsx")
     public ResponseEntity<byte[]> downloadFundRequestReport(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            Authentication authentication) {
         log.info("[REPORT-CONTROLLER] Permintaan unduh laporan fund-requests.xlsx");
 
-        ByteArrayOutputStream excelData =
-                reportService.generateFundRequestExcel(authorizationHeader);
+        String email = authentication.getName();
+        ByteArrayOutputStream excelData = reportService.generateFundRequestExcel(authorizationHeader, email);
         String filename = "fund-requests_"
                 + LocalDateTime.now().format(FILENAME_FORMATTER)
                 + ".xlsx";
@@ -76,11 +79,25 @@ public class ReportController {
 
     @PreAuthorize("hasAuthority('report.import')")
     @PostMapping("/subscribers/import")
-    public ResponseEntity<Void> importSubscribers(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ImportSummary> importSubscribers(@RequestParam("file") MultipartFile file) {
         log.info("[REPORT-CONTROLLER] Menerima import file subscribers: {}", file.getOriginalFilename());
+        
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File import tidak boleh kosong");
+        }
+        
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
+            throw new IllegalArgumentException("Hanya file .xlsx yang diperbolehkan");
+        }
+        
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("Ukuran file maksimal 5 MB");
+        }
+        
         try {
-            reportService.importSubscribers(file.getInputStream());
-            return ResponseEntity.ok().build();
+            ImportSummary summary = reportService.importSubscribers(file.getInputStream());
+            return ResponseEntity.ok(summary);
         } catch (IOException e) {
             log.error("Gagal membaca file import", e);
             return ResponseEntity.internalServerError().build();
