@@ -1,8 +1,5 @@
 package com.pangeranvalerensco.orchestria.auth_service.controller;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,18 +10,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice;
 import com.pangeranvalerensco.orchestria.auth_service.payload.request.*;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.*;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
-import com.pangeranvalerensco.orchestria.auth_service.service.impl.AuthServiceImpl; // For hashing helper
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -35,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
     
+    private static final String TRUSTED_DEVICE_COOKIE = "ORCHESTRIA_TRUSTED_DEVICE";
+
     private final AuthService authService;
     
     @Value("${app.auth.trusted-device.days:7}")
@@ -57,7 +53,7 @@ public class AuthController {
         @Valid @RequestBody LoginRequest request,
         HttpServletRequest httpRequest,
         @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent,
-        @CookieValue(value = "orchestria_device", required = false) String trustedDeviceToken
+        @CookieValue(value = TRUSTED_DEVICE_COOKIE, required = false) String trustedDeviceToken
     ) {
         String ipAddress = getClientIp(httpRequest);
         ApiResponse<LoginResult> response = authService.login(request, userAgent, ipAddress, trustedDeviceToken);
@@ -77,7 +73,7 @@ public class AuthController {
         if (Boolean.TRUE.equals(request.getRememberDevice())) {
             String rawToken = authService.createTrustedDevice(response.getData().getUser().getId(), request.getDeviceName(), userAgent, ipAddress);
             if (rawToken != null) {
-                ResponseCookie cookie = ResponseCookie.from("ORCHESTRIA_TRUSTED_DEVICE", rawToken)
+                ResponseCookie cookie = ResponseCookie.from(TRUSTED_DEVICE_COOKIE, rawToken)
                     .httpOnly(true)
                     .secure(trustedDeviceCookieSecure)
                     .path("/api/auth")
@@ -102,7 +98,7 @@ public class AuthController {
     }
     
     @PostMapping("/password/forgot")
-    public ResponseEntity<ApiResponse<String>> forgotPassword(
+    public ResponseEntity<ApiResponse<ForgotPasswordStartResponse>> forgotPassword(
         @Valid @RequestBody ForgotPasswordRequest request
     ) {
         return ResponseEntity.ok(authService.forgotPassword(request));
@@ -186,12 +182,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
         Authentication authentication,
-        @CookieValue(value = "ORCHESTRIA_TRUSTED_DEVICE", required = false) String trustedDeviceToken
+        @CookieValue(value = TRUSTED_DEVICE_COOKIE, required = false) String trustedDeviceToken
     ) {
         String email = authentication.getName();
         ApiResponse<String> response = authService.logout(email, trustedDeviceToken);
         
-        ResponseCookie cookie = ResponseCookie.from("ORCHESTRIA_TRUSTED_DEVICE", "")
+        ResponseCookie cookie = ResponseCookie.from(TRUSTED_DEVICE_COOKIE, "")
             .httpOnly(true)
             .secure(trustedDeviceCookieSecure)
             .path("/api/auth")

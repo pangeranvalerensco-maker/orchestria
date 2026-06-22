@@ -244,7 +244,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ApiResponse<String> forgotPassword(ForgotPasswordRequest request) {
+    public ApiResponse<ForgotPasswordStartResponse> forgotPassword(ForgotPasswordRequest request) {
         var userOpt = userRepository.findByEmail(request.getEmail().trim().toLowerCase());
         
         if (userOpt.isPresent()) {
@@ -255,14 +255,26 @@ public class AuthServiceImpl implements AuthService {
             notificationEmailClient.sendEmail(user.getEmail(), "Kode reset password Orchestria", 
                 "Kode OTP reset password: " + code + "\n\nBerlaku 5 menit. Jangan bagikan.");
             
-            return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
-                .data("{\"challengeId\":\"" + challenge.getId() + "\",\"expiresInSeconds\":300,\"resendAfterSeconds\":60}").build();
+            ForgotPasswordStartResponse responseData = ForgotPasswordStartResponse.builder()
+                .challengeId(challenge.getId())
+                .expiresInSeconds(300)
+                .resendAfterSeconds(60)
+                .build();
+                
+            return ApiResponse.<ForgotPasswordStartResponse>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
+                .data(responseData).build();
         }
         
         // Decoy logic for anti-enumeration
         String decoyId = UUID.randomUUID().toString();
-        return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
-            .data("{\"challengeId\":\"" + decoyId + "\",\"expiresInSeconds\":300,\"resendAfterSeconds\":60}").build();
+        ForgotPasswordStartResponse decoyData = ForgotPasswordStartResponse.builder()
+            .challengeId(decoyId)
+            .expiresInSeconds(300)
+            .resendAfterSeconds(60)
+            .build();
+            
+        return ApiResponse.<ForgotPasswordStartResponse>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
+            .data(decoyData).build();
     }
 
     @Override
@@ -323,13 +335,15 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email).orElseThrow();
         UserResponse ur = mapToUserResponse(user);
         
-        long deviceCount = trustedDeviceRepository.findAllByUserIdAndRevokedAtIsNull(user.getId()).size();
+        int deviceCount = trustedDeviceRepository.findAllByUserIdAndRevokedAtIsNull(user.getId()).size();
+        
+        boolean mandatoryByRole = isMandatoryByRole(user);
         
         SecuritySettings settings = SecuritySettings.builder()
             .twoFactorEnabled(ur.getTwoFactorEnabled())
-            .twoFactorRequired(ur.getTwoFactorRequired())
-            .mandatoryByRole(ur.getTwoFactorRequired() && !ur.getTwoFactorEnabled())
-            .trustedDeviceCount((int)deviceCount)
+            .twoFactorRequired(mandatoryByRole || Boolean.TRUE.equals(user.getTwoFactorEnabled()))
+            .mandatoryByRole(mandatoryByRole)
+            .trustedDeviceCount(deviceCount)
             .build();
             
         return ApiResponse.<SecuritySettings>builder().success(true).data(settings).build();
@@ -373,8 +387,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ApiResponse<String> requestDisableTwoFactor(String email) {
         User user = userRepository.findByEmail(email).orElseThrow();
-        UserResponse ur = mapToUserResponse(user);
-        if (ur.getTwoFactorRequired() && !ur.getTwoFactorEnabled()) {
+        if (isMandatoryByRole(user)) {
             throw new ForbiddenException("Role Anda mewajibkan 2FA");
         }
         
@@ -392,8 +405,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ApiResponse<String> confirmDisableTwoFactor(String email, OtpVerifyRequest request) {
         User user = userRepository.findByEmail(email).orElseThrow();
-        UserResponse ur = mapToUserResponse(user);
-        if (ur.getTwoFactorRequired() && !ur.getTwoFactorEnabled()) {
+        if (isMandatoryByRole(user)) {
             throw new ForbiddenException("Role Anda mewajibkan 2FA");
         }
         

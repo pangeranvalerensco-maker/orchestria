@@ -17,7 +17,7 @@ public interface AuthService {
     
     ApiResponse<OtpResendResponse> resendOtp(OtpResendRequest request);
     
-    ApiResponse<String> forgotPassword(ForgotPasswordRequest request);
+    ApiResponse<ForgotPasswordStartResponse> forgotPassword(ForgotPasswordRequest request);
     
     ApiResponse<ForgotPasswordVerifyResponse> verifyForgotPassword(ForgotPasswordVerifyRequest request);
     

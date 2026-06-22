@@ -172,8 +172,8 @@ export function SecuritySettingsPage() {
             <div className="flex-space-between-center-mb-1">
               <div>
                 <p className="font-500-text-900">
-                  Status: {settings?.twoFactorEnabled ? (
-                    <span className="text-success-600">Aktif</span>
+                  Status: {settings?.twoFactorRequired ? (
+                    <span className="text-success-600">Aktif {settings.mandatoryByRole ? '(Diwajibkan)' : ''}</span>
                   ) : (
                     <span className="text-error-600">Tidak Aktif</span>
                   )}
@@ -183,7 +183,7 @@ export function SecuritySettingsPage() {
                 </p>
                 {settings?.mandatoryByRole && (
                   <p className="warning-box">
-                    <strong>Perhatian:</strong> Peran Anda mewajibkan penggunaan 2FA untuk keamanan sistem.
+                    <strong>Perhatian:</strong> OTP login diwajibkan oleh role Anda.
                   </p>
                 )}
               </div>
