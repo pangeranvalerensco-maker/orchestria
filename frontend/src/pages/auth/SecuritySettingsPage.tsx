@@ -7,13 +7,17 @@ import {
   confirmEnableTwoFactor,
   requestDisableTwoFactor,
   confirmDisableTwoFactor,
+  getTrustedDevices,
+  revokeTrustedDevice,
+  revokeAllTrustedDevices,
 } from "../../services/authService";
-import type { SecuritySettings } from "../../types/auth";
+import type { SecuritySettings, TrustedDeviceResponse } from "../../types/auth";
 
 export function SecuritySettingsPage() {
   const { token, user } = useAuth();
 
   const [settings, setSettings] = useState<SecuritySettings | null>(null);
+  const [devices, setDevices] = useState<TrustedDeviceResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -25,15 +29,21 @@ export function SecuritySettingsPage() {
 
   useEffect(() => {
     if (token) {
-      loadSettings();
+      loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function loadSettings() {
+  async function loadData() {
     setLoading(true);
+    setErrorMessage(null);
     try {
-      const response = await getSecuritySettings(token!);
-      setSettings(response.data);
+      const [settingsRes, devicesRes] = await Promise.all([
+        getSecuritySettings(token!),
+        getTrustedDevices(token!),
+      ]);
+      setSettings(settingsRes.data);
+      setDevices(devicesRes.data);
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -93,7 +103,7 @@ export function SecuritySettingsPage() {
       setOtpMode("NONE");
       setChallengeId(null);
       setOtpCode("");
-      await loadSettings();
+      await loadData();
     } catch (error) {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
@@ -102,6 +112,38 @@ export function SecuritySettingsPage() {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleRevokeDevice(id: string) {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      await revokeTrustedDevice(token!, id);
+      setSuccessMessage("Perangkat berhasil dihapus.");
+      await loadData();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Gagal menghapus perangkat.");
+      }
+    }
+  }
+
+  async function handleRevokeAllDevices() {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      await revokeAllTrustedDevices(token!);
+      setSuccessMessage("Semua perangkat berhasil dihapus.");
+      await loadData();
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Gagal menghapus semua perangkat.");
+      }
     }
   }
 
@@ -141,12 +183,12 @@ export function SecuritySettingsPage() {
                 </p>
                 {settings?.mandatoryByRole && (
                   <p className="warning-box">
-                    <strong>Perhatian:</strong> Peran Anda mewajibkan penggunaan 2FA. Harap segera aktifkan fitur ini.
+                    <strong>Perhatian:</strong> Peran Anda mewajibkan penggunaan 2FA untuk keamanan sistem.
                   </p>
                 )}
               </div>
               
-              {otpMode === "NONE" && (
+              {otpMode === "NONE" && !settings?.mandatoryByRole && (
                 <button 
                   className={settings?.twoFactorEnabled ? "secondary-button" : "primary-button"}
                   onClick={settings?.twoFactorEnabled ? handleRequestDisable : handleRequestEnable}
@@ -190,12 +232,33 @@ export function SecuritySettingsPage() {
             <h3>Perangkat Terpercaya</h3>
           </div>
           <div className="card-body">
-            <p className="mb-1">
-              Anda memiliki <strong>{settings?.trustedDeviceCount || 0}</strong> perangkat yang dipercaya. Perangkat ini tidak memerlukan OTP saat login untuk jangka waktu tertentu.
-            </p>
-            <p className="text-sm-text-500">
-              (Manajemen detail perangkat terpercaya akan hadir di pembaruan berikutnya.)
-            </p>
+            <div className="flex-space-between-center-mb-1">
+              <p className="mb-1">
+                Anda memiliki <strong>{devices.length}</strong> perangkat yang dipercaya. Perangkat ini tidak memerlukan OTP saat login untuk jangka waktu tertentu.
+              </p>
+              {devices.length > 0 && (
+                <button className="secondary-button" onClick={handleRevokeAllDevices}>
+                  Hapus Semua
+                </button>
+              )}
+            </div>
+            {devices.length > 0 && (
+              <ul className="device-list">
+                {devices.map(device => (
+                  <li key={device.id} className="device-item">
+                    <div>
+                      <p className="device-name">{device.deviceName}</p>
+                      <p className="device-info">IP: {device.lastIpAddress}</p>
+                      <p className="device-info-mb-0">Terakhir digunakan: {new Date(device.lastUsedAt || device.createdAt).toLocaleString()}</p>
+                      <p className="device-info-mb-0">Kedaluwarsa: {new Date(device.expiresAt).toLocaleString()}</p>
+                    </div>
+                    <button className="secondary-button" onClick={() => handleRevokeDevice(device.id)}>
+                      Hapus
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </section>
       </div>

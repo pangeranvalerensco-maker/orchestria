@@ -7,10 +7,13 @@ import type {
   OtpResendPayload,
   OtpResendResponse,
   ForgotPasswordPayload,
+  ForgotPasswordStartResponse,
   ForgotPasswordVerifyPayload,
+  ForgotPasswordVerifyResponse,
   PasswordResetPayload,
   SecuritySettings,
   User,
+  TrustedDeviceResponse,
 } from "../types/auth";
 
 export function loginRequest(payload: LoginPayload) {
@@ -20,8 +23,8 @@ export function loginRequest(payload: LoginPayload) {
   });
 }
 
-export function verifyLoginOtp(payload: OtpVerifyPayload) {
-  return apiRequest<AuthData>("/api/auth/login/verify", {
+export function verifyOtp(payload: OtpVerifyPayload) {
+  return apiRequest<AuthData>("/api/auth/otp/verify", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -35,14 +38,14 @@ export function resendOtp(payload: OtpResendPayload) {
 }
 
 export function forgotPassword(payload: ForgotPasswordPayload) {
-  return apiRequest<string>("/api/auth/password/forgot", {
+  return apiRequest<ForgotPasswordStartResponse>("/api/auth/password/forgot", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function verifyForgotPassword(payload: ForgotPasswordVerifyPayload) {
-  return apiRequest<any>("/api/auth/password/forgot/verify", {
+  return apiRequest<ForgotPasswordVerifyResponse>("/api/auth/password/forgot/verify", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -70,23 +73,39 @@ export function getSecuritySettings(token: string) {
 }
 
 export function requestEnableTwoFactor(token: string) {
-  return apiRequest<string>("/api/auth/security/2fa/enable", { method: "POST" }, token);
+  return apiRequest<string>("/api/auth/2fa/enable/request", { method: "POST" }, token);
 }
 
 export function confirmEnableTwoFactor(token: string, payload: OtpVerifyPayload) {
-  return apiRequest<string>("/api/auth/security/2fa/enable/confirm", {
+  return apiRequest<string>("/api/auth/2fa/enable/confirm", {
     method: "POST",
     body: JSON.stringify(payload),
   }, token);
 }
 
 export function requestDisableTwoFactor(token: string) {
-  return apiRequest<string>("/api/auth/security/2fa/disable", { method: "POST" }, token);
+  return apiRequest<string>("/api/auth/2fa/disable/request", { method: "POST" }, token);
 }
 
 export function confirmDisableTwoFactor(token: string, payload: OtpVerifyPayload) {
-  return apiRequest<string>("/api/auth/security/2fa/disable/confirm", {
+  return apiRequest<string>("/api/auth/2fa/disable/confirm", {
     method: "POST",
     body: JSON.stringify(payload),
   }, token);
+}
+
+export function getTrustedDevices(token: string) {
+  return apiRequest<TrustedDeviceResponse[]>("/api/auth/trusted-devices", { method: "GET" }, token);
+}
+
+export function revokeTrustedDevice(token: string, id: string) {
+  return apiRequest<string>(`/api/auth/trusted-devices/${id}`, { method: "DELETE" }, token);
+}
+
+export function revokeAllTrustedDevices(token: string) {
+  return apiRequest<string>("/api/auth/trusted-devices", { method: "DELETE" }, token);
+}
+
+export function logoutRequest() {
+  return apiRequest<string>("/api/auth/logout", { method: "POST" });
 }

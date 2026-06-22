@@ -11,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -21,7 +23,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice;
 import com.pangeranvalerensco.orchestria.auth_service.payload.request.*;
 import com.pangeranvalerensco.orchestria.auth_service.payload.response.*;
-import com.pangeranvalerensco.orchestria.auth_service.repository.TrustedDeviceRepository;
 import com.pangeranvalerensco.orchestria.auth_service.service.AuthService;
 import com.pangeranvalerensco.orchestria.auth_service.service.impl.AuthServiceImpl; // For hashing helper
 
@@ -35,10 +36,12 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
     
     private final AuthService authService;
-    private final TrustedDeviceRepository trustedDeviceRepository;
     
     @Value("${app.auth.trusted-device.days:7}")
     private int trustedDeviceDays;
+    
+    @Value("${app.auth.trusted-device.cookie-secure:false}")
+    private boolean trustedDeviceCookieSecure;
 
     @PreAuthorize("hasAuthority('auth.user.manage')")
     @PostMapping("/register")
@@ -61,44 +64,31 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/login/verify")
-    public ResponseEntity<ApiResponse<AuthResponse>> verifyLoginOtp(
+    @PostMapping("/otp/verify")
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
         @Valid @RequestBody OtpVerifyRequest request,
         HttpServletRequest httpRequest,
         @RequestHeader(value = "User-Agent", defaultValue = "") String userAgent
     ) {
         String ipAddress = getClientIp(httpRequest);
-        ApiResponse<AuthResponse> response = authService.verifyLoginOtp(request, userAgent, ipAddress);
+        
+        ApiResponse<AuthResponse> response = authService.verifyOtp(request, userAgent, ipAddress);
         
         if (Boolean.TRUE.equals(request.getRememberDevice())) {
-            String rawToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
-            String tokenHash = ((AuthServiceImpl) authService).sha256Hash(rawToken);
-            
-            Long userId = response.getData().getUser().getId();
-            
-            TrustedDevice device = TrustedDevice.builder()
-                .id(UUID.randomUUID().toString())
-                .userId(userId)
-                .tokenHash(tokenHash)
-                .deviceName(request.getDeviceName() != null && !request.getDeviceName().isEmpty() ? request.getDeviceName() : "Unknown Device")
-                .userAgent(userAgent)
-                .lastIpAddress(ipAddress)
-                .expiresAt(LocalDateTime.now().plusDays(trustedDeviceDays))
-                .build();
-                
-            trustedDeviceRepository.save(device);
-            
-            ResponseCookie cookie = ResponseCookie.from("orchestria_device", rawToken)
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(trustedDeviceDays * 24 * 60 * 60)
-                .sameSite("Strict")
-                .build();
-                
-            return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(response);
+            String rawToken = authService.createTrustedDevice(response.getData().getUser().getId(), request.getDeviceName(), userAgent, ipAddress);
+            if (rawToken != null) {
+                ResponseCookie cookie = ResponseCookie.from("ORCHESTRIA_TRUSTED_DEVICE", rawToken)
+                    .httpOnly(true)
+                    .secure(trustedDeviceCookieSecure)
+                    .path("/api/auth")
+                    .maxAge(trustedDeviceDays * 24 * 60 * 60)
+                    .sameSite("Lax")
+                    .build();
+                    
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(response);
+            }
         }
         
         return ResponseEntity.ok(response);
@@ -145,13 +135,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.getSecuritySettings(email));
     }
     
-    @PostMapping("/security/2fa/enable")
+    @PostMapping("/2fa/enable/request")
     public ResponseEntity<ApiResponse<String>> requestEnableTwoFactor(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(authService.requestEnableTwoFactor(email));
     }
     
-    @PostMapping("/security/2fa/enable/confirm")
+    @PostMapping("/2fa/enable/confirm")
     public ResponseEntity<ApiResponse<String>> confirmEnableTwoFactor(
         Authentication authentication,
         @Valid @RequestBody OtpVerifyRequest request
@@ -160,19 +150,58 @@ public class AuthController {
         return ResponseEntity.ok(authService.confirmEnableTwoFactor(email, request));
     }
     
-    @PostMapping("/security/2fa/disable")
+    @PostMapping("/2fa/disable/request")
     public ResponseEntity<ApiResponse<String>> requestDisableTwoFactor(Authentication authentication) {
         String email = authentication.getName();
         return ResponseEntity.ok(authService.requestDisableTwoFactor(email));
     }
     
-    @PostMapping("/security/2fa/disable/confirm")
+    @PostMapping("/2fa/disable/confirm")
     public ResponseEntity<ApiResponse<String>> confirmDisableTwoFactor(
         Authentication authentication,
         @Valid @RequestBody OtpVerifyRequest request
     ) {
         String email = authentication.getName();
         return ResponseEntity.ok(authService.confirmDisableTwoFactor(email, request));
+    }
+    
+    @GetMapping("/trusted-devices")
+    public ResponseEntity<ApiResponse<java.util.List<TrustedDeviceResponse>>> getTrustedDevices(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(authService.getTrustedDevices(email));
+    }
+    
+    @DeleteMapping("/trusted-devices/{id}")
+    public ResponseEntity<ApiResponse<String>> revokeTrustedDevice(Authentication authentication, @org.springframework.web.bind.annotation.PathVariable String id) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(authService.revokeTrustedDevice(email, id));
+    }
+    
+    @DeleteMapping("/trusted-devices")
+    public ResponseEntity<ApiResponse<String>> revokeAllTrustedDevices(Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(authService.revokeAllTrustedDevices(email));
+    }
+    
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(
+        Authentication authentication,
+        @CookieValue(value = "ORCHESTRIA_TRUSTED_DEVICE", required = false) String trustedDeviceToken
+    ) {
+        String email = authentication.getName();
+        ApiResponse<String> response = authService.logout(email, trustedDeviceToken);
+        
+        ResponseCookie cookie = ResponseCookie.from("ORCHESTRIA_TRUSTED_DEVICE", "")
+            .httpOnly(true)
+            .secure(trustedDeviceCookieSecure)
+            .path("/api/auth")
+            .maxAge(0)
+            .sameSite("Lax")
+            .build();
+            
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, cookie.toString())
+            .body(response);
     }
     
     private String getClientIp(HttpServletRequest request) {

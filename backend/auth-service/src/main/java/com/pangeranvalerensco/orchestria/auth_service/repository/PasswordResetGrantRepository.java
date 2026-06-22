@@ -14,4 +14,6 @@ public interface PasswordResetGrantRepository extends JpaRepository<PasswordRese
     @Modifying
     @Query("UPDATE PasswordResetGrant p SET p.usedAt = :now WHERE p.userId = :userId AND p.usedAt IS NULL")
     void invalidateAllActiveGrants(Long userId, LocalDateTime now);
+    
+    java.util.Optional<PasswordResetGrant> findByTokenHash(String tokenHash);
 }

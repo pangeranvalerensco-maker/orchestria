@@ -30,6 +30,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/notifications/health").permitAll()
                         .requestMatchers("/api/reports/health").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/internal/notifications/email").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

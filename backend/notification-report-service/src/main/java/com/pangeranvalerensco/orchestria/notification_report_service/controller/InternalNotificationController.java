@@ -16,7 +16,7 @@ public class InternalNotificationController {
 
     public InternalNotificationController(
             NotificationService notificationService,
-            @Value("${app.internal.api-key:super-secret-internal-key-for-orchestria-2026}") String internalApiKey) {
+            @Value("${app.internal.api-key}") String internalApiKey) {
         this.notificationService = notificationService;
         this.internalApiKey = internalApiKey;
     }
@@ -26,8 +26,11 @@ public class InternalNotificationController {
             @RequestHeader(value = "X-Internal-Api-Key", required = false) String apiKey,
             @RequestBody NotificationSendRequest request) {
         
-        if (apiKey == null || apiKey.isEmpty() || !java.security.MessageDigest.isEqual(apiKey.getBytes(), internalApiKey.getBytes())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid or missing internal API key");
+        if (apiKey == null || apiKey.isEmpty() || !java.security.MessageDigest.isEqual(apiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8), internalApiKey.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(java.util.Map.of(
+                "success", false,
+                "message", "Akses internal ditolak"
+            ));
         }
 
         notificationService.sendNotification(request, "system");

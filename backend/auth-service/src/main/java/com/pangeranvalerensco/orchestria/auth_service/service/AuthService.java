@@ -13,7 +13,7 @@ public interface AuthService {
 
     ApiResponse<LoginResult> login(LoginRequest request, String userAgent, String ipAddress, String trustedDeviceToken);
     
-    ApiResponse<AuthResponse> verifyLoginOtp(OtpVerifyRequest request, String userAgent, String ipAddress);
+    ApiResponse<AuthResponse> verifyOtp(OtpVerifyRequest request, String userAgent, String ipAddress);
     
     ApiResponse<OtpResendResponse> resendOtp(OtpResendRequest request);
     
@@ -34,4 +34,14 @@ public interface AuthService {
     ApiResponse<String> confirmDisableTwoFactor(String email, OtpVerifyRequest request);
 
     ApiResponse<UserResponse> getCurrentUser(String email);
+    
+    String createTrustedDevice(Long userId, String deviceName, String userAgent, String ipAddress);
+    
+    ApiResponse<java.util.List<TrustedDeviceResponse>> getTrustedDevices(String email);
+    
+    ApiResponse<String> revokeTrustedDevice(String email, String id);
+    
+    ApiResponse<String> revokeAllTrustedDevices(String email);
+    
+    ApiResponse<String> logout(String email, String trustedDeviceToken);
 }

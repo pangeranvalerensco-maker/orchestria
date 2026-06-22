@@ -35,8 +35,7 @@ public class InternalNotificationControllerTest {
 
     private NotificationSendRequest request;
     
-    // Default value set in controller @Value annotation
-    private final String INTERNAL_KEY = "super-secret-internal-key-for-orchestria-2026";
+    private final String INTERNAL_KEY = "test-internal-api-key";
 
     @BeforeEach
     void setUp() {
@@ -71,7 +70,8 @@ public class InternalNotificationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid or missing internal API key"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Akses internal ditolak"));
 
         verify(notificationService, never()).sendNotification(any(NotificationSendRequest.class), anyString());
     }
@@ -82,7 +82,8 @@ public class InternalNotificationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid or missing internal API key"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Akses internal ditolak"));
 
         verify(notificationService, never()).sendNotification(any(NotificationSendRequest.class), anyString());
     }
@@ -94,7 +95,8 @@ public class InternalNotificationControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Invalid or missing internal API key"));
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Akses internal ditolak"));
 
         verify(notificationService, never()).sendNotification(any(NotificationSendRequest.class), anyString());
     }

@@ -89,10 +89,7 @@ public class AuthServiceImpl implements AuthService {
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
 
-        boolean isPrivileged = roles.stream().anyMatch(role -> 
-            role.equals("SUPER_ADMIN") || role.equals("KETUA_PUB") || 
-            role.equals("PEMBINA") || role.equals("BENDAHARA_INTERNAL") || role.equals("BENDAHARA_EKSTERNAL")
-        );
+        boolean isPrivileged = isMandatoryByRole(user);
 
         return UserResponse.builder()
                 .id(user.getId())
@@ -184,7 +181,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ApiResponse<AuthResponse> verifyLoginOtp(OtpVerifyRequest request, String userAgent, String ipAddress) {
+    public ApiResponse<AuthResponse> verifyOtp(OtpVerifyRequest request, String userAgent, String ipAddress) {
         OtpChallenge challenge = validateAndConsumeOtp(request.getChallengeId(), request.getCode(), OtpPurpose.LOGIN);
         User user = userRepository.findById(challenge.getUserId())
             .orElseThrow(() -> new UnauthorizedException("User tidak ditemukan"));
@@ -258,10 +255,14 @@ public class AuthServiceImpl implements AuthService {
             notificationEmailClient.sendEmail(user.getEmail(), "Kode reset password Orchestria", 
                 "Kode OTP reset password: " + code + "\n\nBerlaku 5 menit. Jangan bagikan.");
             
-            return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.").data(challenge.getId()).build();
+            return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
+                .data("{\"challengeId\":\"" + challenge.getId() + "\",\"expiresInSeconds\":300,\"resendAfterSeconds\":60}").build();
         }
         
-        return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.").build();
+        // Decoy logic for anti-enumeration
+        String decoyId = UUID.randomUUID().toString();
+        return ApiResponse.<String>builder().success(true).message("Jika akun tersedia, instruksi reset password telah dikirim.")
+            .data("{\"challengeId\":\"" + decoyId + "\",\"expiresInSeconds\":300,\"resendAfterSeconds\":60}").build();
     }
 
     @Override
@@ -299,9 +300,8 @@ public class AuthServiceImpl implements AuthService {
         }
         
         String hash = sha256Hash(request.getResetToken());
-        PasswordResetGrant grant = passwordResetGrantRepository.findAll().stream()
-            .filter(g -> g.getTokenHash().equals(hash) && g.getUsedAt() == null && g.getExpiresAt().isAfter(LocalDateTime.now()))
-            .findFirst()
+        PasswordResetGrant grant = passwordResetGrantRepository.findByTokenHash(hash)
+            .filter(g -> g.getUsedAt() == null && g.getExpiresAt().isAfter(LocalDateTime.now()))
             .orElseThrow(() -> new BadRequestException("Token reset password tidak valid atau sudah kadaluarsa"));
             
         User user = userRepository.findById(grant.getUserId()).orElseThrow();
@@ -422,7 +422,96 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
     
+    // --- Trusted Device Management ---
+    
+    @Override
+    @Transactional
+    public String createTrustedDevice(Long userId, String deviceName, String userAgent, String ipAddress) {
+        String rawToken = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
+        String tokenHash = sha256Hash(rawToken);
+        
+        TrustedDevice device = TrustedDevice.builder()
+            .id(UUID.randomUUID().toString())
+            .userId(userId)
+            .tokenHash(tokenHash)
+            .deviceName(deviceName != null && !deviceName.isEmpty() ? deviceName : "Unknown Device")
+            .userAgent(userAgent)
+            .lastIpAddress(ipAddress)
+            .expiresAt(LocalDateTime.now().plusDays(trustedDeviceDays))
+            .build();
+            
+        trustedDeviceRepository.save(device);
+        return rawToken;
+    }
+
+    @Override
+    public ApiResponse<List<TrustedDeviceResponse>> getTrustedDevices(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        List<TrustedDevice> devices = trustedDeviceRepository.findAllByUserIdAndRevokedAtIsNull(user.getId());
+        List<TrustedDeviceResponse> responses = devices.stream().map(d -> TrustedDeviceResponse.builder()
+                .id(d.getId())
+                .deviceName(d.getDeviceName())
+                .userAgent(d.getUserAgent())
+                .lastIpAddress(d.getLastIpAddress())
+                .lastUsedAt(d.getLastUsedAt())
+                .expiresAt(d.getExpiresAt())
+                .createdAt(d.getCreatedAt())
+                .build()).collect(Collectors.toList());
+                
+        return ApiResponse.<List<TrustedDeviceResponse>>builder().success(true).data(responses).build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> revokeTrustedDevice(String email, String id) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        TrustedDevice device = trustedDeviceRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Perangkat tidak ditemukan"));
+            
+        if (!device.getUserId().equals(user.getId())) {
+            throw new ForbiddenException("Akses ditolak");
+        }
+        
+        device.setRevokedAt(LocalDateTime.now());
+        trustedDeviceRepository.save(device);
+        
+        return ApiResponse.<String>builder().success(true).message("Perangkat berhasil dihapus").build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> revokeAllTrustedDevices(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        trustedDeviceRepository.revokeAllByUserId(user.getId(), LocalDateTime.now());
+        return ApiResponse.<String>builder().success(true).message("Semua perangkat berhasil dihapus").build();
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> logout(String email, String trustedDeviceToken) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        if (trustedDeviceToken != null && !trustedDeviceToken.isEmpty()) {
+            String hash = sha256Hash(trustedDeviceToken);
+            trustedDeviceRepository.findByUserIdAndTokenHash(user.getId(), hash)
+                .ifPresent(device -> {
+                    device.setRevokedAt(LocalDateTime.now());
+                    trustedDeviceRepository.save(device);
+                });
+        }
+        return ApiResponse.<String>builder().success(true).message("Logout berhasil").build();
+    }
+    
     // --- Helpers ---
+    
+    private boolean isMandatoryByRole(User user) {
+        return user.getRoles().stream().anyMatch(role -> 
+            role.getName().equals("SUPER_ADMIN") || 
+            role.getName().equals("KETUA_PUB") || 
+            role.getName().equals("PEMBINA") || 
+            role.getName().equals("BENDAHARA_INTERNAL") || 
+            role.getName().equals("BENDAHARA_EKSTERNAL")
+        );
+    }
     
     private OtpChallenge createChallenge(Long userId, OtpPurpose purpose, String code) {
         OtpChallenge challenge = OtpChallenge.builder()
@@ -438,25 +527,25 @@ public class AuthServiceImpl implements AuthService {
     
     private OtpChallenge validateAndConsumeOtp(String challengeId, String code, OtpPurpose purpose) {
         OtpChallenge challenge = otpChallengeRepository.findById(challengeId)
-            .orElseThrow(() -> new BadRequestException("Challenge tidak ditemukan"));
+            .orElseThrow(() -> new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa"));
             
         if (challenge.getPurpose() != purpose) {
-            throw new BadRequestException("Tujuan challenge tidak sesuai");
+            throw new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa");
         }
         if (challenge.getConsumedAt() != null) {
-            throw new BadRequestException("OTP sudah digunakan");
+            throw new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa");
         }
         if (challenge.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("OTP sudah kadaluarsa");
+            throw new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa");
         }
         if (challenge.getAttemptCount() >= challenge.getMaxAttempts()) {
-            throw new BadRequestException("Terlalu banyak percobaan yang salah");
+            throw new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa");
         }
         
         if (!passwordEncoder.matches(code, challenge.getCodeHash())) {
             challenge.setAttemptCount(challenge.getAttemptCount() + 1);
             otpChallengeRepository.save(challenge);
-            throw new BadRequestException("Kode OTP salah");
+            throw new BadRequestException("Kode verifikasi tidak valid atau kedaluwarsa");
         }
         
         challenge.setConsumedAt(LocalDateTime.now());

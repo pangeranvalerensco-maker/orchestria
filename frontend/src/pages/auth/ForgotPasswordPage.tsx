@@ -33,8 +33,8 @@ export function ForgotPasswordPage() {
     try {
       const response = await forgotPassword({ email: email.trim().toLowerCase() });
       if (response.data) {
-        setChallengeId(response.data as unknown as string);
-        setResendCountdown(60);
+        setChallengeId(response.data.challengeId);
+        setResendCountdown(response.data.resendAfterSeconds || 60);
       } else {
         setSuccessMessage(response.message || "Instruksi reset password telah dikirim.");
       }

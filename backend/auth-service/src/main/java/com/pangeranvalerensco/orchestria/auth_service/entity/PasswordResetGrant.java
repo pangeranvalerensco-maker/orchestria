@@ -21,7 +21,7 @@ public class PasswordResetGrant {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false, length = 64)
+    @Column(nullable = false, length = 64, unique = true)
     private String tokenHash;
 
     @Column(nullable = false)

@@ -61,6 +61,17 @@ export interface ForgotPasswordVerifyPayload {
   code: string;
 }
 
+export interface ForgotPasswordVerifyResponse {
+  resetToken: string;
+  expiresInSeconds: number;
+}
+
+export interface ForgotPasswordStartResponse {
+  challengeId: string;
+  expiresInSeconds: number;
+  resendAfterSeconds: number;
+}
+
 export interface PasswordResetPayload {
   resetToken: string;
   newPassword: string;
