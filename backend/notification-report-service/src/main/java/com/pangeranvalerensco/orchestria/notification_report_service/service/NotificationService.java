@@ -18,7 +18,7 @@ public interface NotificationService {
 
     void publishNotification(String eventType, String message);
 
-    void sendNotification(NotificationSendRequest request, String requestedByEmail);
+    NotificationLogResponse sendNotification(NotificationSendRequest request, String requestedByEmail);
 
     void retryNotification(String notificationId, String requestedByEmail);
 

@@ -33,6 +33,10 @@ public class User {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @Builder.Default
+    @Column(name = "two_factor_enabled", nullable = false)
+    private Boolean twoFactorEnabled = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

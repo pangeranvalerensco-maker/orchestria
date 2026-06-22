@@ -38,12 +38,17 @@ public class SecurityConfig {
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
             )
             .authorizeHttpRequests(auth -> 
-                    auth.requestMatchers(
-                                    "/", 
-                                    "/health", 
-                                    "/api/auth/login"
-                            ).permitAll()
-                            .anyRequest().authenticated()
+                    auth.requestMatchers("/", "/health").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                            "/api/auth/login",
+                            "/api/auth/logout",
+                            "/api/auth/otp/verify",
+                            "/api/auth/otp/resend",
+                            "/api/auth/password/forgot",
+                            "/api/auth/password/forgot/verify",
+                            "/api/auth/password/reset"
+                        ).permitAll()
+                        .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .build();

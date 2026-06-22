@@ -3031,3 +3031,9 @@ textarea.form-control {
 .division-task-filters label { display: flex; align-items: center; gap: 6px; }
 .division-task-overdue-text { color: #dc2626; }
 
+/* Security Settings */
+.device-list { list-style: none; padding: 0; margin: 0; }
+.device-item { padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+.device-name { font-weight: 500; margin: 0 0 0.25rem 0; }
+.device-info { font-size: 0.875rem; color: #64748b; margin: 0 0 0.25rem 0; }
+.device-info-mb-0 { font-size: 0.875rem; color: #64748b; margin: 0; }

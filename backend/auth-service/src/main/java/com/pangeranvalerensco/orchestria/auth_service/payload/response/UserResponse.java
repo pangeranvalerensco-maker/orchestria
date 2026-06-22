@@ -15,4 +15,6 @@ public class UserResponse {
     private Boolean active;
     private Set<String> roles;
     private Set<String> permissions;
+    private Boolean twoFactorEnabled;
+    private Boolean twoFactorRequired;
 }
