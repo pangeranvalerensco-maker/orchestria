@@ -39,6 +39,7 @@ import { useAuth } from "./auth/useAuth";
 import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
 import { SecuritySettingsPage } from "./pages/auth/SecuritySettingsPage";
+import StatefulSessionDemoPage from "./pages/auth/StatefulSessionDemoPage";
 
 function NotFoundRedirect() {
   const { token } = useAuth();
@@ -56,6 +57,7 @@ function App() {
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/session-demo" element={<StatefulSessionDemoPage />} />
       <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 

@@ -231,6 +231,11 @@ export function LoginPage() {
                 : "Masuk"}
             </button>
 
+            <div className="mt-1-text-center session-demo-link-wrapper">
+              <Link to="/session-demo" className="login-public-link font-bold">Demo Stateful Session</Link>
+              <p className="session-demo-link-desc">Fitur khusus demonstrasi materi pelatihan, bukan login operasional.</p>
+            </div>
+
             <p className="login-footer">
               <Link to="/" className="login-public-link">&larr; Kembali ke Beranda Publik</Link>
               <br />

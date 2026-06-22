@@ -634,6 +634,30 @@ button {
   font-weight: 700;
 }
 
+.bg-green-100 { background-color: #d1fae5; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-100 { background-color: #dbeafe; }
+
+.text-green-800 { color: #065f46; }
+.text-yellow-800 { color: #92400e; }
+.text-red-800 { color: #991b1b; }
+.text-blue-800 { color: #1e40af; }
+
+.session-demo-link-wrapper {
+  margin-top: 20px;
+  font-size: 0.85em;
+  color: #6c757d;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.session-demo-link-desc {
+  margin: 5px 0 0 0;
+}
+
 .table-chip {
   color: #334155;
   background: #f1f5f9;
