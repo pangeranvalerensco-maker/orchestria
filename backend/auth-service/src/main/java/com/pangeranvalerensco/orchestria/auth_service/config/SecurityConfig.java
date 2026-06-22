@@ -48,6 +48,14 @@ public class SecurityConfig {
                             "/api/auth/password/forgot/verify",
                             "/api/auth/password/reset"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST,
+                            "/api/auth/session-demo/login",
+                            "/api/auth/session-demo/logout"
+                        ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                            "/api/auth/session-demo/profile",
+                            "/api/auth/session-demo/status"
+                        ).permitAll()
                         .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
