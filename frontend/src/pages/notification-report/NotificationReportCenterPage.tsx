@@ -14,10 +14,33 @@ import { useAuth } from '../../auth/useAuth';
 
 export const NotificationReportCenterPage: React.FC = () => {
     const { hasPermission, token } = useAuth();
-    const [activeTab, setActiveTab] = useState<'notifications' | 'reports' | 'scheduler' | 'subscribers'>('notifications');
+    const canOpenNotifications =
+        hasPermission('notification.read') ||
+        hasPermission('notification.send') ||
+        hasPermission('notification.retry');
+
+    const canOpenReports =
+        hasPermission('report.read') ||
+        hasPermission('report.export');
+
+    const canOpenSubscribers =
+        hasPermission('report.read') ||
+        hasPermission('report.import');
+
+    const canOpenScheduler =
+        hasPermission('scheduler.log.read');
+
+    const defaultTab = canOpenNotifications ? 'notifications' 
+                     : canOpenReports ? 'reports' 
+                     : canOpenSubscribers ? 'subscribers'
+                     : canOpenScheduler ? 'scheduler' : 'notifications';
+
+    const [activeTab, setActiveTab] = useState<'notifications' | 'reports' | 'scheduler' | 'subscribers'>(defaultTab);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // States
+    const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
     const [notificationLogs, setNotificationLogs] = useState<NotificationLog[]>([]);
     const [exportLogs, setExportLogs] = useState<ReportExportLog[]>([]);
     const [schedulerLogs, setSchedulerLogs] = useState<ScheduledJobLog[]>([]);
@@ -37,6 +60,8 @@ export const NotificationReportCenterPage: React.FC = () => {
     const [toEmail, setToEmail] = useState('');
 
     useEffect(() => {
+        setErrorMessage("");
+        setSuccessMessage("");
         if (activeTab === 'notifications' && hasPermission('notification.read')) {
             loadNotificationLogs();
         } else if (activeTab === 'reports' && hasPermission('report.read')) {
@@ -47,55 +72,55 @@ export const NotificationReportCenterPage: React.FC = () => {
         } else if (activeTab === 'subscribers' && hasPermission('report.read')) {
             loadSubscribers();
         }
-    }, [activeTab, logStatusFilter]);
+    }, [activeTab, logStatusFilter, token, hasPermission]);
 
     const loadNotificationLogs = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('notification.read')) return;
         try {
             const data = await notificationReportService.getNotificationLogs(token, logStatusFilter || undefined);
             setNotificationLogs(data.content || []);
-        } catch (error) {
-            // Ignored per standard rule
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal memuat log notifikasi");
         }
     };
 
     const loadExportLogs = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('report.read')) return;
         try {
             const data = await notificationReportService.getExportLogs(token);
             setExportLogs(data.content || []);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal memuat log ekspor");
         }
     };
 
     const loadSchedulerLogs = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('scheduler.log.read')) return;
         try {
             const data = await notificationReportService.getSchedulerLogs(token);
             setSchedulerLogs(data.content || []);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal memuat log scheduler");
         }
     };
 
     const loadSubscribers = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('report.read')) return;
         try {
             const data = await notificationReportService.getSubscribers(token);
             setSubscribers(data);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal memuat subscribers");
         }
     };
 
     const loadSummary = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('report.read')) return;
         try {
             const data = await notificationReportService.getReportSummary(token);
             setSummary(data);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal memuat summary");
         }
     };
 
@@ -108,9 +133,10 @@ export const NotificationReportCenterPage: React.FC = () => {
             await notificationReportService.sendNotification(token, request);
             setSendReq({ to: [], subject: '', body: '', html: false });
             setToEmail('');
+            setSuccessMessage("Notifikasi berhasil dikirim.");
             loadNotificationLogs();
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal mengirim notifikasi");
         }
     };
 
@@ -118,9 +144,10 @@ export const NotificationReportCenterPage: React.FC = () => {
         if (!token) return;
         try {
             await notificationReportService.retryNotification(token, id);
+            setSuccessMessage("Notifikasi sedang dicoba ulang.");
             loadNotificationLogs();
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal retry notifikasi");
         }
     };
 
@@ -128,9 +155,10 @@ export const NotificationReportCenterPage: React.FC = () => {
         if (!token) return;
         try {
             await notificationReportService.triggerScheduler(token, jobName);
+            setSuccessMessage(`Job ${jobName} berhasil ditrigger.`);
             setTimeout(loadSchedulerLogs, 1000);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : `Gagal trigger job ${jobName}`);
         }
     };
 
@@ -160,9 +188,10 @@ export const NotificationReportCenterPage: React.FC = () => {
         if (!token) return;
         try {
             await notificationReportService.downloadFundRequestsBlob(token);
+            setSuccessMessage("Laporan sedang diunduh.");
             setTimeout(loadExportLogs, 2000);
-        } catch (error) {
-            //
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal mengunduh laporan");
         }
     };
 
@@ -170,8 +199,9 @@ export const NotificationReportCenterPage: React.FC = () => {
         if (!token) return;
         try {
             await notificationReportService.downloadTemplateBlob(token);
-        } catch (error) {
-            //
+            setSuccessMessage("Template berhasil diunduh.");
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Gagal mengunduh template");
         }
     };
 
@@ -181,6 +211,18 @@ export const NotificationReportCenterPage: React.FC = () => {
                 <h1 className="nr-title">Notification & Report Center</h1>
                 <p className="nr-subtitle">Pusat kendali notifikasi email, scheduler, dan laporan sistem.</p>
             </div>
+
+            {errorMessage && (
+                <div className="nr-alert nr-alert-danger">
+                    {errorMessage}
+                </div>
+            )}
+            
+            {successMessage && (
+                <div className="nr-alert nr-alert-success">
+                    {successMessage}
+                </div>
+            )}
 
             <div className="nr-tabs">
                 {hasPermission('notification.read') && (

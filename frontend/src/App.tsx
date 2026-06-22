@@ -138,7 +138,7 @@ function App() {
             <Route path="/english-management" element={<EnglishManagementPage />} />
           </Route>
           
-          <Route element={<PermissionRoute anyOf={["notification.read", "report.read", "scheduler.log.read"]} />}>
+          <Route element={<PermissionRoute anyOf={["notification.send", "notification.read", "notification.retry", "report.read", "report.export", "report.import", "scheduler.log.read"]} />}>
             <Route path="/notification-report" element={<NotificationReportCenterPage />} />
           </Route>
         </Route>

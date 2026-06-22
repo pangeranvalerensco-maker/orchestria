@@ -203,7 +203,7 @@ export function DashboardPage() {
 
       if (canReadNotification) {
         promises.push(
-          notificationReportService.getNotificationLogs(token, 0, 1000).then((res) => {
+          notificationReportService.getNotificationLogs(token, undefined, 0, 1000).then((res) => {
             if (res && res.content) {
               const failed = res.content.filter(log => log.status === "FAILED");
               setFailedNotificationsCount(failed.length);
