@@ -23,7 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminPublicContentController {
 
-    private final PublicContentServiceImpl publicContentService; // Impl to access getEntry
+    private final PublicContentService publicContentService;
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('public.content.read', 'public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
@@ -56,8 +56,7 @@ public class AdminPublicContentController {
             @PathVariable String id,
             @Valid @RequestBody PublicContentRequest request) {
         
-        PublicContentEntry entry = publicContentService.getEntry(id);
-        checkPermission(entry.getContentType());
+        checkPermission(publicContentService.getContentType(id));
         
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil diperbarui").data(publicContentService.updateContent(id, request, userEmail)).build());
@@ -67,8 +66,7 @@ public class AdminPublicContentController {
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> publishContent(
             @PathVariable String id) {
-        PublicContentEntry entry = publicContentService.getEntry(id);
-        checkPermission(entry.getContentType());
+        checkPermission(publicContentService.getContentType(id));
 
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil dipublikasikan").data(publicContentService.publishContent(id, userEmail)).build());
@@ -78,8 +76,7 @@ public class AdminPublicContentController {
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> archiveContent(
             @PathVariable String id) {
-        PublicContentEntry entry = publicContentService.getEntry(id);
-        checkPermission(entry.getContentType());
+        checkPermission(publicContentService.getContentType(id));
 
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil diarsipkan").data(publicContentService.archiveContent(id, userEmail)).build());
@@ -89,8 +86,7 @@ public class AdminPublicContentController {
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<PublicContentResponse>> restoreContent(
             @PathVariable String id) {
-        PublicContentEntry entry = publicContentService.getEntry(id);
-        checkPermission(entry.getContentType());
+        checkPermission(publicContentService.getContentType(id));
 
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(ApiResponse.<PublicContentResponse>builder().success(true).message("Konten berhasil dikembalikan ke DRAFT").data(publicContentService.restoreDraftContent(id, userEmail)).build());
@@ -100,8 +96,7 @@ public class AdminPublicContentController {
     @PreAuthorize("hasAnyAuthority('public.content.manage', 'public.organization.manage', 'public.activity.manage', 'public.media.manage')")
     public ResponseEntity<ApiResponse<Void>> deleteContent(
             @PathVariable String id) {
-        PublicContentEntry entry = publicContentService.getEntry(id);
-        checkPermission(entry.getContentType());
+        checkPermission(publicContentService.getContentType(id));
 
         String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         publicContentService.deleteContent(id, userEmail);

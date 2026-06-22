@@ -37,8 +37,6 @@ export interface PublicContentEntry {
   publicationStatus: PublicationStatus;
   active: boolean;
   publishedAt?: string;
-  createdByEmail?: string;
-  updatedByEmail?: string;
   createdAt?: string;
   updatedAt?: string;
 }

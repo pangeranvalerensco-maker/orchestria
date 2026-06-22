@@ -102,7 +102,9 @@ public class PublicContentIntegrationTest {
 
         mockMvc.perform(get("/api/organization/public/content"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].createdByEmail").doesNotExist())
+                .andExpect(jsonPath("$.data[0].updatedByEmail").doesNotExist());
     }
 
     // 2. public detail tanpa token
@@ -112,7 +114,9 @@ public class PublicContentIntegrationTest {
 
         mockMvc.perform(get("/api/organization/public/content/" + entry.getId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.id").value(entry.getId()));
+                .andExpect(jsonPath("$.data.id").value(entry.getId()))
+                .andExpect(jsonPath("$.data.createdByEmail").doesNotExist())
+                .andExpect(jsonPath("$.data.updatedByEmail").doesNotExist());
     }
 
     // 3. public hanya PUBLISHED aktif

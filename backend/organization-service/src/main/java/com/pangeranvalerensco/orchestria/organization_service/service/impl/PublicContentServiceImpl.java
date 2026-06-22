@@ -210,7 +210,12 @@ public class PublicContentServiceImpl implements PublicContentService {
         }
     }
 
-    public PublicContentEntry getEntry(String id) {
+    @Override
+    public PublicContentType getContentType(String id) {
+        return getEntry(id).getContentType();
+    }
+
+    private PublicContentEntry getEntry(String id) {
         return repository.findById(id).orElseThrow(() -> new BadRequestException("Konten tidak ditemukan"));
     }
 

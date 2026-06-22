@@ -11,8 +11,7 @@ export const publicContentService = {
     const queryString = params.toString();
     const url = `/api/organization/public/content${queryString ? `?${queryString}` : ''}`;
     
-    // No wrapper! apiRequest already returns the unwrapped data, but wait, the instruction says:
-    // "Semua memakai: apiRequest<PublicContentEntry> apiRequest<PublicContentEntry[]> Jangan membungkus generic dengan ApiResponse lagi."
+
     const response = await apiRequest<PublicContentEntry[]>(url, { method: 'GET' });
     return response.data;
   },

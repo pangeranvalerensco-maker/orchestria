@@ -69,7 +69,15 @@ export function PublicHomePage() {
   return (
     <div className="public-home">
       {/* 1. HERO */}
-      <section className={`public-hero ${heroContent?.mediaUrl ? 'public-hero-dynamic' : ''}`} style={heroContent?.mediaUrl ? { backgroundImage: `url(${heroContent.mediaUrl})` } : undefined}>
+      <section className={`public-hero ${heroContent?.mediaUrl ? 'public-hero-dynamic' : ''}`}>
+        {heroContent?.mediaUrl && (
+          <img
+            src={heroContent.mediaUrl}
+            alt=""
+            aria-hidden="true"
+            className="public-hero-background"
+          />
+        )}
         {heroContent?.mediaUrl && <div className="public-hero-overlay"></div>}
         <div className={`public-hero-content ${heroContent?.mediaUrl ? 'public-hero-content-dynamic' : ''}`}>
           <p className="eyebrow">{heroContent?.subtitle || "PROGRAM UNGGULAN BERSAMA"}</p>

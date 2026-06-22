@@ -10,6 +10,7 @@ import java.util.List;
 public interface PublicContentService {
     List<PublicContentResponse> getAllContents(PublicContentType type, PublicationStatus status, Boolean active);
     PublicContentResponse getContent(String id);
+    PublicContentType getContentType(String id);
     
     List<PublicContentResponse> getPublishedContents(PublicContentType type, String category);
     
