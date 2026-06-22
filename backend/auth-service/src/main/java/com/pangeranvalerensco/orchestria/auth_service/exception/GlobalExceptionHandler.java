@@ -102,6 +102,17 @@ public class GlobalExceptionHandler {
                 null);
     }
 
+    @ExceptionHandler(InternalServerException.class)
+    public ResponseEntity<ErrorResponse<Object>> handleInternalServerError(
+            InternalServerException ex,
+            HttpServletRequest request) {
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ex.getMessage(),
+                request.getRequestURI(),
+                null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse<Object>> handleGeneralError(
             Exception ex,

@@ -45,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void sendNotification(NotificationSendRequest request, String requestedByEmail) {
+    public NotificationLogResponse sendNotification(NotificationSendRequest request, String requestedByEmail) {
         NotificationLog logEntry = NotificationLog.builder()
                 .toRecipients(request.getTo())
                 .ccRecipients(request.getCc())
@@ -60,7 +60,7 @@ public class NotificationServiceImpl implements NotificationService {
         
         notificationLogRepository.save(logEntry);
         
-        doSendNotification(logEntry);
+        return doSendNotification(logEntry);
     }
 
     @Override
@@ -92,7 +92,7 @@ public class NotificationServiceImpl implements NotificationService {
         return NotificationLogResponse.fromEntity(logEntry);
     }
     
-    private void doSendNotification(NotificationLog logEntry) {
+    private NotificationLogResponse doSendNotification(NotificationLog logEntry) {
         logEntry.setAttemptCount(logEntry.getAttemptCount() + 1);
         logEntry.setLastAttemptAt(LocalDateTime.now());
         
@@ -127,5 +127,6 @@ public class NotificationServiceImpl implements NotificationService {
         }
         
         notificationLogRepository.save(logEntry);
+        return NotificationLogResponse.fromEntity(logEntry);
     }
 }

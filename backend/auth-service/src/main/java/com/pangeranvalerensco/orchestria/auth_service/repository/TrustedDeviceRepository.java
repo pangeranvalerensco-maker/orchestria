@@ -14,6 +14,8 @@ import java.util.Optional;
 public interface TrustedDeviceRepository extends JpaRepository<TrustedDevice, String> {
 
     Optional<TrustedDevice> findByUserIdAndTokenHash(Long userId, String tokenHash);
+    
+    Optional<TrustedDevice> findByTokenHash(String tokenHash);
 
     List<TrustedDevice> findAllByUserIdAndRevokedAtIsNull(Long userId);
 

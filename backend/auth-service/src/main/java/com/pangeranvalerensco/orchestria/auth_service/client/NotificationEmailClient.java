@@ -47,8 +47,8 @@ public class NotificationEmailClient {
 
             restTemplate.postForEntity(url, entity, Void.class);
         } catch (Exception e) {
-            log.error("Failed to send internal email to notification service: {}", e.getMessage());
-            throw new RuntimeException("Gagal mengirim email notifikasi. Silakan coba lagi.");
+            log.error("Failed to send internal email to notification service.");
+            throw new com.pangeranvalerensco.orchestria.auth_service.exception.InternalServerException("Gagal mengirim email notifikasi. Silakan coba lagi.");
         }
     }
 }

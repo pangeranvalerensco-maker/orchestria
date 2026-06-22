@@ -33,7 +33,13 @@ public class InternalNotificationController {
             ));
         }
 
-        notificationService.sendNotification(request, "system");
+        var result = notificationService.sendNotification(request, "system");
+        if (result.getStatus() == com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus.FAILED) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of(
+                "success", false,
+                "message", "Pengiriman email notifikasi gagal"
+            ));
+        }
         return ResponseEntity.ok().build();
     }
 }

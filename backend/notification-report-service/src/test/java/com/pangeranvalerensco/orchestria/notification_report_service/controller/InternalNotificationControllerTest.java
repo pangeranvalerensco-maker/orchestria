@@ -51,14 +51,33 @@ public class InternalNotificationControllerTest {
     }
 
     @Test
-    void whenValidInternalKey_thenReturns200AndCallsService() throws Exception {
-        doNothing().when(notificationService).sendNotification(any(NotificationSendRequest.class), eq("system"));
+    void whenValidInternalKeyAndSent_thenReturns200AndCallsService() throws Exception {
+        com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse response = new com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse();
+        response.setStatus(com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus.SENT);
+        when(notificationService.sendNotification(any(NotificationSendRequest.class), eq("system"))).thenReturn(response);
 
         mockMvc.perform(post("/api/internal/notifications/email")
                 .header("X-Internal-Api-Key", INTERNAL_KEY)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
+
+        verify(notificationService, times(1)).sendNotification(any(NotificationSendRequest.class), eq("system"));
+    }
+
+    @Test
+    void whenValidInternalKeyAndFailed_thenReturns502() throws Exception {
+        com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse response = new com.pangeranvalerensco.orchestria.notification_report_service.dto.NotificationLogResponse();
+        response.setStatus(com.pangeranvalerensco.orchestria.notification_report_service.entity.NotificationStatus.FAILED);
+        when(notificationService.sendNotification(any(NotificationSendRequest.class), eq("system"))).thenReturn(response);
+
+        mockMvc.perform(post("/api/internal/notifications/email")
+                .header("X-Internal-Api-Key", INTERNAL_KEY)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Pengiriman email notifikasi gagal"));
 
         verify(notificationService, times(1)).sendNotification(any(NotificationSendRequest.class), eq("system"));
     }

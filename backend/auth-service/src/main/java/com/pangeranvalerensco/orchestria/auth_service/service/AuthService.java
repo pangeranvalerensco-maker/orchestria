@@ -43,5 +43,5 @@ public interface AuthService {
     
     ApiResponse<String> revokeAllTrustedDevices(String email);
     
-    ApiResponse<String> logout(String email, String trustedDeviceToken);
+    ApiResponse<String> logout(String trustedDeviceToken);
 }

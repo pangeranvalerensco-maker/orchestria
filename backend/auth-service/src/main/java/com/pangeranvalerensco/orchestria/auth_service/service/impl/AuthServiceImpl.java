@@ -500,11 +500,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ApiResponse<String> logout(String email, String trustedDeviceToken) {
-        User user = userRepository.findByEmail(email).orElseThrow();
-        if (trustedDeviceToken != null && !trustedDeviceToken.isEmpty()) {
+    public ApiResponse<String> logout(String trustedDeviceToken) {
+        if (trustedDeviceToken != null && !trustedDeviceToken.trim().isEmpty()) {
             String hash = sha256Hash(trustedDeviceToken);
-            trustedDeviceRepository.findByUserIdAndTokenHash(user.getId(), hash)
+            trustedDeviceRepository.findByTokenHash(hash)
+                .filter(device -> device.getRevokedAt() == null)
                 .ifPresent(device -> {
                     device.setRevokedAt(LocalDateTime.now());
                     trustedDeviceRepository.save(device);

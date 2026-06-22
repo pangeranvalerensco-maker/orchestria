@@ -81,6 +81,7 @@ public class AuthControllerMfaIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        org.mockito.Mockito.reset(restTemplate);
         otpChallengeRepository.deleteAll();
         trustedDeviceRepository.deleteAll();
         userRepository.deleteAll();
@@ -266,5 +267,177 @@ public class AuthControllerMfaIntegrationTest {
                         .header("Authorization", "Bearer " + regularToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.mandatoryByRole", is(false)));
+    }
+
+    private String sha256Hash(String input) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not found", e);
+        }
+    }
+
+    // --- D. LOGOUT TANPA JWT ---
+    
+    @Test
+    void testLogoutWithoutJwtAndWithoutCookie_returns200() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", is("Logout berhasil")))
+                .andExpect(cookie().maxAge("ORCHESTRIA_TRUSTED_DEVICE", 0));
+    }
+
+    @Test
+    void testLogoutWithoutJwtWithValidCookie_revokesDevice() throws Exception {
+        // Create a trusted device
+        String plainToken = "dummy-token";
+        String hash = sha256Hash(plainToken);
+        com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice device = com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice.builder()
+                .id(UUID.randomUUID().toString())
+                .userId(regularUser.getId())
+                .deviceName("Test Device")
+                .tokenHash(hash)
+                .lastIpAddress("127.0.0.1")
+                .userAgent("test")
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .build();
+        trustedDeviceRepository.save(device);
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .cookie(new Cookie("ORCHESTRIA_TRUSTED_DEVICE", plainToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", is("Logout berhasil")))
+                .andExpect(cookie().maxAge("ORCHESTRIA_TRUSTED_DEVICE", 0));
+
+        com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice revokedDevice = trustedDeviceRepository.findById(device.getId()).get();
+        org.junit.jupiter.api.Assertions.assertNotNull(revokedDevice.getRevokedAt());
+    }
+
+    @Test
+    void testLogoutWithUnknownCookie_returns200() throws Exception {
+        mockMvc.perform(post("/api/auth/logout")
+                        .cookie(new Cookie("ORCHESTRIA_TRUSTED_DEVICE", "unknown-token")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message", is("Logout berhasil")))
+                .andExpect(cookie().maxAge("ORCHESTRIA_TRUSTED_DEVICE", 0));
+    }
+
+    @Test
+    void testLogoutDoesNotRevokeOtherDevices() throws Exception {
+        String token1 = "dummy-token-1";
+        String hash1 = sha256Hash(token1);
+        com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice device1 = com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice.builder()
+                .id(UUID.randomUUID().toString())
+                .userId(regularUser.getId())
+                .deviceName("Device 1")
+                .tokenHash(hash1)
+                .lastIpAddress("127.0.0.1")
+                .userAgent("test")
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .build();
+        trustedDeviceRepository.save(device1);
+
+        String token2 = "dummy-token-2";
+        String hash2 = sha256Hash(token2);
+        com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice device2 = com.pangeranvalerensco.orchestria.auth_service.entity.TrustedDevice.builder()
+                .id(UUID.randomUUID().toString())
+                .userId(regularUser.getId())
+                .deviceName("Device 2")
+                .tokenHash(hash2)
+                .lastIpAddress("127.0.0.1")
+                .userAgent("test")
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(30))
+                .build();
+        trustedDeviceRepository.save(device2);
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .cookie(new Cookie("ORCHESTRIA_TRUSTED_DEVICE", token1)))
+                .andExpect(status().isOk());
+
+        org.junit.jupiter.api.Assertions.assertNotNull(trustedDeviceRepository.findById(device1.getId()).get().getRevokedAt());
+        org.junit.jupiter.api.Assertions.assertNull(trustedDeviceRepository.findById(device2.getId()).get().getRevokedAt());
+    }
+
+    // --- E. EMAIL FAILURE SCENARIOS ---
+
+    @Test
+    void testLoginMfa_emailFailure_rollsBackChallenge() throws Exception {
+        org.mockito.Mockito.when(restTemplate.postForEntity(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(Void.class)))
+                .thenThrow(new RuntimeException("Simulated SMTP error"));
+
+        superAdminUser.setTwoFactorEnabled(true);
+        userRepository.save(superAdminUser);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setEmail("admin@example.com");
+        loginRequest.setPassword("Password123!");
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginRequest)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message", is("Gagal mengirim email notifikasi. Silakan coba lagi.")));
+
+        // Verify challenge is rolled back
+        long count = otpChallengeRepository.count();
+        org.junit.jupiter.api.Assertions.assertEquals(0, count);
+        
+        // Ensure no JWT is leaked
+        // implicitly verified because response is 500 without data
+    }
+
+    @Test
+    void testForgotPassword_emailFailure_rollsBackChallenge() throws Exception {
+        org.mockito.Mockito.when(restTemplate.postForEntity(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(Void.class)))
+                .thenThrow(new RuntimeException("Simulated SMTP error"));
+
+        ForgotPasswordRequest request = new ForgotPasswordRequest();
+        request.setEmail("biasa@example.com");
+
+        mockMvc.perform(post("/api/auth/password/forgot")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message", is("Gagal mengirim email notifikasi. Silakan coba lagi.")));
+
+        // Verify challenge is rolled back
+        long count = otpChallengeRepository.count();
+        org.junit.jupiter.api.Assertions.assertEquals(0, count);
+    }
+
+    @Test
+    void testEnableDisable2FA_emailFailure_rollsBackChallenge() throws Exception {
+        org.mockito.Mockito.when(restTemplate.postForEntity(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(Void.class)))
+                .thenThrow(new RuntimeException("Simulated SMTP error"));
+
+        String token = jwtService.generateToken(regularUser);
+
+        mockMvc.perform(post("/api/auth/2fa/enable/request")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message", is("Gagal mengirim email notifikasi. Silakan coba lagi.")));
+
+        long count = otpChallengeRepository.count();
+        org.junit.jupiter.api.Assertions.assertEquals(0, count);
+        
+        regularUser.setTwoFactorEnabled(true);
+        userRepository.save(regularUser);
+
+        mockMvc.perform(post("/api/auth/2fa/disable/request")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message", is("Gagal mengirim email notifikasi. Silakan coba lagi.")));
+
+        count = otpChallengeRepository.count();
+        org.junit.jupiter.api.Assertions.assertEquals(0, count);
     }
 }

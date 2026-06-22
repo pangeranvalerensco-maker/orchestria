@@ -181,11 +181,9 @@ public class AuthController {
     
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
-        Authentication authentication,
         @CookieValue(value = TRUSTED_DEVICE_COOKIE, required = false) String trustedDeviceToken
     ) {
-        String email = authentication.getName();
-        ApiResponse<String> response = authService.logout(email, trustedDeviceToken);
+        ApiResponse<String> response = authService.logout(trustedDeviceToken);
         
         ResponseCookie cookie = ResponseCookie.from(TRUSTED_DEVICE_COOKIE, "")
             .httpOnly(true)

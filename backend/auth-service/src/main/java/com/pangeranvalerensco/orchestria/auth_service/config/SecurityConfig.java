@@ -41,6 +41,7 @@ public class SecurityConfig {
                     auth.requestMatchers("/", "/health").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
                             "/api/auth/login",
+                            "/api/auth/logout",
                             "/api/auth/otp/verify",
                             "/api/auth/otp/resend",
                             "/api/auth/password/forgot",
