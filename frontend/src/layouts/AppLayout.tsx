@@ -33,6 +33,7 @@ export function AppLayout() {
           <div className="nav-group">
             <span className="nav-group-title">Dashboard</span>
             <NavLink to="/dashboard" className={navClass}>Dashboard</NavLink>
+            <NavLink to="/security" className={navClass}>Keamanan Akun</NavLink>
           </div>
 
           <div className="nav-group">

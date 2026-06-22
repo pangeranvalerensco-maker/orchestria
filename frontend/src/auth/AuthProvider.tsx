@@ -71,13 +71,29 @@ export function AuthProvider({
   const login = useCallback(
     async (payload: LoginPayload) => {
       const response = await loginRequest(payload);
-      const authData = response.data;
+      const result = response.data;
+      
+      if (result.status === 'AUTHENTICATED' && result.authData) {
+        saveAccessToken(result.authData.accessToken);
+        setToken(result.authData.accessToken);
+        setUser(result.authData.user);
+      }
+      
+      return result;
+    },
+    [],
+  );
 
+  const verifyOtp = useCallback(
+    async (payload: import("../types/auth").OtpVerifyPayload) => {
+      const response = await import("../services/authService").then(m => m.verifyLoginOtp(payload));
+      const authData = response.data;
+      
       saveAccessToken(authData.accessToken);
       setToken(authData.accessToken);
       setUser(authData.user);
     },
-    [],
+    []
   );
 
   const hasPermission = useCallback(
@@ -98,6 +114,7 @@ export function AuthProvider({
       user,
       loading,
       login,
+      verifyOtp,
       logout,
       hasPermission,
       hasRole,
@@ -107,6 +124,7 @@ export function AuthProvider({
       user,
       loading,
       login,
+      verifyOtp,
       logout,
       hasPermission,
       hasRole,

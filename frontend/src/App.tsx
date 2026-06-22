@@ -36,6 +36,10 @@ import { PublicContentManagementPage } from "./pages/PublicContentManagementPage
 import { NotificationReportCenterPage } from "./pages/notification-report/NotificationReportCenterPage";
 import { useAuth } from "./auth/useAuth";
 
+import { ForgotPasswordPage } from "./pages/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/auth/ResetPasswordPage";
+import { SecuritySettingsPage } from "./pages/auth/SecuritySettingsPage";
+
 function NotFoundRedirect() {
   const { token } = useAuth();
   return token ? <Navigate to="/dashboard" replace /> : <Navigate to="/" replace />;
@@ -52,11 +56,14 @@ function App() {
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/security" element={<SecuritySettingsPage />} />
           <Route path="/requests" element={<MyRequestsPage />} />
           <Route path="/requests/new" element={<CreateRequestPage />} />
           <Route path="/requests/:id" element={<RequestDetailPage />} />
