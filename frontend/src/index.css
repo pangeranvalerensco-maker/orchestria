@@ -202,6 +202,21 @@ button {
   place-items: center;
 }
 
+.auth-page-container {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #f8fafc;
+  padding: 20px;
+}
+
+.flex-space-between-center-mb-1 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
 .loading-card {
   text-align: center;
   color: #64748b;
@@ -652,6 +667,11 @@ button {
 
 .font-bold {
   font-weight: bold;
+}
+
+.mt-1-text-center {
+  margin-top: 8px;
+  text-align: center;
 }
 
 .session-demo-link-desc {

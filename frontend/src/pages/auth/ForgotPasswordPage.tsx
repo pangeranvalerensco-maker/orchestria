@@ -90,8 +90,7 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <main className="login-page">
-      <section className="login-form-panel-centered">
+    <main className="auth-page-container">
         {!challengeId ? (
           <form className="login-card login-card-centered" onSubmit={handleRequestReset}>
             <div className="login-heading">
@@ -164,7 +163,6 @@ export function ForgotPasswordPage() {
             </p>
           </form>
         )}
-      </section>
     </main>
   );
 }
