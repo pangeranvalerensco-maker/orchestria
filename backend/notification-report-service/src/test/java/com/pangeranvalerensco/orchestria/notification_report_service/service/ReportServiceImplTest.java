@@ -41,13 +41,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension.class) @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class ReportServiceImplTest {
 
     private static final String AUTHORIZATION = "Bearer test-token";
 
     @Mock
     private RestTemplate restTemplate;
+
+    @Mock
+    private com.pangeranvalerensco.orchestria.notification_report_service.repository.ReportExportLogRepository reportExportLogRepository;
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
@@ -64,6 +67,7 @@ class ReportServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(reportService, "requestServiceBaseUrl", "http://localhost:8099");
+        when(reportExportLogRepository.save(any())).thenAnswer(i -> i.getArgument(0));
     }
 
     @Test

@@ -33,6 +33,7 @@ import { PublicAboutPage } from "./pages/public/PublicAboutPage";
 import { PublicOrganizationPage } from "./pages/public/PublicOrganizationPage";
 import { PublicActivitiesPage } from "./pages/public/PublicActivitiesPage";
 import { PublicContentManagementPage } from "./pages/PublicContentManagementPage";
+import { NotificationReportCenterPage } from "./pages/notification-report/NotificationReportCenterPage";
 import { useAuth } from "./auth/useAuth";
 
 function NotFoundRedirect() {
@@ -135,6 +136,10 @@ function App() {
           </Route>
           <Route element={<PermissionRoute anyOf={["english.activity.manage", "english.deposit.read.all", "english.deposit.verify", "english.report.read"]} />}>
             <Route path="/english-management" element={<EnglishManagementPage />} />
+          </Route>
+          
+          <Route element={<PermissionRoute anyOf={["notification.read", "report.read", "scheduler.log.read"]} />}>
+            <Route path="/notification-report" element={<NotificationReportCenterPage />} />
           </Route>
         </Route>
       </Route>

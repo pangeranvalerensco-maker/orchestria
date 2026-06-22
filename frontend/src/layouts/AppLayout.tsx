@@ -111,6 +111,13 @@ export function AppLayout() {
             </div>
           )}
 
+          {(hasPermission("notification.read") || hasPermission("report.read") || hasPermission("scheduler.log.read")) && (
+            <div className="nav-group">
+              <span className="nav-group-title">Sistem</span>
+              <NavLink to="/notification-report" className={navClass}>Notification & Report</NavLink>
+            </div>
+          )}
+
           {hasPermission("request.read.all") && (
             <div className="nav-group">
               <span className="nav-group-title">Laporan</span>

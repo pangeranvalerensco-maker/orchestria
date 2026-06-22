@@ -9,7 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.*; import static org.mockito.ArgumentMatchers.any; import org.junit.jupiter.api.BeforeEach;
 
 /**
  * Unit test untuk NotificationScheduler.
@@ -19,14 +19,22 @@ import static org.mockito.Mockito.*;
  * 2. Scheduler yang dinonaktifkan (enabled=false) tidak memanggil service
  * 3. Scheduler yang diaktifkan (enabled=true) memanggil NotificationService
  */
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(MockitoExtension.class) @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class NotificationSchedulerTest {
 
     @Mock
     private NotificationService notificationService;
 
+    @Mock
+    private com.pangeranvalerensco.orchestria.notification_report_service.repository.ScheduledJobLogRepository scheduledJobLogRepository;
+
     @InjectMocks
     private NotificationScheduler scheduler;
+
+    @BeforeEach
+    void setUp() {
+        when(scheduledJobLogRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+    }
 
     // =========================================================================
     //  Test: schedulerEnabled = false
