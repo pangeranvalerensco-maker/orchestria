@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router";
 import { getPublicStructureCurrent } from "../../services/publicOrganizationService";
+import { publicContentService } from "../../services/publicContentService";
 import type { PublicMemberAssignmentResponse, PublicPeriodResponse } from "../../types/publicOrganization";
+import type { PublicContentEntry } from '../../types/publicContent';
+import { PublicContentType } from '../../types/publicContent';
 import { staticPrograms, staticFacilities, staticActivities, staticTestimonials } from "../../data/publicContent";
 
 export function PublicHomePage() {
@@ -9,13 +12,23 @@ export function PublicHomePage() {
   const [structure, setStructure] = useState<PublicMemberAssignmentResponse[]>([]);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
+  const [contents, setContents] = useState<PublicContentEntry[]>([]);
+
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchData() {
       try {
-        const res = await getPublicStructureCurrent();
-        if (res.data) {
-          setPeriod(res.data.period);
-          setStructure(res.data.structure || []);
+        const [structRes, contentsRes] = await Promise.allSettled([
+          getPublicStructureCurrent(),
+          publicContentService.getPublished()
+        ]);
+
+        if (structRes.status === "fulfilled" && structRes.value.data) {
+          setPeriod(structRes.value.data.period);
+          setStructure(structRes.value.data.structure || []);
+        }
+
+        if (contentsRes.status === "fulfilled") {
+          setContents(contentsRes.value);
         }
       } catch {
         // Fallback gracefully without breaking the page
@@ -23,7 +36,7 @@ export function PublicHomePage() {
         setIsLoadingStats(false);
       }
     }
-    fetchStats();
+    fetchData();
   }, []);
 
   const stats = useMemo(() => {
@@ -47,29 +60,45 @@ export function PublicHomePage() {
     return sorted.slice(0, 4); // Max 4 for landing page
   }, [structure]);
 
+  const heroContent = useMemo(() => contents.find(c => c.contentType === PublicContentType.HERO), [contents]);
+  const programs = useMemo(() => contents.filter(c => c.contentType === PublicContentType.PROGRAM).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const facilities = useMemo(() => contents.filter(c => c.contentType === PublicContentType.FACILITY).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const activities = useMemo(() => contents.filter(c => c.contentType === PublicContentType.ACTIVITY).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+  const testimonials = useMemo(() => contents.filter(c => c.contentType === PublicContentType.TESTIMONIAL).sort((a,b) => a.displayOrder - b.displayOrder), [contents]);
+
   return (
     <div className="public-home">
       {/* 1. HERO */}
-      <section className="public-hero">
-        <div className="public-hero-content">
-          <p className="eyebrow">PROGRAM UNGGULAN BERSAMA</p>
-          <h1>Bina Prestasi, Wujudkan Mimpi</h1>
+      <section className={`public-hero ${heroContent?.mediaUrl ? 'public-hero-dynamic' : ''}`}>
+        {heroContent?.mediaUrl && (
+          <img
+            src={heroContent.mediaUrl}
+            alt=""
+            aria-hidden="true"
+            className="public-hero-background"
+          />
+        )}
+        {heroContent?.mediaUrl && <div className="public-hero-overlay"></div>}
+        <div className={`public-hero-content ${heroContent?.mediaUrl ? 'public-hero-content-dynamic' : ''}`}>
+          <p className="eyebrow">{heroContent?.subtitle || "PROGRAM UNGGULAN BERSAMA"}</p>
+          <h1>{heroContent?.title || "Bina Prestasi, Wujudkan Mimpi"}</h1>
           <p className="public-hero-desc">
-            Wadah pembinaan dan organisasi mahasiswa Universitas Nasional PASIM untuk mencetak 
-            pemimpin tangguh, profesional, dan berkarakter unggul di era digital.
+            {heroContent?.body || "Wadah pembinaan dan organisasi mahasiswa Universitas Nasional PASIM untuk mencetak pemimpin tangguh, profesional, dan berkarakter unggul di era digital."}
           </p>
           <div className="public-hero-cta">
             <Link to="/about" className="public-btn public-btn-primary">Kenali PUB</Link>
             <Link to="/login" className="public-btn public-btn-outline">Masuk Anggota</Link>
           </div>
         </div>
-        <div className="public-hero-visual">
-          <div className="public-hero-illustration">
-            <div className="illustration-box box-1"></div>
-            <div className="illustration-box box-2"></div>
-            <div className="illustration-box box-3"></div>
+        {!heroContent?.mediaUrl && (
+          <div className="public-hero-visual">
+            <div className="public-hero-illustration">
+              <div className="illustration-box box-1"></div>
+              <div className="illustration-box box-2"></div>
+              <div className="illustration-box box-3"></div>
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* 2. STATISTIK */}
@@ -104,7 +133,13 @@ export function PublicHomePage() {
             <p>Berbagai program yang kami hadirkan untuk mendukung pengembangan karakter dan kompetensi.</p>
           </div>
           <div className="public-grid-3">
-            {staticPrograms.map(prog => (
+            {programs.length > 0 ? programs.map(prog => (
+              <div key={prog.id} className="public-card">
+                {prog.mediaUrl && <img src={prog.mediaUrl} alt={prog.title} className="public-card-img" />}
+                <h3>{prog.title}</h3>
+                <p>{prog.body}</p>
+              </div>
+            )) : staticPrograms.map(prog => (
               <div key={prog.id} className="public-card">
                 <h3>{prog.title}</h3>
                 <p>{prog.description}</p>
@@ -122,7 +157,13 @@ export function PublicHomePage() {
             <p>Dukungan optimal bagi seluruh anggota Program Unggulan Bersama.</p>
           </div>
           <div className="public-grid-3">
-            {staticFacilities.map(fac => (
+            {facilities.length > 0 ? facilities.map(fac => (
+              <div key={fac.id} className="public-card">
+                {fac.mediaUrl && <img src={fac.mediaUrl} alt={fac.title} className="public-card-img" />}
+                <h3>{fac.title}</h3>
+                <p>{fac.body}</p>
+              </div>
+            )) : staticFacilities.map(fac => (
               <div key={fac.id} className="public-card">
                 <h3>{fac.title}</h3>
                 <p>{fac.description}</p>
@@ -181,7 +222,14 @@ export function PublicHomePage() {
             <p>Dokumentasi dan agenda yang sedang berjalan dalam lingkungan PUB.</p>
           </div>
           <div className="public-grid-3">
-            {staticActivities.slice(0, 3).map(act => (
+            {activities.length > 0 ? activities.slice(0, 3).map(act => (
+              <div key={act.id} className="public-card">
+                {act.mediaUrl && <img src={act.mediaUrl} alt={act.title} className="public-card-img" />}
+                <h3 className="public-card-title-spacing">{act.title}</h3>
+                <p>{act.body}</p>
+                {act.eventDate && <small className="public-meta">{act.eventDate}</small>}
+              </div>
+            )) : staticActivities.slice(0, 3).map(act => (
               <div key={act.id} className="public-card">
                 <span className="public-badge">{act.category}</span>
                 <h3 className="public-card-title-spacing">{act.title}</h3>
@@ -199,7 +247,6 @@ export function PublicHomePage() {
       </section>
 
       {/* 7. TESTIMONI */}
-      {/* STATIC SEED: Konten akan diganti oleh modul HUMAS kelak */}
       <section className="public-section">
         <div className="public-container">
           <div className="public-section-header">
@@ -207,7 +254,16 @@ export function PublicHomePage() {
             <p>Cerita dan pengalaman dari keluarga besar PUB.</p>
           </div>
           <div className="public-grid-3">
-            {staticTestimonials.map(testi => (
+            {testimonials.length > 0 ? testimonials.map(testi => (
+              <div key={testi.id} className="public-testi-card">
+                {testi.mediaUrl && <img src={testi.mediaUrl} alt={testi.title} className="public-testi-img" />}
+                <p className="testi-text">"{testi.body}"</p>
+                <div className="testi-author">
+                  <strong>{testi.authorName || testi.title}</strong>
+                  {testi.authorRole && <span>{testi.authorRole}</span>}
+                </div>
+              </div>
+            )) : staticTestimonials.map(testi => (
               <div key={testi.id} className="public-testi-card">
                 <p className="testi-text">"{testi.text}"</p>
                 <div className="testi-author">

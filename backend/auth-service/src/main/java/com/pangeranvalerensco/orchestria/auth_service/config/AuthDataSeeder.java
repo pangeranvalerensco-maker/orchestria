@@ -98,7 +98,13 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new PermissionSeed("english.deposit.read.own", "Melihat setoran bahasa Inggris sendiri"),
                                 new PermissionSeed("english.deposit.read.all", "Melihat seluruh setoran bahasa Inggris"),
                                 new PermissionSeed("english.deposit.verify", "Memverifikasi setoran bahasa Inggris"),
-                                new PermissionSeed("english.report.read", "Melihat laporan aktivitas bahasa Inggris"));
+                                new PermissionSeed("english.report.read", "Melihat laporan aktivitas bahasa Inggris"),
+
+                                new PermissionSeed("public.content.read", "Melihat konten publik admin"),
+                                new PermissionSeed("public.content.manage", "Mengelola program, fasilitas, dan testimoni"),
+                                new PermissionSeed("public.organization.manage", "Mengelola profil publik organisasi"),
+                                new PermissionSeed("public.activity.manage", "Mengelola publikasi kegiatan"),
+                                new PermissionSeed("public.media.manage", "Mengelola metadata media publik"));
 
                 for (PermissionSeed seed : permissions) {
                         permissionRepository.findByName(seed.name())
@@ -122,6 +128,7 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 new RoleSeed("BENDAHARA_EKSTERNAL", "Bendahara eksternal"),
                                 new RoleSeed("CHECKER", "Pemeriksa dan pengelola operasional aset"),
                                 new RoleSeed("KOORDINATOR", "Koordinator piket"),
+                                new RoleSeed("HUMAS", "Pengelola publikasi dan media organisasi"),
                                 new RoleSeed("ANGGOTA", "Anggota organisasi"));
 
                 for (RoleSeed seed : roles) {
@@ -178,7 +185,19 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "english.deposit.read.own",
                                 "english.deposit.read.all",
                                 "english.deposit.verify",
-                                "english.report.read"));
+                                "english.report.read",
+                                "public.content.read",
+                                "public.content.manage",
+                                "public.organization.manage",
+                                "public.activity.manage",
+                                "public.media.manage"));
+
+                assign("HUMAS", List.of(
+                                "public.content.read",
+                                "public.content.manage",
+                                "public.organization.manage",
+                                "public.activity.manage",
+                                "public.media.manage"));
 
                 assign("KOORDINATOR", List.of(
                                 "cleanliness.schedule.read",
@@ -194,7 +213,8 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "english.deposit.read.own",
                                 "english.deposit.read.all",
                                 "english.deposit.verify",
-                                "english.report.read"));
+                                "english.report.read",
+                                "public.content.read"));
 
                 assign("PEMBINA", List.of(
                                 "organization.read",
@@ -235,7 +255,12 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "cleanliness.report.read",
                                 "english.activity.read",
                                 "english.deposit.read.all",
-                                "english.report.read"));
+                                "english.report.read",
+                                "public.content.read",
+                                "public.content.manage",
+                                "public.organization.manage",
+                                "public.activity.manage",
+                                "public.media.manage"));
 
                 assign("KETUA_DIVISI", List.of(
                                 "organization.read",
@@ -252,7 +277,9 @@ public class AuthDataSeeder implements CommandLineRunner {
                                 "organization.read",
                                 "organization.manage",
                                 "archive.manage",
-                                "report.read"));
+                                "report.read",
+                                "public.content.read",
+                                "public.organization.manage"));
 
                 assign("BENDAHARA_INTERNAL", List.of(
                                 "organization.read",

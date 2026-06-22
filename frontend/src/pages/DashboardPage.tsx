@@ -7,6 +7,7 @@ import divisionTaskService from "../services/divisionTaskService";
 import { getMyBorrowings, getAllBorrowings } from "../services/assetService";
 import { getMySchedules, getMyPoints } from "../services/cleanlinessService";
 import { englishService } from "../services/englishService";
+import { publicContentService } from "../services/publicContentService";
 import type { FundRequest } from "../types/request";
 
 export function DashboardPage() {
@@ -26,6 +27,8 @@ export function DashboardPage() {
   
   const [activeEnglishActivitiesCount, setActiveEnglishActivitiesCount] = useState<number | null>(null);
   const [pendingEnglishDepositsCount, setPendingEnglishDepositsCount] = useState<number | null>(null);
+
+  const [draftPublicContentCount, setDraftPublicContentCount] = useState<number | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardWarning, setDashboardWarning] = useState<string | null>(null);
@@ -48,6 +51,8 @@ export function DashboardPage() {
   const canReadOwnEnglishDeposit = hasPermission("english.deposit.read.own");
   const canReadAllEnglishDeposit = hasPermission("english.deposit.read.all");
   const canVerifyEnglishDeposit = hasPermission("english.deposit.verify");
+  
+  const canManagePublicContent = hasPermission("public.content.manage") || hasPermission("public.organization.manage") || hasPermission("public.activity.manage") || hasPermission("public.media.manage");
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -181,6 +186,14 @@ export function DashboardPage() {
         );
       }
 
+      if (canManagePublicContent && token) {
+        promises.push(
+          publicContentService.getAllContents(token, undefined, "DRAFT").then((res) => {
+            setDraftPublicContentCount(res.length);
+          })
+        );
+      }
+
       const results = await Promise.allSettled(promises);
       const hasError = results.some(r => r.status === "rejected");
       if (hasError) {
@@ -191,7 +204,7 @@ export function DashboardPage() {
     }
 
     loadDashboardData();
-  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness, canReadEnglish, canReadOwnEnglishDeposit, canReadAllEnglishDeposit, canVerifyEnglishDeposit]);
+  }, [user, token, canReadOwnRequest, canApprove, canDisburse, canReadTasks, canReadOwnBorrowing, canManageBorrowing, canReadCleanliness, canReadEnglish, canReadOwnEnglishDeposit, canReadAllEnglishDeposit, canVerifyEnglishDeposit, canManagePublicContent]);
 
   const renderCount = (count: number | null) => {
     if (isLoading) return "...";
@@ -359,6 +372,14 @@ export function DashboardPage() {
             <Link to="/english-activities" className="stat-link">Lihat Status &rarr;</Link>
           </div>
         ) : null}
+
+        {canManagePublicContent && (
+          <div className="dashboard-card stat-card stat-warning">
+            <span className="stat-label">Draft Konten Publik</span>
+            <strong className="stat-value">{renderCount(draftPublicContentCount)}</strong>
+            <Link to="/public-content-management" className="stat-link">Proses Draft &rarr;</Link>
+          </div>
+        )}
       </section>
 
       <div className="dashboard-main-grid">
@@ -414,6 +435,7 @@ export function DashboardPage() {
               {canReadCleanliness && <Link to="/picket-schedules" className="quick-action-btn">🧹 Jadwal Piket</Link>}
               {canReadEnglish && <Link to="/english-activities" className="quick-action-btn">🗣️ English Portal</Link>}
               {hasPermission("english.activity.manage") && <Link to="/english-management" className="quick-action-btn">📋 Kelola English</Link>}
+              {canManagePublicContent && <Link to="/public-content-management" className="quick-action-btn">📢 Kelola Konten Publik</Link>}
             </div>
           </section>
 
