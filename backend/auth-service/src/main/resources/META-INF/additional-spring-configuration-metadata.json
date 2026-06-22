@@ -1,0 +1,29 @@
+{
+  "properties": [
+    {
+      "name": "app.jwt.secret",
+      "type": "java.lang.String",
+      "description": "Secret used to sign and verify Orchestria JWT tokens."
+    },
+    {
+      "name": "app.jwt.expiration-ms",
+      "type": "java.lang.Long",
+      "description": "JWT access token lifetime in milliseconds."
+    },
+    {
+      "name": "app.internal.api-key",
+      "type": "java.lang.String",
+      "description": "Shared API key for trusted internal service calls."
+    },
+    {
+      "name": "app.session-demo.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enables the isolated stateful HttpSession demonstration endpoints."
+    },
+    {
+      "name": "app.session-demo.timeout-seconds",
+      "type": "java.lang.Integer",
+      "description": "Maximum inactive time for the stateful session demonstration."
+    }
+  ]
+}
